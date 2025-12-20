@@ -1,0 +1,23 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+    content: [
+        "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+        "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+        "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
+    ],
+    theme: {
+        extend: {
+            colors: {
+                background: "var(--background)",
+                foreground: "var(--foreground)",
+                brand: {
+                    gray: "#F3F4F6", // Placeholder: Light gray
+                    dark: "#111827", // Placeholder: Dark gray/black
+                },
+            },
+        },
+    },
+    plugins: [],
+};
+export default config;

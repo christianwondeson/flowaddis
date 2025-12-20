@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-gray: #F3F4F6;
+  --color-brand-dark: #111827;
+  --color-brand-primary: #0066CC;
+  --color-brand-secondary: #00A3E0;
+  --color-brand-white: #ffffff;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-gray text-brand-dark font-sans antialiased;
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
