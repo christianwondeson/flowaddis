@@ -14,21 +14,22 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter } from 'next/navigation';
 import { useFlights } from '@/hooks/use-flights';
 import { toast } from 'sonner';
+import { FlightRouteSelect } from '@/components/search/flight-route-select';
 
 export default function FlightsPage() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
 
     // Search State
-    const [fromCode, setFromCode] = useState('LHR');
-    const [toCode, setToCode] = useState('JFK');
+    const [fromCode, setFromCode] = useState('ADD.AIRPORT');
+    const [toCode, setToCode] = useState('JFK.AIRPORT');
     const [departDate, setDepartDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
     const [passengers, setPassengers] = useState('1');
 
     // Query Params State (only update on search click)
     const [searchParams, setSearchParams] = useState({
-        fromCode: 'LHR',
-        toCode: 'JFK',
+        fromCode: 'ADD.AIRPORT',
+        toCode: 'JFK.AIRPORT',
         departDate: new Date(Date.now() + 86400000),
         adults: 1
     });
@@ -86,20 +87,12 @@ export default function FlightsPage() {
                 {/* Search Widget */}
                 <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 overflow-visible">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                        <div className="md:col-span-3">
-                            <LocationInput
-                                label="From"
-                                placeholder="e.g. London"
-                                value={fromCode}
-                                onChange={setFromCode}
-                            />
-                        </div>
-                        <div className="md:col-span-3">
-                            <LocationInput
-                                label="To"
-                                placeholder="e.g. New York"
-                                value={toCode}
-                                onChange={setToCode}
+                        <div className="md:col-span-6">
+                            <FlightRouteSelect
+                                fromCode={fromCode}
+                                toCode={toCode}
+                                onChangeFrom={setFromCode}
+                                onChangeTo={setToCode}
                             />
                         </div>
                         <div className="md:col-span-2">

@@ -71,12 +71,10 @@ export function FeaturedHotels() {
                   <span className="text-gray-400 text-sm font-medium"> / night</span>
                 </div>
                 <Button
-                  size="sm"
-                  variant="outline"
                   onClick={() => handleBook(hotel)}
-                  className="rounded-xl border-2"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30"
                 >
-                  Book Now
+                  Book Now <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>

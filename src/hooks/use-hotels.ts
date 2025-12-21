@@ -8,20 +8,26 @@ interface UseHotelsParams {
     checkOut?: Date;
     page?: number;
     filters?: HotelFilters;
+    adults?: number;
+    children?: number;
+    rooms?: number;
 }
 
-export function useHotels({ query, checkIn, checkOut, page = 0, filters }: UseHotelsParams) {
+export function useHotels({ query, checkIn, checkOut, page = 0, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
     return useQuery({
-        queryKey: queryKeys.hotels.list({ query, checkIn, checkOut, page, filters }),
+        queryKey: queryKeys.hotels.list({ query, checkIn, checkOut, page, filters, adults, children, rooms }),
         queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean }> => {
             // Build query params
             const params = new URLSearchParams({
                 query,
                 page: page.toString(),
+                adults: adults.toString(),
+                children: children.toString(),
+                rooms: rooms.toString(),
             });
 
-            if (checkIn) params.append('checkIn', checkIn.toISOString());
-            if (checkOut) params.append('checkOut', checkOut.toISOString());
+            if (checkIn) params.append('checkIn', checkIn.toISOString().split('T')[0]);
+            if (checkOut) params.append('checkOut', checkOut.toISOString().split('T')[0]);
             if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
             if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
             if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
@@ -32,6 +38,7 @@ export function useHotels({ query, checkIn, checkOut, page = 0, filters }: UseHo
             if (filters?.amenities && filters.amenities.length > 0) {
                 params.append('amenities', filters.amenities.join(','));
             }
+            if (filters?.hotelName) params.append('hotelName', filters.hotelName);
 
             try {
                 const response = await fetch(`/api/hotels/search?${params.toString()}`);

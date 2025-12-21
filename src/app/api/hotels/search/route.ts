@@ -9,6 +9,12 @@ export async function GET(request: Request) {
     const checkOut = searchParams.get('checkOut') || new Date(Date.now() + 172800000).toISOString().split('T')[0];
     const page = searchParams.get('page') || '0';
     const sortOrder = searchParams.get('sortOrder') || 'popularity';
+    const currency = searchParams.get('currency') || 'USD';
+
+    // Guest Filters
+    const adults = searchParams.get('adults') || '2';
+    const children = searchParams.get('children') || '0';
+    const rooms = searchParams.get('rooms') || '1';
 
     // Filters
     const minPrice = searchParams.get('minPrice');
@@ -16,13 +22,41 @@ export async function GET(request: Request) {
     const stars = searchParams.get('stars');
     const minRating = searchParams.get('minRating');
     const amenities = searchParams.get('amenities');
+    const hotelName = searchParams.get('hotelName') || '';
 
     try {
         // 1. Resolve Location to get dest_id
-        // Append ", Ethiopia" if not present to prioritize Ethiopian results for generic queries
-        const searchQuery = (query.toLowerCase().includes('ethiopia') || query.toLowerCase().includes('addis'))
-            ? query
-            : `${query}`;
+        // Normalize airport-like codes to city names to improve matching
+        const CODE_TO_CITY: Record<string, string> = {
+            ADD: 'Addis Ababa',
+            DXB: 'Dubai',
+            LHR: 'London',
+            FRA: 'Frankfurt/Main',
+            IST: 'Istanbul',
+            JFK: 'New York',
+            YYZ: 'Toronto',
+            DOH: 'Doha',
+            CDG: 'Paris',
+        };
+        let searchQuery = query.trim();
+        const airportCodeMatch = searchQuery.match(/^([A-Za-z]{3})(?:\.(AIRPORT|CITY))?$/);
+        if (airportCodeMatch) {
+            const code = airportCodeMatch[1].toUpperCase();
+            if (CODE_TO_CITY[code]) {
+                searchQuery = CODE_TO_CITY[code];
+            }
+        } else if (searchQuery.includes('.AIRPORT') || searchQuery.includes('.CITY')) {
+            const code = searchQuery.split('.')[0].toUpperCase();
+            if (CODE_TO_CITY[code]) {
+                searchQuery = CODE_TO_CITY[code];
+            }
+        }
+
+        // Append country context if it clearly targets Ethiopia
+        if (searchQuery.toLowerCase().includes('addis') && !searchQuery.toLowerCase().includes('ethiopia')) {
+            // Optional: keep simple to avoid over-constraining searches
+            // searchQuery = `${searchQuery}, Ethiopia`;
+        }
 
         const locationOptions = {
             method: 'GET',
@@ -34,7 +68,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-     
+        console.log(`Resolving location for: ${searchQuery}`);
         const locationResponse = await axios.request(locationOptions);
         const locations = locationResponse.data;
 
@@ -50,8 +84,27 @@ export async function GET(request: Request) {
             destId = targetLocation.dest_id;
             searchType = targetLocation.search_type;
             destType = targetLocation.dest_type;
-            
-        } 
+            console.log(`Resolved location to: ${targetLocation.name} (ID: ${destId})`);
+        } else {
+            console.log('No location found from API for', searchQuery, '- trying curated fallbacks');
+            // Curated fallback dest_ids (maintain as needed)
+            const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
+                'addis ababa': { dest_id: '-553173', dest_type: 'city', search_type: 'city' },
+                'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
+                'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
+                'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
+                'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+            };
+            const key = searchQuery.toLowerCase();
+            if (FALLBACK_DESTS[key]) {
+                destId = FALLBACK_DESTS[key].dest_id;
+                searchType = FALLBACK_DESTS[key].search_type;
+                destType = FALLBACK_DESTS[key].dest_type;
+            } else {
+                console.log('No curated fallback; using default Addis Ababa');
+            }
+        }
 
         // 2. Build Filter IDs
         const categoriesFilterIds = [];
@@ -79,12 +132,12 @@ export async function GET(request: Request) {
                 checkout_date: checkOut,
                 page_number: page,
                 order_by: sortOrder,
-                adults_number: '2',
-                children_number: '0',
-                room_number: '1',
+                adults_number: adults,
+                children_number: children,
+                room_number: rooms,
                 units: 'metric',
                 locale: 'en-gb',
-                filter_by_currency: 'USD',
+                filter_by_currency: currency,
                 include_adjacency: 'true',
                 categories_filter_ids: categoriesFilterIds.join(','),
                 price_min: minPrice,
@@ -93,11 +146,13 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-    
+        console.log('Fetching hotels with params:', JSON.stringify(searchOptions.params, null, 2));
+
         const response = await axios.request(searchOptions);
         const results = response.data.result || [];
+        const totalCount = (response.data.count ?? results.length) as number;
 
-        const hotels = results.map((item: any) => {
+        let hotels = results.map((item: any) => {
             // Price calculation
             const priceBreakdown = item.composite_price_breakdown;
             const grossAmount = priceBreakdown?.gross_amount_per_night?.value || item.min_total_price?.value || 0;
@@ -130,19 +185,32 @@ export async function GET(request: Request) {
                 badges,
                 distance: item.distance_to_cc_formatted || `${item.distance_to_cc || 0} km from centre`,
                 image,
+                coordinates: (item.latitude && item.longitude) ? { lat: item.latitude, lng: item.longitude } : undefined,
                 amenities: item.hotel_facilities ? item.hotel_facilities.split(',').slice(0, 5) : ['Free WiFi'],
                 description: item.unit_configuration_label || `Stay at ${item.hotel_name}`,
             };
         });
 
+        // Optional server-side filter by hotel name (contains)
+        if (hotelName) {
+            const nameLc = hotelName.toLowerCase();
+            hotels = hotels.filter((h: any) => h.name.toLowerCase().includes(nameLc));
+        }
+
+        // Compute hasNextPage heuristically from total count and current page size
+        const pageIndex = Number(page) || 0;
+        const pageSize = results.length;
+        const hasNextPage = pageSize > 0 ? (pageSize * (pageIndex + 1) < totalCount) : false;
+
         return NextResponse.json({
             hotels,
-            total: hotels.length,
-            hasNextPage: hotels.length >= 20
+            total: totalCount,
+            hasNextPage,
         });
 
     } catch (error: any) {
-        console.error('Error fetching hotels:', error.message);
+        const status = error?.response?.status;
+        console.error('Error fetching hotels:', status, error.message);
 
         // Mock Data Fallback
         const generateMockHotels = () => {
@@ -155,64 +223,30 @@ export async function GET(request: Request) {
                 'https://images.unsplash.com/photo-1596436889106-be35e843f974?auto=format&fit=crop&w=800&q=80',
                 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80',
                 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1571896349842-6e5a51335022?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1590490360182-f33db079502d?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1590073242678-cfea53382e52?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80',
             ];
-
-            const moreHotels = Array.from({ length: 30 }).map((_, i) => ({
-                id: `mock-${i + 6}`,
-                name: `Addis Hotel ${i + 6}`,
-                location: 'Addis Ababa',
-                rating: 4.0 + (i % 10) / 10,
-                reviews: 100 + i * 10,
-                reviewWord: 'Good',
-                price: 50 + (i % 5) * 20,
-                originalPrice: 80 + (i % 5) * 20,
-                discountPercentage: 10,
-                badges: [],
-                distance: `${2 + i} km from centre`,
+            
+            return Array.from({ length: 10 }).map((_, i) => ({
+                id: `mock-${i}`,
+                name: `Mock Hotel ${i + 1} in ${query}`,
+                location: query,
+                rating: 8.5,
+                reviews: 120 + i * 10,
+                reviewWord: 'Very Good',
+                price: 150 + i * 20,
+                originalPrice: 200 + i * 20,
+                discountPercentage: 25,
+                badges: ['Free Cancellation'],
+                distance: '2 km from centre',
                 image: hotelImages[i % hotelImages.length],
-                amenities: ['Free WiFi'],
-                description: 'A comfortable stay in Addis Ababa.',
+                amenities: ['Free WiFi', 'Pool', 'Spa'],
+                description: 'A wonderful place to stay.',
             }));
-
-            return moreHotels;
         };
 
-        let allMockHotels = generateMockHotels();
-
-        // Filter mock data
-        if (query && !query.toLowerCase().includes('addis')) {
-            allMockHotels = allMockHotels.filter(h =>
-                h.name.toLowerCase().includes(query.toLowerCase()) ||
-                h.location.toLowerCase().includes(query.toLowerCase())
-            );
-        }
-
-        if (stars) {
-            const starList = stars.split(',').map(Number);
-            allMockHotels = allMockHotels.filter(h => {
-                const rating = Math.floor(h.rating);
-                return starList.includes(rating) || (rating === 4 && starList.includes(5) && h.rating >= 4.5);
-            });
-        }
-
-        const pageNum = parseInt(page);
-        const pageSize = 10;
-        const start = pageNum * pageSize;
-        const end = start + pageSize;
-        const paginatedHotels = allMockHotels.slice(start, end);
-
         return NextResponse.json({
-            hotels: paginatedHotels,
-            total: allMockHotels.length,
-            hasNextPage: end < allMockHotels.length,
-            fromMock: true
+            hotels: generateMockHotels(),
+            total: 10,
+            hasNextPage: false
         });
     }
 }
