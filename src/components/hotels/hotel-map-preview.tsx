@@ -2,9 +2,11 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { LeafletMap, PriceMarker } from '@/components/map/leaflet-map';
+import dynamic from 'next/dynamic';
+import { PriceMarker, Hotel } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Hotel } from '@/types';
+
+const LeafletMap = dynamic(() => import('@/components/map/leaflet-map').then(m => m.LeafletMap), { ssr: false });
 
 interface HotelMapPreviewProps {
   hotels?: Hotel[];

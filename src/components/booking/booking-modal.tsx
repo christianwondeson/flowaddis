@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Receipt } from './receipt';
@@ -13,6 +13,8 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Popover } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -48,6 +50,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         handleSubmit,
         formState: { errors },
         reset,
+        setValue,
+        watch,
     } = useForm<BookingFormData>({
         resolver: zodResolver(bookingSchema),
         defaultValues: {
@@ -57,6 +61,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             date: '',
         },
     });
+    const selectedDate = watch('date');
 
     const handleAddToTrip = (data: BookingFormData) => {
         addToTrip({
@@ -126,12 +131,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
+                    className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto z-[10001]"
                 >
                     <div className="flex justify-between items-center p-6 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-brand-dark">
@@ -181,13 +186,27 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     {...register('phone')}
                                     error={errors.phone?.message}
                                 />
-                                <Input
-                                    id="date"
-                                    label="Date"
-                                    type="date"
-                                    {...register('date')}
-                                    error={errors.date?.message}
+                                <Popover
+                                    trigger={
+                                        <div className="w-full cursor-pointer">
+                                            <label htmlFor="date" className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Date</label>
+                                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                                <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                                <span className="text-gray-900 font-medium">{selectedDate || 'Select Date'}</span>
+                                            </div>
+                                        </div>
+                                    }
+                                    content={
+                                        <Calendar
+                                            selected={selectedDate ? new Date(selectedDate) : undefined}
+                                            onSelect={(date) => setValue('date', date.toISOString().split('T')[0], { shouldValidate: true })}
+                                            minDate={new Date()}
+                                        />
+                                    }
                                 />
+                                {errors.date?.message && (
+                                    <p className="text-red-500 text-xs mt-1 ml-1">{errors.date.message}</p>
+                                )}
 
                                 <div className="flex gap-3 pt-4">
                                     <Button

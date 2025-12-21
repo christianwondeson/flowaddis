@@ -11,23 +11,18 @@ const Marker = dynamic(() => import('react-leaflet').then(m => m.Marker), { ssr:
 const Popup = dynamic(() => import('react-leaflet').then(m => m.Popup), { ssr: false });
 const UseMap = dynamic(() => import('react-leaflet').then(m => ({ useMap: m.useMap } as any)), { ssr: false });
 
-// Fix default icon paths in Next.js
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: typeof window !== 'undefined' ? require('leaflet/dist/images/marker-icon-2x.png') : undefined,
-  iconUrl: typeof window !== 'undefined' ? require('leaflet/dist/images/marker-icon.png') : undefined,
-  shadowUrl: typeof window !== 'undefined' ? require('leaflet/dist/images/marker-shadow.png') : undefined,
-});
-
-export interface PriceMarker {
-  id: string;
-  name: string;
-  price: number;
-  lat: number;
-  lng: number;
-  image?: string;
+if (typeof window !== 'undefined') {
+  // Fix default icon paths in Next.js
+  // @ts-ignore
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+    iconUrl: require('leaflet/dist/images/marker-icon.png'),
+    shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  });
 }
+
+import { PriceMarker } from '@/types';
 
 interface LeafletMapProps {
   center: [number, number];

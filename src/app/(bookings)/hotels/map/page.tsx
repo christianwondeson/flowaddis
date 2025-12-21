@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { LeafletMap, PriceMarker } from '@/components/map/leaflet-map';
+import { PriceMarker } from '@/types';
+const LeafletMap = dynamic(() => import('@/components/map/leaflet-map').then(m => m.LeafletMap), { ssr: false });
 import { HotelList } from '@/components/hotels/hotel-list';
 import { HotelFilters } from '@/components/hotels/hotel-filters';
 import { useHotels } from '@/hooks/use-hotels';
 
-export default function HotelsMapPage() {
+function HotelsMapContent() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -85,7 +87,7 @@ export default function HotelsMapPage() {
                 hotels={hotels}
                 isLoading={isLoading && page === 0}
                 error={error}
-                onBook={() => {}}
+                onBook={() => { }}
                 onHoverStart={(id) => setHoveredId(id)}
                 onHoverEnd={() => setHoveredId(undefined)}
               />
@@ -106,5 +108,13 @@ export default function HotelsMapPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function HotelsMapPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
+      <HotelsMapContent />
+    </Suspense>
   );
 }

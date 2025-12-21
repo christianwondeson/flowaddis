@@ -44,3 +44,12 @@ export interface Trip {
     status: 'pending' | 'confirmed' | 'cancelled';
     date: string;
 }
+
+export interface PriceMarker {
+    id: string;
+    name: string;
+    price: number;
+    lat: number;
+    lng: number;
+    image?: string;
+}

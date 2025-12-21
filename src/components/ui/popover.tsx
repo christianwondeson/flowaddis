@@ -10,14 +10,16 @@ interface PopoverProps {
     className?: string;
     align?: 'left' | 'right';
     portal?: boolean; // render in portal to escape overflow clipping
+    placement?: 'auto' | 'bottom' | 'top';
 }
 
-export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, align = 'left', portal = true }) => {
+export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, align = 'left', portal = true, placement = 'auto' }) => {
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+    const [currentPlacement, setCurrentPlacement] = useState<'top' | 'bottom'>('bottom');
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -43,7 +45,20 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, a
             if (!triggerRef.current) return;
             const rect = triggerRef.current.getBoundingClientRect();
             const left = align === 'right' ? rect.right : rect.left;
-            setCoords({ top: rect.bottom + 8, left, width: rect.width });
+            // Measure content height if available, else assume 320px (calendar size)
+            const contentH = contentRef.current?.offsetHeight || 320;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            let place: 'top' | 'bottom' = 'bottom';
+            if (placement === 'top') place = 'top';
+            else if (placement === 'bottom') place = 'bottom';
+            else {
+                // auto
+                place = spaceBelow >= contentH + 12 || spaceBelow >= spaceAbove ? 'bottom' : 'top';
+            }
+            setCurrentPlacement(place);
+            const top = place === 'bottom' ? rect.bottom + 8 : Math.max(8, rect.top - contentH - 8);
+            setCoords({ top, left, width: rect.width });
         };
         if (isOpen) {
             updatePosition();
@@ -59,7 +74,7 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, a
     const popoverContent = isOpen && (
         <div
             className={clsx(
-                "bg-white rounded-xl shadow-2xl border border-gray-100 p-4 min-w-[240px] z-[9999]",
+                "bg-white rounded-xl shadow-2xl border border-gray-100 p-4 min-w-[240px] z-[10005]",
                 className
             )}
             style={portal && coords ? {
@@ -82,7 +97,7 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, a
                 portal && coords
                     ? createPortal(popoverContent, document.body)
                     : (
-                        <div className={clsx("absolute z-[9999] mt-2", align === 'right' ? 'right-0' : 'left-0')}>
+                        <div className={clsx("absolute z-[10005]", currentPlacement === 'bottom' ? 'mt-2' : 'mb-2', align === 'right' ? 'right-0' : 'left-0')}>
                             {popoverContent}
                         </div>
                     )
