@@ -5,7 +5,8 @@ import { Plane, Calendar as CalendarIcon, Users, Search, ArrowRight } from 'luci
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LocationInput } from '@/components/search/location-input';
-import { GuestSelector } from '@/components/search/guest-selector';
+// Travelers & Cabin selector
+import { TravelerCabinSelector, TravelerState } from '@/components/search/traveler-cabin-selector';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover } from '@/components/ui/popover';
 import { BookingModal } from '@/components/booking/booking-modal';
@@ -24,21 +25,32 @@ export default function FlightsPage() {
     const [fromCode, setFromCode] = useState('ADD.AIRPORT');
     const [toCode, setToCode] = useState('JFK.AIRPORT');
     const [departDate, setDepartDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
-    const [passengers, setPassengers] = useState('1');
+    const [trav, setTrav] = useState<TravelerState>({
+        adults: 1,
+        students: 0,
+        seniors: 0,
+        youths: 0,
+        children: 0,
+        toddlers: 0,
+        infants: 0,
+        cabinClass: 'Economy',
+    });
 
     // Query Params State (only update on search click)
     const [searchParams, setSearchParams] = useState({
         fromCode: 'ADD.AIRPORT',
         toCode: 'JFK.AIRPORT',
         departDate: new Date(Date.now() + 86400000),
-        adults: 1
+        adults: 1,
+        children: 0,
     });
 
     const { data: flights, isLoading, error } = useFlights({
         fromCode: searchParams.fromCode,
         toCode: searchParams.toCode,
         departDate: searchParams.departDate,
-        adults: searchParams.adults
+        adults: searchParams.adults,
+        children: searchParams.children,
     });
 
     const { user } = useAuth();
@@ -49,11 +61,14 @@ export default function FlightsPage() {
             toast.error('Please fill in all search fields');
             return;
         }
+        const totalAdults = trav.adults + trav.students + trav.seniors;
+        const totalChildren = trav.children + trav.youths + trav.toddlers + trav.infants;
         setSearchParams({
             fromCode,
             toCode,
             departDate: new Date(departDate),
-            adults: parseInt(passengers) || 1
+            adults: totalAdults || 1,
+            children: totalChildren || 0,
         });
     };
 
@@ -115,13 +130,8 @@ export default function FlightsPage() {
                                 }
                             />
                         </div>
-                        <div className="md:col-span-2">
-                            <GuestSelector
-                                adults={parseInt(passengers)}
-                                children={0}
-                                rooms={1}
-                                onChange={(a) => setPassengers(a.toString())}
-                            />
+                        <div className="md:col-span-3">
+                            <TravelerCabinSelector value={trav} onChange={setTrav} />
                         </div>
                         <div className="md:col-span-2">
                             <Button

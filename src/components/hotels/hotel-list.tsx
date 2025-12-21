@@ -9,9 +9,11 @@ interface HotelListProps {
     isLoading: boolean;
     error: any;
     onBook: (hotel: Hotel) => void;
+    onHoverStart?: (id: string) => void;
+    onHoverEnd?: (id: string) => void;
 }
 
-export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, onBook }) => {
+export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, onBook, onHoverStart, onHoverEnd }) => {
     if (isLoading) {
         return (
             <div className="space-y-8">
@@ -42,7 +44,7 @@ export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, 
         <div className="space-y-8">
             <h2 className="text-2xl font-bold text-brand-dark mb-6">Recommended Hotels</h2>
             {hotels.map((hotel) => (
-                <HotelCard key={hotel.id} hotel={hotel} onBook={onBook} />
+                <HotelCard key={hotel.id} hotel={hotel} onBook={onBook} onHoverStart={onHoverStart} onHoverEnd={onHoverEnd} />
             ))}
         </div>
     );

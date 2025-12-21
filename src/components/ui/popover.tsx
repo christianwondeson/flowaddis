@@ -16,11 +16,15 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, a
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const inTrigger = wrapperRef.current && wrapperRef.current.contains(target);
+            const inContent = contentRef.current && contentRef.current.contains(target);
+            if (!inTrigger && !inContent) {
                 setIsOpen(false);
             }
         };
@@ -63,6 +67,7 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, a
                 top: coords.top,
                 left: align === 'right' && coords ? (coords.left - (coords.width || 0)) : coords?.left,
             } as React.CSSProperties : undefined}
+            ref={contentRef}
         >
             {content}
         </div>

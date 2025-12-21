@@ -4,13 +4,18 @@ import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { HotelFilters as FilterType } from '@/types';
 import { Input } from '@/components/ui/input';
+import { Hotel } from '@/types';
+import { HotelMapPreview } from './hotel-map-preview';
 
 interface HotelFiltersProps {
     filters: FilterType;
     onFilterChange: (filters: FilterType) => void;
+    hotels?: Hotel[];
+    showMapPreview?: boolean;
+    linkParams?: Record<string, string | number | undefined | null>;
 }
 
-export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterChange }) => {
+export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterChange, hotels, showMapPreview = true, linkParams }) => {
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange({ ...filters, sortOrder: e.target.value });
     };
@@ -41,6 +46,9 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterCha
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-8">
+            {/* Map Preview (hidden on full map page) */}
+            {showMapPreview && <HotelMapPreview hotels={hotels} linkParams={linkParams} />}
+            
             <div>
                 <h3 className="font-bold text-gray-900 mb-3">Hotel Name</h3>
                 <Input

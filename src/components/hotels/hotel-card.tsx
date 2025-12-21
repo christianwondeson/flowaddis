@@ -10,14 +10,20 @@ import { Hotel } from '@/types';
 interface HotelCardProps {
     hotel: Hotel;
     onBook: (hotel: Hotel) => void;
+    onHoverStart?: (id: string) => void;
+    onHoverEnd?: (id: string) => void;
 }
 
-export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook }) => {
+export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStart, onHoverEnd }) => {
     return (
-        <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 group">
+        <Card
+            className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100 group"
+            onMouseEnter={() => onHoverStart?.(hotel.id)}
+            onMouseLeave={() => onHoverEnd?.(hotel.id)}
+        >
             <div className="flex flex-col md:flex-row">
                 {/* Image */}
-                <div className="w-full md:w-2/5 h-64 md:h-auto relative overflow-hidden">
+                <div className="w-full md:w-2/5 h-56 md:h-auto relative overflow-hidden">
                     <img
                         src={hotel.image}
                         alt={hotel.name}
@@ -38,11 +44,11 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook }) => {
                 </div>
 
                 {/* Content */}
-                <div className="w-full md:w-3/5 p-5 md:p-6 flex flex-col justify-between">
+                <div className="w-full md:w-3/5 p-4 md:p-6 flex flex-col justify-between">
                     <div>
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                             <div>
-                                <h3 className="text-xl md:text-2xl font-bold text-brand-dark mb-2">{hotel.name}</h3>
+                                <h3 className="text-lg md:text-2xl font-bold text-brand-dark mb-2">{hotel.name}</h3>
                                 <div className="flex items-center gap-2 text-gray-500 text-sm">
                                     <MapPin className="w-4 h-4 text-brand-secondary flex-shrink-0" />
                                     <span className="line-clamp-1">{hotel.location}</span>
@@ -63,7 +69,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook }) => {
                                                 -{hotel.discountPercentage}%
                                             </span>
                                         )}
-                                        <span className="text-2xl md:text-3xl font-bold text-brand-primary">
+                                        <span className="text-xl md:text-3xl font-bold text-brand-primary">
                                             {formatCurrency(hotel.price)}
                                         </span>
                                     </div>

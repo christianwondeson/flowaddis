@@ -9,6 +9,7 @@ import { AirportInput } from '@/components/search/airport-input';
 import { LocationInput } from '@/components/search/location-input';
 import dynamic from 'next/dynamic';
 const GuestSelector = dynamic(() => import('@/components/search/guest-selector').then(m => m.GuestSelector), { ssr: false });
+const TravelerCabinSelector = dynamic(() => import('@/components/search/traveler-cabin-selector').then(m => m.TravelerCabinSelector), { ssr: false });
 import { useRouter } from 'next/navigation';
 import { Popover } from '@/components/ui/popover';
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(m => m.Calendar), { ssr: false });
@@ -24,7 +25,16 @@ export function SearchWidget() {
   const [flightFromCode, setFlightFromCode] = useState('ADD.AIRPORT');
   const [flightToCode, setFlightToCode] = useState('JFK.AIRPORT');
   const [flightDate, setFlightDate] = useState<string>('');
-  const [flightPassengers, setFlightPassengers] = useState({ adults: 1, children: 0, rooms: 1 });
+  const [trav, setTrav] = useState({
+    adults: 1,
+    students: 0,
+    seniors: 0,
+    youths: 0,
+    children: 0,
+    toddlers: 0,
+    infants: 0,
+    cabinClass: 'Economy'
+  });
 
   // Hotel State
   const [hotelDestination, setHotelDestination] = useState('Addis Ababa');
@@ -38,8 +48,10 @@ export function SearchWidget() {
       if (flightFromCode) params.append('fromCode', flightFromCode);
       if (flightToCode) params.append('toCode', flightToCode);
       if (flightDate) params.append('departDate', flightDate);
-      params.append('adults', flightPassengers.adults.toString());
-      params.append('children', flightPassengers.children.toString());
+      const totalAdults = trav.adults + trav.students + trav.seniors;
+      const totalChildren = trav.children + trav.youths + trav.toddlers + trav.infants;
+      params.append('adults', String(totalAdults || 1));
+      params.append('children', String(totalChildren || 0));
       router.push(`/flights?${params.toString()}`);
     } else if (activeTab === 'hotels') {
       const params = new URLSearchParams();
@@ -89,13 +101,8 @@ export function SearchWidget() {
                 }
               />
             </div>
-            <div className="md:col-span-2">
-              <GuestSelector
-                adults={flightPassengers.adults}
-                children={flightPassengers.children}
-                rooms={flightPassengers.rooms}
-                onChange={(adults, children, rooms) => setFlightPassengers({ adults, children, rooms })}
-              />
+            <div className="md:col-span-3">
+              <TravelerCabinSelector value={trav as any} onChange={setTrav as any} />
             </div>
           </>
         );

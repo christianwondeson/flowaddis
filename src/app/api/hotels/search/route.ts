@@ -68,7 +68,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-        console.log(`Resolving location for: ${searchQuery}`);
+      
         const locationResponse = await axios.request(locationOptions);
         const locations = locationResponse.data;
 
@@ -84,9 +84,9 @@ export async function GET(request: Request) {
             destId = targetLocation.dest_id;
             searchType = targetLocation.search_type;
             destType = targetLocation.dest_type;
-            console.log(`Resolved location to: ${targetLocation.name} (ID: ${destId})`);
+          
         } else {
-            console.log('No location found from API for', searchQuery, '- trying curated fallbacks');
+            
             // Curated fallback dest_ids (maintain as needed)
             const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
                 'addis ababa': { dest_id: '-553173', dest_type: 'city', search_type: 'city' },
@@ -101,9 +101,7 @@ export async function GET(request: Request) {
                 destId = FALLBACK_DESTS[key].dest_id;
                 searchType = FALLBACK_DESTS[key].search_type;
                 destType = FALLBACK_DESTS[key].dest_type;
-            } else {
-                console.log('No curated fallback; using default Addis Ababa');
-            }
+            } 
         }
 
         // 2. Build Filter IDs
@@ -146,8 +144,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-        console.log('Fetching hotels with params:', JSON.stringify(searchOptions.params, null, 2));
-
+    
         const response = await axios.request(searchOptions);
         const results = response.data.result || [];
         const totalCount = (response.data.count ?? results.length) as number;
@@ -225,6 +222,10 @@ export async function GET(request: Request) {
                 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
             ];
             
+            // Approximate Addis Ababa center
+            const baseLat = 9.0108;
+            const baseLng = 38.7613;
+
             return Array.from({ length: 10 }).map((_, i) => ({
                 id: `mock-${i}`,
                 name: `Mock Hotel ${i + 1} in ${query}`,
@@ -238,6 +239,7 @@ export async function GET(request: Request) {
                 badges: ['Free Cancellation'],
                 distance: '2 km from centre',
                 image: hotelImages[i % hotelImages.length],
+                coordinates: { lat: baseLat + (Math.random() - 0.5) * 0.1, lng: baseLng + (Math.random() - 0.5) * 0.1 },
                 amenities: ['Free WiFi', 'Pool', 'Spa'],
                 description: 'A wonderful place to stay.',
             }));

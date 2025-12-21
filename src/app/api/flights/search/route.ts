@@ -4,8 +4,15 @@ import axios from 'axios';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const fromCode = searchParams.get('fromCode') || 'ADD'; // Default to Addis Ababa
-    const toCode = searchParams.get('toCode') || 'DXB'; // Default to Dubai
+    const rawFrom = searchParams.get('fromCode') || 'ADD'; // Default to Addis Ababa
+    const rawTo = searchParams.get('toCode') || 'DXB'; // Default to Dubai
+    // Normalize codes like "ADD.AIRPORT" or "CDG.CITY" to IATA 3-letter
+    const norm = (v: string) => {
+        const base = v.includes('.') ? v.split('.')[0] : v;
+        return base.trim().toUpperCase().slice(0, 3);
+    };
+    const fromCode = norm(rawFrom);
+    const toCode = norm(rawTo);
     const departDate = searchParams.get('departDate') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const returnDate = searchParams.get('returnDate');
     const adults = searchParams.get('adults') || '1';
@@ -34,8 +41,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-        console.log('Fetching flights with params:', JSON.stringify(options.params, null, 2));
-
+    
         const response = await axios.request(options);
 
         // Normalize RapidAPI response to the frontend schema: { flights: [...] }
@@ -104,7 +110,8 @@ export async function GET(request: Request) {
         const hasNextPage = pageSize > 0 ? (pageSize * (pageIndex + 1) < totalCount) : false;
         return NextResponse.json({ flights, total: totalCount, hasNextPage });
     } catch (error: any) {
-        console.error('Error fetching flights:', error.message);
+        const status = error?.response?.status;
+        console.error('Error fetching flights:', status, error.message);
 
         // Mock Fallback for Flights
         const mockFlights = [

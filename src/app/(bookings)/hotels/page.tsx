@@ -163,7 +163,26 @@ export default function HotelsPage() {
                 <div className="flex flex-col lg:flex-row gap-8 mt-8">
                     {/* Filters Sidebar */}
                     <div className="w-full lg:w-1/4">
-                        <HotelFilters filters={filters} onFilterChange={handleFilterChange} />
+                        <HotelFilters
+                            hotels={allHotels}
+                            filters={filters}
+                            onFilterChange={handleFilterChange}
+                            linkParams={{
+                                query: destination,
+                                checkIn: checkIn || undefined,
+                                checkOut: checkOut || undefined,
+                                adults: '2',
+                                children: '0',
+                                rooms: '1',
+                                sortOrder: filters.sortOrder,
+                                minPrice: filters.minPrice,
+                                maxPrice: filters.maxPrice,
+                                minRating: filters.minRating,
+                                stars: (filters.stars || []).join(','),
+                                amenities: (filters.amenities || []).join(','),
+                                hotelName: filters.hotelName || undefined,
+                            }}
+                        />
                     </div>
 
                     {/* Hotel List */}
