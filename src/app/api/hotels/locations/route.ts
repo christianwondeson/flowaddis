@@ -10,11 +10,15 @@ const CACHE_TTL_MS = 1000 * 60 * 5; // 5 minutes
 // Note: Booking.com's dest_ids can change; maintain these carefully if you expand.
 const FALLBACK_PRESETS = [
     { name: 'Addis Ababa', dest_id: '-553173', dest_type: 'city', search_type: 'city', cc1: 'et' },
+    { name: 'Bishoftu', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et' },
+    { name: 'Bahir Dar', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et' },
+    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et' }, // Placeholder dest_id
+    { name: 'Gondar', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et' }, // Placeholder dest_id
     { name: 'Dubai', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'ae' },
     { name: 'London', dest_id: '-2601889', dest_type: 'city', search_type: 'city', cc1: 'gb' },
     { name: 'Frankfurt/Main', dest_id: '-1771148', dest_type: 'city', search_type: 'city', cc1: 'de' },
     { name: 'Istanbul', dest_id: '-755070', dest_type: 'city', search_type: 'city', cc1: 'tr' },
-    { name: 'New York', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'us' }, // placeholder dest_id reused; prefer API results normally
+    { name: 'New York', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'us' },
 ];
 
 export async function GET(request: Request) {
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
             method: 'GET',
             url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
             params: {
-                name: name,
+                name: name.toLowerCase().includes('ethiopia') ? name : `${name}, Ethiopia`,
                 locale: 'en-gb'
             },
             headers: getApiHeaders(),

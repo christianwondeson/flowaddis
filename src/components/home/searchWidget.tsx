@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Popover } from '@/components/ui/popover';
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(m => m.Calendar), { ssr: false });
 const FlightRouteSelect = dynamic(() => import('@/components/search/flight-route-select').then(m => m.FlightRouteSelect), { ssr: false });
+import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 
 type TabType = 'flights' | 'hotels' | 'conferences' | 'shuttles';
 
@@ -80,7 +81,6 @@ export function SearchWidget() {
             </div>
             <div className="md:col-span-2">
               <Popover
-                className="min-w-[260px] md:min-w-[320px] lg:min-w-[360px]"
                 trigger={
                   <div className="w-full cursor-pointer">
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
@@ -93,8 +93,8 @@ export function SearchWidget() {
                 content={
                   <div className="w-full">
                     <Calendar
-                      selected={flightDate ? new Date(flightDate) : undefined}
-                      onSelect={(date) => setFlightDate(date.toISOString().split('T')[0])}
+                      selected={flightDate ? parseDateLocal(flightDate) : undefined}
+                      onSelect={(date) => setFlightDate(formatDateLocal(date))}
                       minDate={new Date()}
                     />
                   </div>
@@ -121,7 +121,6 @@ export function SearchWidget() {
             <div className="md:col-span-3">
               <div className="grid grid-cols-2 gap-2">
                 <Popover
-                  className="min-w-[260px] md:min-w-[320px] lg:min-w-[360px]"
                   trigger={
                     <div className="w-full cursor-pointer">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
@@ -134,15 +133,14 @@ export function SearchWidget() {
                   content={
                     <div className="w-full">
                       <Calendar
-                        selected={hotelCheckIn ? new Date(hotelCheckIn) : undefined}
-                        onSelect={(date) => setHotelCheckIn(date.toISOString().split('T')[0])}
+                        selected={hotelCheckIn ? parseDateLocal(hotelCheckIn) : undefined}
+                        onSelect={(date) => setHotelCheckIn(formatDateLocal(date))}
                         minDate={new Date()}
                       />
                     </div>
                   }
                 />
                 <Popover
-                  className="min-w-[260px] md:min-w-[320px] lg:min-w-[360px]"
                   trigger={
                     <div className="w-full cursor-pointer">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
@@ -155,9 +153,9 @@ export function SearchWidget() {
                   content={
                     <div className="w-full">
                       <Calendar
-                        selected={hotelCheckOut ? new Date(hotelCheckOut) : undefined}
-                        onSelect={(date) => setHotelCheckOut(date.toISOString().split('T')[0])}
-                        minDate={hotelCheckIn ? new Date(hotelCheckIn) : new Date()}
+                        selected={hotelCheckOut ? parseDateLocal(hotelCheckOut) : undefined}
+                        onSelect={(date) => setHotelCheckOut(formatDateLocal(date))}
+                        minDate={hotelCheckIn ? parseDateLocal(hotelCheckIn) : new Date()}
                       />
                     </div>
                   }
@@ -191,7 +189,7 @@ export function SearchWidget() {
                     </div>
                   </div>
                 }
-                content={<Calendar selected={undefined} onSelect={() => {}} minDate={new Date()} />}
+                content={<Calendar selected={undefined} onSelect={() => { }} minDate={new Date()} />}
               />
             </div>
             <div className="md:col-span-3">
@@ -219,7 +217,7 @@ export function SearchWidget() {
                     </div>
                   </div>
                 }
-                content={<Calendar selected={undefined} onSelect={() => {}} minDate={new Date()} />}
+                content={<Calendar selected={undefined} onSelect={() => { }} minDate={new Date()} />}
               />
             </div>
             <div className="md:col-span-2">
@@ -237,7 +235,7 @@ export function SearchWidget() {
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6 }}
-      className="bg-white/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-2xl p-4 md:p-8 max-w-5xl mx-auto border border-white/20 relative z-20"
+      className="bg-white/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-2xl p-4 md:p-8 max-w-5xl mx-auto border border-white/20 relative z-40"
     >
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 md:gap-3 mb-6 md:mb-8 border-b border-gray-200 pb-4 md:pb-6">
@@ -250,11 +248,10 @@ export function SearchWidget() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold transition-all duration-300 ${
-              activeTab === tab.id
-                ? 'bg-brand-primary text-white shadow-lg shadow-blue-500/30 scale-105'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-brand-dark'
-            }`}
+            className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold transition-all duration-300 ${activeTab === tab.id
+              ? 'bg-brand-primary text-white shadow-lg shadow-blue-500/30 scale-105'
+              : 'text-gray-500 hover:bg-gray-100 hover:text-brand-dark'
+              }`}
           >
             <tab.icon className="w-4 h-4" />
             <span className="hidden sm:inline">{tab.label}</span>
@@ -266,7 +263,7 @@ export function SearchWidget() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-end">
         {renderSearchFields()}
         <div className="md:col-span-2">
-          <Button 
+          <Button
             className="w-full h-[42px] md:h-[50px] flex items-center justify-center gap-2 text-base md:text-lg shadow-xl shadow-blue-600/20"
             onClick={handleSearch}
           >

@@ -104,7 +104,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             />
 
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
+                <div className="absolute z-[9999] w-full mt-1 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
                     {suggestions.map((item: any) => (
                         <button
                             key={`${item.code || item.short_code || item.name}`}

@@ -59,7 +59,7 @@ export function HeroSlider({ children }: HeroSliderProps) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5 }}
-          className="absolute inset-0 z-0"
+          className="absolute inset-0 z-0 overflow-hidden"
         >
           <img
             src={slides[currentSlide].image}
@@ -70,7 +70,7 @@ export function HeroSlider({ children }: HeroSliderProps) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-20">
+      <div className="relative z-30 container mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-20">
         <div className="text-center mb-8 md:mb-12 pointer-events-none">
           <motion.div
             key={`text-${currentSlide}`}
@@ -95,9 +95,8 @@ export function HeroSlider({ children }: HeroSliderProps) {
           <button
             key={idx}
             onClick={() => setCurrentSlide(idx)}
-            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
-              currentSlide === idx ? 'bg-white w-6 md:w-8' : 'bg-white/40 hover:bg-white/60'
-            }`}
+            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${currentSlide === idx ? 'bg-white w-6 md:w-8' : 'bg-white/40 hover:bg-white/60'
+              }`}
             aria-label={`Go to slide ${idx + 1}`}
           />
         ))}

@@ -45,6 +45,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                     <LocationInput
                         value={destination}
                         onChange={onDestinationChange}
+                        api="hotels"
                     />
                 </div>
                 <div className="md:col-span-2">

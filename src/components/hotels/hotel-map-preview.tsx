@@ -14,11 +14,14 @@ interface HotelMapPreviewProps {
 }
 
 export const HotelMapPreview: React.FC<HotelMapPreviewProps> = ({ hotels = [], linkParams = {} }) => {
-  const center: [number, number] = [9.0108, 38.7613]; // Addis Ababa default
+  const defaultCenter: [number, number] = [9.0108, 38.7613]; // Addis Ababa
+  const center = hotels.length > 0 && hotels[0].coordinates
+    ? [hotels[0].coordinates.lat, hotels[0].coordinates.lng] as [number, number]
+    : defaultCenter;
 
   const markers: PriceMarker[] = (hotels || [])
     .filter(h => h.coordinates)
-    .slice(0, 20)
+    .slice(0, 30)
     .map(h => ({
       id: h.id,
       name: h.name,

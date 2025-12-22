@@ -82,7 +82,7 @@ export const AirportInput: React.FC<AirportInputProps> = ({
             />
 
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
+                <div className="absolute z-[9999] w-full mt-1 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
                     {suggestions.map((item: any) => (
                         <button
                             key={item.id || item.iata_code}

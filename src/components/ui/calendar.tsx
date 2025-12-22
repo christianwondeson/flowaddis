@@ -25,7 +25,14 @@ export const Calendar: React.FC<CalendarProps> = ({ selected, onSelect, minDate 
 
     const handleDateClick = (day: number) => {
         const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        if (minDate && newDate < new Date(minDate.setHours(0, 0, 0, 0))) return;
+
+        // Fix: Create a copy of minDate to avoid mutation
+        const minDateCopy = minDate ? new Date(minDate) : null;
+        if (minDateCopy) {
+            minDateCopy.setHours(0, 0, 0, 0);
+            if (newDate < minDateCopy) return;
+        }
+
         onSelect(newDate);
     };
 
@@ -43,7 +50,13 @@ export const Calendar: React.FC<CalendarProps> = ({ selected, onSelect, minDate 
         for (let i = 1; i <= totalDays; i++) {
             const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
             const isSelected = selected && date.toDateString() === selected.toDateString();
-            const isDisabled = minDate && date < new Date(minDate.setHours(0, 0, 0, 0));
+
+            // Fix: Create a copy of minDate to avoid mutation
+            const minDateCopy = minDate ? new Date(minDate) : null;
+            if (minDateCopy) minDateCopy.setHours(0, 0, 0, 0);
+
+            // Ensure isDisabled is a boolean
+            const isDisabled = !!(minDateCopy && date < minDateCopy);
             const isToday = date.toDateString() === new Date().toDateString();
 
             days.push(
@@ -71,7 +84,7 @@ export const Calendar: React.FC<CalendarProps> = ({ selected, onSelect, minDate 
     ];
 
     return (
-        <div className="p-2 w-64">
+        <div className="p-4 w-fit mx-auto">
             <div className="flex justify-between items-center mb-4">
                 <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-full">
                     <ChevronLeft className="w-4 h-4 text-gray-600" />

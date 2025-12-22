@@ -16,7 +16,7 @@ interface UseHotelsParams {
 export function useHotels({ query, checkIn, checkOut, page = 0, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
     return useQuery({
         queryKey: queryKeys.hotels.list({ query, checkIn, checkOut, page, filters, adults, children, rooms }),
-        queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean }> => {
+        queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, destId?: string }> => {
             // Build query params
             const params = new URLSearchParams({
                 query,
@@ -51,7 +51,8 @@ export function useHotels({ query, checkIn, checkOut, page = 0, filters, adults 
 
                 return {
                     hotels: data.hotels || [],
-                    hasNextPage: data.hasNextPage || false
+                    hasNextPage: data.hasNextPage || false,
+                    destId: data.destId
                 };
             } catch (error) {
                 console.error('Error in useHotels:', error);

@@ -31,6 +31,7 @@ export const queryKeys = {
     hotels: {
         all: ['hotels'] as const,
         list: (filters: any) => [...queryKeys.hotels.all, 'list', filters] as const,
+        filters: (params: any) => [...queryKeys.hotels.all, 'filters', params] as const,
         detail: (id: string) => [...queryKeys.hotels.all, 'detail', id] as const,
     },
     flights: {

@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useFlights } from '@/hooks/use-flights';
 import { toast } from 'sonner';
 import { FlightRouteSelect } from '@/components/search/flight-route-select';
+import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 
 export default function FlightsPage() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function FlightsPage() {
     // Search State
     const [fromCode, setFromCode] = useState('ADD.AIRPORT');
     const [toCode, setToCode] = useState('JFK.AIRPORT');
-    const [departDate, setDepartDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+    const [departDate, setDepartDate] = useState(formatDateLocal(new Date(Date.now() + 86400000)));
     const [trav, setTrav] = useState<TravelerState>({
         adults: 1,
         students: 0,
@@ -66,7 +67,7 @@ export default function FlightsPage() {
         setSearchParams({
             fromCode,
             toCode,
-            departDate: new Date(departDate),
+            departDate: parseDateLocal(departDate),
             adults: totalAdults || 1,
             children: totalChildren || 0,
         });
@@ -123,8 +124,8 @@ export default function FlightsPage() {
                                 }
                                 content={
                                     <Calendar
-                                        selected={departDate ? new Date(departDate) : undefined}
-                                        onSelect={(date) => setDepartDate(date.toISOString().split('T')[0])}
+                                        selected={departDate ? parseDateLocal(departDate) : undefined}
+                                        onSelect={(date) => setDepartDate(formatDateLocal(date))}
                                         minDate={new Date()}
                                     />
                                 }

@@ -68,7 +68,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-      
+
         const locationResponse = await axios.request(locationOptions);
         const locations = locationResponse.data;
 
@@ -84,9 +84,9 @@ export async function GET(request: Request) {
             destId = targetLocation.dest_id;
             searchType = targetLocation.search_type;
             destType = targetLocation.dest_type;
-          
+
         } else {
-            
+
             // Curated fallback dest_ids (maintain as needed)
             const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
                 'addis ababa': { dest_id: '-553173', dest_type: 'city', search_type: 'city' },
@@ -101,7 +101,7 @@ export async function GET(request: Request) {
                 destId = FALLBACK_DESTS[key].dest_id;
                 searchType = FALLBACK_DESTS[key].search_type;
                 destType = FALLBACK_DESTS[key].dest_type;
-            } 
+            }
         }
 
         // 2. Build Filter IDs
@@ -124,67 +124,71 @@ export async function GET(request: Request) {
             url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH}`,
             params: {
                 dest_id: destId,
-                search_type: searchType,
-                dest_type: destType,
+                search_type: searchType || 'city',
+                dest_type: destType || 'city',
                 checkin_date: checkIn,
                 checkout_date: checkOut,
                 page_number: page,
                 order_by: sortOrder,
                 adults_number: adults,
-                children_number: children,
+                ...(Number(children) > 0 && { children_number: children }),
                 room_number: rooms,
                 units: 'metric',
                 locale: 'en-gb',
                 filter_by_currency: currency,
                 include_adjacency: 'true',
-                categories_filter_ids: categoriesFilterIds.join(','),
-                price_min: minPrice,
-                price_max: maxPrice,
+                ...(categoriesFilterIds.length > 0 && { categories_filter_ids: categoriesFilterIds.join(',') }),
+                ...(minPrice && { price_min: minPrice }),
+                ...(maxPrice && { price_max: maxPrice }),
             },
             headers: getApiHeaders(),
         };
 
-    
+        console.log('Hotel Search Params:', searchOptions.params);
+
+
         const response = await axios.request(searchOptions);
-        const results = response.data.result || [];
-        const totalCount = (response.data.count ?? results.length) as number;
+        const results = response.data.result || response.data.results || [];
+        const totalCount = (response.data.count ?? response.data.total_count ?? results.length) as number;
 
         let hotels = results.map((item: any) => {
             // Price calculation
-            const priceBreakdown = item.composite_price_breakdown;
-            const grossAmount = priceBreakdown?.gross_amount_per_night?.value || item.min_total_price?.value || 0;
-            const strikethroughAmount = priceBreakdown?.strikethrough_amount_per_night?.value;
+            const priceBreakdown = item.priceBreakdown || item.composite_price_breakdown;
+            const grossAmount = priceBreakdown?.grossPrice?.value || priceBreakdown?.gross_amount_per_night?.value || item.min_total_price?.value || 0;
+            const strikethroughAmount = priceBreakdown?.strikethroughPrice?.value || priceBreakdown?.strikethrough_amount_per_night?.value;
             const discountPercentage = strikethroughAmount
                 ? Math.round(((strikethroughAmount - grossAmount) / strikethroughAmount) * 100)
                 : 0;
 
             // Badges
             const badges = item.badges?.map((badge: any) => badge.text) || [];
-            if (item.is_mobile_deal) badges.push('Mobile-only price');
+            if (item.is_mobile_deal || item.isMobileDeal) badges.push('Mobile-only price');
 
             // Image - prefer high res
-            const image = item.max_1440_photo_url ||
+            const image = item.photoMainUrl ||
+                item.max_1440_photo_url ||
                 item.max_photo_url ||
                 item.main_photo_url ||
                 item.photo_urls?.[0] ||
+                item.photoUrls?.[0] ||
                 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80';
 
             return {
-                id: item.hotel_id?.toString(),
-                name: item.hotel_name || 'Unknown Hotel',
+                id: (item.id || item.hotel_id)?.toString(),
+                name: item.name || item.hotel_name || 'Unknown Hotel',
                 location: item.address || query,
-                rating: item.review_score || 0,
-                reviews: item.review_nr || 0,
-                reviewWord: item.review_score_word || '',
+                rating: item.reviewScore || item.review_score || 0,
+                reviews: item.reviewCount || item.review_nr || 0,
+                reviewWord: item.reviewScoreWord || item.review_score_word || '',
                 price: grossAmount,
                 originalPrice: strikethroughAmount || (grossAmount * 1.2), // Fallback for UI
                 discountPercentage: discountPercentage || 20,
                 badges,
-                distance: item.distance_to_cc_formatted || `${item.distance_to_cc || 0} km from centre`,
+                distance: item.distance_to_cc_formatted || (item.distance_to_cc ? `${item.distance_to_cc} km from centre` : 'Near centre'),
                 image,
                 coordinates: (item.latitude && item.longitude) ? { lat: item.latitude, lng: item.longitude } : undefined,
                 amenities: item.hotel_facilities ? item.hotel_facilities.split(',').slice(0, 5) : ['Free WiFi'],
-                description: item.unit_configuration_label || `Stay at ${item.hotel_name}`,
+                description: item.unit_configuration_label || `Stay at ${item.name || item.hotel_name || 'this hotel'}`,
             };
         });
 
@@ -203,11 +207,15 @@ export async function GET(request: Request) {
             hotels,
             total: totalCount,
             hasNextPage,
+            destId,
         });
 
     } catch (error: any) {
         const status = error?.response?.status;
         console.error('Error fetching hotels:', status, error.message);
+        if (error.response?.data) {
+            console.error('API Error Details:', JSON.stringify(error.response.data, null, 2));
+        }
 
         // Mock Data Fallback
         const generateMockHotels = () => {
@@ -221,7 +229,7 @@ export async function GET(request: Request) {
                 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80',
                 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
             ];
-            
+
             // Approximate Addis Ababa center
             const baseLat = 9.0108;
             const baseLng = 38.7613;

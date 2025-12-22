@@ -9,6 +9,7 @@ import { useHotels } from '@/hooks/use-hotels';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter } from 'next/navigation';
 import { HotelFilters as FilterType } from '@/types';
+import { formatDateLocal } from '@/lib/date-utils';
 
 export default function HotelsPage() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -46,8 +47,8 @@ export default function HotelsPage() {
         const defaultCheckout = new Date(defaultCheckin);
         defaultCheckout.setDate(defaultCheckin.getDate() + 1);
 
-        const checkInStr = defaultCheckin.toISOString().split('T')[0];
-        const checkOutStr = defaultCheckout.toISOString().split('T')[0];
+        const checkInStr = formatDateLocal(defaultCheckin);
+        const checkOutStr = formatDateLocal(defaultCheckout);
 
         setCheckIn(checkInStr);
         setCheckOut(checkOutStr);
@@ -79,12 +80,19 @@ export default function HotelsPage() {
 
     useEffect(() => {
         if (page === 0) {
+            console.log('Page 0: Resetting allHotels to current hotels');
             setAllHotels(hotels);
         } else if (hotels.length > 0 && !isPlaceholderData) {
+            console.log(`Page ${page}: Appending ${hotels.length} new hotels`);
             setAllHotels((prev) => {
-                // Avoid duplicates
-                const newHotels = hotels.filter((h: any) => !prev.some((p) => p.id === h.id));
-                if (newHotels.length === 0) return prev;
+                // Avoid duplicates by ID
+                const existingIds = new Set(prev.map(h => h.id));
+                const newHotels = hotels.filter((h: any) => !existingIds.has(h.id));
+
+                if (newHotels.length === 0) {
+                    console.log('No new hotels to append');
+                    return prev;
+                }
                 return [...prev, ...newHotels];
             });
         }
@@ -92,19 +100,21 @@ export default function HotelsPage() {
 
     // Infinite Scroll Observer
     useEffect(() => {
+        const sentinel = document.getElementById('sentinel');
+        if (!sentinel) return;
+
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && !isLoading && !isPlaceholderData && hasNextPage) {
-                  
+                const entry = entries[0];
+                if (entry.isIntersecting && !isLoading && !isPlaceholderData && hasNextPage) {
+                    console.log('Sentinel visible, loading next page:', page + 1);
                     setPage((prev) => prev + 1);
                 }
             },
-            { threshold: 0.1, rootMargin: '200px' } // Increased margin
+            { threshold: 0.1, rootMargin: '400px' } // Increased margin for smoother loading
         );
 
-        const sentinel = document.getElementById('sentinel');
-        if (sentinel) observer.observe(sentinel);
-
+        observer.observe(sentinel);
         return () => observer.disconnect();
     }, [isLoading, isPlaceholderData, hasNextPage, page]);
 
@@ -167,6 +177,9 @@ export default function HotelsPage() {
                             hotels={allHotels}
                             filters={filters}
                             onFilterChange={handleFilterChange}
+                            checkIn={checkIn}
+                            checkOut={checkOut}
+                            destId={data?.destId}
                             linkParams={{
                                 query: destination,
                                 checkIn: checkIn || undefined,
@@ -197,7 +210,11 @@ export default function HotelsPage() {
                         />
 
                         {/* Infinite Scroll Sentinel */}
-                        <div id="sentinel" className="h-4 w-full mt-4" />
+                        {hasNextPage && (
+                            <div id="sentinel" className="h-20 w-full flex items-center justify-center">
+                                {isLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-primary"></div>}
+                            </div>
+                        )}
 
                         {/* Fallback Load More Button */}
                         {hasNextPage && !isLoading && (

@@ -13,9 +13,12 @@ interface HotelFiltersProps {
     hotels?: Hotel[];
     showMapPreview?: boolean;
     linkParams?: Record<string, string | number | undefined | null>;
+    checkIn?: string;
+    checkOut?: string;
+    destId?: string;
 }
 
-export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterChange, hotels, showMapPreview = true, linkParams }) => {
+export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterChange, hotels, showMapPreview = true, linkParams, checkIn, checkOut, destId }) => {
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange({ ...filters, sortOrder: e.target.value });
     };
@@ -48,7 +51,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterCha
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-8">
             {/* Map Preview (hidden on full map page) */}
             {showMapPreview && <HotelMapPreview hotels={hotels} linkParams={linkParams} />}
-            
+
             <div>
                 <h3 className="font-bold text-gray-900 mb-3">Hotel Name</h3>
                 <Input
@@ -126,30 +129,6 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterCha
                     />
                     <span className="text-gray-700 group-hover:text-brand-dark transition-colors">Very Good: 8+</span>
                 </label>
-            </div>
-
-            <div>
-                <h3 className="font-bold text-gray-900 mb-3">Popular Filters</h3>
-                <div className="space-y-2.5">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={filters.amenities?.includes('breakfast') || false}
-                            onChange={() => handleAmenityChange('breakfast')}
-                            className="w-5 h-5 rounded border-gray-300 text-brand-primary focus:ring-brand-primary transition-colors"
-                        />
-                        <span className="text-gray-700 group-hover:text-brand-dark transition-colors">Breakfast Included</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={filters.amenities?.includes('cancellation') || false}
-                            onChange={() => handleAmenityChange('cancellation')}
-                            className="w-5 h-5 rounded border-gray-300 text-brand-primary focus:ring-brand-primary transition-colors"
-                        />
-                        <span className="text-gray-700 group-hover:text-brand-dark transition-colors">Free Cancellation</span>
-                    </label>
-                </div>
             </div>
         </div>
     );

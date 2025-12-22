@@ -76,7 +76,14 @@ function HotelsMapContent() {
           {/* Filters */}
           <aside className="lg:col-span-3">
             <div className="sticky top-24">
-              <HotelFilters showMapPreview={false} hotels={hotels} filters={filters} onFilterChange={(f) => { setPage(0); setFilters(f); }} />
+              <HotelFilters
+                showMapPreview={false}
+                hotels={hotels}
+                filters={filters}
+                onFilterChange={(f) => { setPage(0); setFilters(f); }}
+                checkIn={checkIn}
+                checkOut={checkOut}
+              />
             </div>
           </aside>
 
