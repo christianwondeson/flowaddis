@@ -8,6 +8,7 @@ import { LocationInput } from '@/components/search/location-input';
 import { GuestSelector } from '@/components/search/guest-selector';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover } from '@/components/ui/popover';
+import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 
 interface HotelSearchFormProps {
     destination: string;
@@ -32,61 +33,61 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
 }) => {
     const [guests, setGuests] = React.useState({ adults: 2, children: 0, rooms: 1 });
 
-    const handleDateSelect = (date: Date, type: 'checkIn' | 'checkOut') => {
-        const isoDate = date.toISOString().split('T')[0];
-        if (type === 'checkIn') onCheckInChange(isoDate);
-        else onCheckOutChange(isoDate);
-    };
-
     return (
-        <Card className="p-6 shadow-xl mb-12 bg-white rounded-2xl border-0 overflow-visible">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 bg-white rounded-2xl border-0 overflow-visible relative z-50">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-end">
                 <div className="md:col-span-4">
                     <LocationInput
+                        label="Destination"
+                        placeholder="Where are you going?"
                         value={destination}
                         onChange={onDestinationChange}
                         api="hotels"
                     />
                 </div>
-                <div className="md:col-span-2">
-                    <Popover
-                        trigger={
-                            <div className="w-full cursor-pointer">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
-                                <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                    <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                    <span className="text-gray-900 font-medium">{checkIn || 'Select Date'}</span>
+                <div className="md:col-span-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <Popover
+                            trigger={
+                                <div className="w-full cursor-pointer">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
+                                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                        <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                        <span className="text-gray-900 font-medium text-sm truncate">{checkIn || 'Select Date'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        }
-                        content={
-                            <Calendar
-                                selected={checkIn ? new Date(checkIn) : undefined}
-                                onSelect={(date) => handleDateSelect(date, 'checkIn')}
-                                minDate={new Date()}
-                            />
-                        }
-                    />
-                </div>
-                <div className="md:col-span-2">
-                    <Popover
-                        trigger={
-                            <div className="w-full cursor-pointer">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
-                                <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                    <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                    <span className="text-gray-900 font-medium">{checkOut || 'Select Date'}</span>
+                            }
+                            content={
+                                <div className="w-full">
+                                    <Calendar
+                                        selected={checkIn ? parseDateLocal(checkIn) : undefined}
+                                        onSelect={(date) => onCheckInChange(formatDateLocal(date))}
+                                        minDate={new Date()}
+                                    />
                                 </div>
-                            </div>
-                        }
-                        content={
-                            <Calendar
-                                selected={checkOut ? new Date(checkOut) : undefined}
-                                onSelect={(date) => handleDateSelect(date, 'checkOut')}
-                                minDate={checkIn ? new Date(checkIn) : new Date()}
-                            />
-                        }
-                    />
+                            }
+                        />
+                        <Popover
+                            trigger={
+                                <div className="w-full cursor-pointer">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
+                                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                        <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                        <span className="text-gray-900 font-medium text-sm truncate">{checkOut || 'Select Date'}</span>
+                                    </div>
+                                </div>
+                            }
+                            content={
+                                <div className="w-full">
+                                    <Calendar
+                                        selected={checkOut ? parseDateLocal(checkOut) : undefined}
+                                        onSelect={(date) => onCheckOutChange(formatDateLocal(date))}
+                                        minDate={checkIn ? parseDateLocal(checkIn) : new Date()}
+                                    />
+                                </div>
+                            }
+                        />
+                    </div>
                 </div>
                 <div className="md:col-span-2">
                     <GuestSelector
@@ -100,7 +101,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                     <Button
                         onClick={onSearch}
                         disabled={isLoading}
-                        className="w-full h-[50px] flex items-center justify-center gap-2 text-white font-bold text-lg shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/50 transition-all"
+                        className="w-full h-[52px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-600/20 transition-all"
                     >
                         {isLoading ? 'Searching...' : <><Search className="w-5 h-5" /> Search</>}
                     </Button>

@@ -28,20 +28,20 @@ export default function FlightsPage() {
     const [departDate, setDepartDate] = useState(formatDateLocal(new Date(Date.now() + 86400000)));
     const [trav, setTrav] = useState<TravelerState>({
         adults: 1,
-        students: 0,
-        seniors: 0,
-        youths: 0,
         children: 0,
-        toddlers: 0,
-        infants: 0,
-        cabinClass: 'Economy',
+        cabinClass: 'ECONOMY',
     });
+    const [flightType, setFlightType] = useState<'ROUNDTRIP' | 'ONEWAY'>('ROUNDTRIP');
+    const [flightReturnDate, setFlightReturnDate] = useState<string>('');
 
     // Query Params State (only update on search click)
     const [searchParams, setSearchParams] = useState({
         fromCode: 'ADD.AIRPORT',
         toCode: 'JFK.AIRPORT',
         departDate: new Date(Date.now() + 86400000),
+        returnDate: undefined as Date | undefined,
+        flightType: 'ROUNDTRIP',
+        cabinClass: 'ECONOMY',
         adults: 1,
         children: 0,
     });
@@ -50,6 +50,9 @@ export default function FlightsPage() {
         fromCode: searchParams.fromCode,
         toCode: searchParams.toCode,
         departDate: searchParams.departDate,
+        returnDate: searchParams.returnDate,
+        flightType: searchParams.flightType,
+        cabinClass: searchParams.cabinClass,
         adults: searchParams.adults,
         children: searchParams.children,
     });
@@ -62,14 +65,15 @@ export default function FlightsPage() {
             toast.error('Please fill in all search fields');
             return;
         }
-        const totalAdults = trav.adults + trav.students + trav.seniors;
-        const totalChildren = trav.children + trav.youths + trav.toddlers + trav.infants;
         setSearchParams({
             fromCode,
             toCode,
             departDate: parseDateLocal(departDate),
-            adults: totalAdults || 1,
-            children: totalChildren || 0,
+            returnDate: flightReturnDate ? parseDateLocal(flightReturnDate) : undefined,
+            flightType,
+            cabinClass: trav.cabinClass,
+            adults: trav.adults || 1,
+            children: trav.children || 0,
         });
     };
 
@@ -101,47 +105,100 @@ export default function FlightsPage() {
 
             <div className="container mx-auto px-4 -mt-8 md:-mt-10">
                 {/* Search Widget */}
-                <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 overflow-visible">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                        <div className="md:col-span-6">
-                            <FlightRouteSelect
-                                fromCode={fromCode}
-                                toCode={toCode}
-                                onChangeFrom={setFromCode}
-                                onChangeTo={setToCode}
-                            />
-                        </div>
-                        <div className="md:col-span-2">
+                <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 overflow-visible relative z-50">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-4">
                             <Popover
                                 trigger={
-                                    <div className="w-full cursor-pointer">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
-                                        <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                            <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                            <span className="text-gray-900 font-medium">{departDate || 'Select Date'}</span>
-                                        </div>
-                                    </div>
+                                    <button className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-brand-primary transition-colors">
+                                        {flightType === 'ROUNDTRIP' ? 'Round-trip' : 'One-way'}
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
                                 }
                                 content={
-                                    <Calendar
-                                        selected={departDate ? parseDateLocal(departDate) : undefined}
-                                        onSelect={(date) => setDepartDate(formatDateLocal(date))}
-                                        minDate={new Date()}
-                                    />
+                                    <div className="py-1 w-40">
+                                        <button
+                                            onClick={() => setFlightType('ROUNDTRIP')}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${flightType === 'ROUNDTRIP' ? 'text-brand-primary font-bold' : 'text-gray-700'}`}
+                                        >
+                                            Round-trip
+                                        </button>
+                                        <button
+                                            onClick={() => setFlightType('ONEWAY')}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${flightType === 'ONEWAY' ? 'text-brand-primary font-bold' : 'text-gray-700'}`}
+                                        >
+                                            One-way
+                                        </button>
+                                    </div>
                                 }
                             />
                         </div>
-                        <div className="md:col-span-3">
-                            <TravelerCabinSelector value={trav} onChange={setTrav} />
-                        </div>
-                        <div className="md:col-span-2">
-                            <Button
-                                className="w-full h-[50px] flex items-center justify-center gap-2 text-white font-bold text-lg shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/50 transition-all"
-                                onClick={handleSearch}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? 'Searching...' : <><Search className="w-5 h-5" /> Search</>}
-                            </Button>
+
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                            <div className="md:col-span-5">
+                                <FlightRouteSelect
+                                    fromCode={fromCode}
+                                    toCode={toCode}
+                                    onChangeFrom={setFromCode}
+                                    onChangeTo={setToCode}
+                                />
+                            </div>
+                            <div className="md:col-span-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Popover
+                                        trigger={
+                                            <div className="w-full cursor-pointer">
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
+                                                <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                                    <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                                    <span className="text-gray-900 font-medium text-xs truncate">{departDate || 'Select Date'}</span>
+                                                </div>
+                                            </div>
+                                        }
+                                        content={
+                                            <div className="w-full">
+                                                <Calendar
+                                                    selected={departDate ? parseDateLocal(departDate) : undefined}
+                                                    onSelect={(date) => setDepartDate(formatDateLocal(date))}
+                                                    minDate={new Date()}
+                                                />
+                                            </div>
+                                        }
+                                    />
+                                    <Popover
+                                        trigger={
+                                            <div className={`w-full cursor-pointer ${flightType === 'ONEWAY' ? 'opacity-50 pointer-events-none' : ''}`}>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Return</label>
+                                                <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                                    <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                                    <span className="text-gray-900 font-medium text-xs truncate">{flightReturnDate || 'Select Date'}</span>
+                                                </div>
+                                            </div>
+                                        }
+                                        content={
+                                            <div className="w-full">
+                                                <Calendar
+                                                    selected={flightReturnDate ? parseDateLocal(flightReturnDate) : undefined}
+                                                    onSelect={(date) => setFlightReturnDate(formatDateLocal(date))}
+                                                    minDate={departDate ? parseDateLocal(departDate) : new Date()}
+                                                />
+                                            </div>
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            <div className="md:col-span-2">
+                                <TravelerCabinSelector value={trav} onChange={setTrav} />
+                            </div>
+                            <div className="md:col-span-2">
+                                <Button
+                                    className="w-full h-[52px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-600/20 transition-all"
+                                    onClick={handleSearch}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? 'Searching...' : <><Search className="w-5 h-5" /> Search</>}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </Card>

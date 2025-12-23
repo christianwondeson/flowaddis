@@ -56,23 +56,6 @@ export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, 
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
-          <Button
-            key={p.label}
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="rounded-full"
-            onClick={() => {
-              onChangeFrom(p.from);
-              onChangeTo(p.to);
-            }}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
     </div>
   );
 }

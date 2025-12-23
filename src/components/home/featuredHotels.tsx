@@ -10,75 +10,94 @@ import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter } from 'next/navigation';
 
+import { useHotels } from '@/hooks/use-hotels';
+import { Heart } from 'lucide-react';
+
 export function FeaturedHotels() {
   const { user } = useAuth();
   const router = useRouter();
-  const featuredHotels = FEATURED_HOTELS.slice(0, 3);
 
-  const handleBook = (hotel: typeof featuredHotels[0]) => {
-    if (!user) {
-      router.push('/signin?redirect=/');
-      return;
-    }
-    router.push('/hotels');
+  const { data, isLoading } = useHotels({
+    query: 'Addis Ababa',
+    filters: { sortOrder: 'popularity' }
+  });
+
+  const featuredHotels = data?.hotels.slice(0, 4) || [];
+
+  const defaultParams = new URLSearchParams({
+    checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
+    adults: '2',
+    rooms: '1'
+  });
+
+  const handleBook = (hotelId: string) => {
+    router.push(`/hotels/${hotelId}?${defaultParams.toString()}`);
   };
+
+  if (isLoading) {
+    return (
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="h-8 w-64 bg-gray-100 animate-pulse rounded mb-8" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-[400px] bg-gray-50 animate-pulse rounded-xl" />
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-4">
-        <div>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-brand-dark mb-2 md:mb-3 tracking-tight">
-            Featured Luxury Hotels
-          </h2>
-          <p className="text-gray-500 text-base md:text-lg">
-            Experience world-class hospitality in the heart of Addis Ababa.
-          </p>
-        </div>
-        <Link href="/hotels">
-          <Button variant="ghost" className="flex items-center gap-2 text-brand-primary hover:bg-blue-50">
-            View All <ArrowRight className="w-5 h-5" />
-          </Button>
-        </Link>
+      <div className="mb-6">
+        <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-1">
+          Featured Luxury Hotels
+        </h2>
+        <p className="text-gray-500 text-sm md:text-base">
+          Experience world-class hospitality in the heart of Addis Ababa.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {featuredHotels.map((hotel) => (
-          <Card key={hotel.id} hover className="group cursor-pointer border-0 shadow-lg hover:shadow-2xl rounded-2xl md:rounded-3xl">
-            <div className="relative h-56 md:h-72 overflow-hidden rounded-t-2xl md:rounded-t-3xl">
+          <div key={hotel.id} className="group cursor-pointer flex flex-col h-full bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden" onClick={() => handleBook(hotel.id)}>
+            <div className="relative aspect-[4/3] overflow-hidden">
               <img
                 src={hotel.image}
                 alt={hotel.name}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1 text-sm font-bold text-brand-dark shadow-sm">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                {hotel.rating}
-              </div>
+              <button className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 transition-colors">
+                <Heart className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-6 md:p-8">
-              <h3 className="text-xl md:text-2xl font-bold text-brand-dark mb-2 group-hover:text-brand-primary transition-colors">
-                {hotel.name}
-              </h3>
-              <div className="flex items-center gap-2 text-gray-500 text-sm mb-4 md:mb-6">
-                <MapPin className="w-4 h-4 text-brand-secondary" />
-                {hotel.location}
+            <div className="p-4 flex flex-col flex-1">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="font-bold text-brand-dark line-clamp-2 group-hover:text-brand-primary transition-colors">
+                  {hotel.name}
+                </h3>
               </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="text-2xl md:text-3xl font-extrabold text-brand-primary">
-                    {formatCurrency(hotel.price)}
-                  </span>
-                  <span className="text-gray-400 text-sm font-medium"> / night</span>
+
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-brand-primary text-white text-xs font-bold px-1.5 py-1 rounded">
+                  {hotel.rating.toFixed(1)}
                 </div>
-                <Button
-                  onClick={() => handleBook(hotel)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30"
-                >
-                  Book Now <ArrowRight className="w-4 h-4" />
-                </Button>
+                <div className="text-xs">
+                  <span className="font-bold text-gray-900">{hotel.reviewWord || 'Excellent'}</span>
+                  <span className="text-gray-500 ml-1">· {hotel.reviews} reviews</span>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-4 flex flex-col items-end">
+                <span className="text-xs text-gray-500">Starting from</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xs font-bold text-gray-900">US$</span>
+                  <span className="text-xl font-bold text-gray-900">{Math.round(hotel.price)}</span>
+                </div>
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </section>

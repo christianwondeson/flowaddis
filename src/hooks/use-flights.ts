@@ -6,12 +6,15 @@ interface UseFlightsParams {
     toCode?: string;
     departDate?: Date;
     returnDate?: Date;
+    flightType?: string;
+    cabinClass?: string;
+    orderBy?: string;
     adults?: number;
     children?: number;
     page?: number;
 }
 
-export function useFlights({ fromCode, toCode, departDate, returnDate, adults = 1, children = 0, page = 0 }: UseFlightsParams) {
+export function useFlights({ fromCode, toCode, departDate, returnDate, flightType, cabinClass, orderBy, adults = 1, children = 0, page = 0 }: UseFlightsParams) {
     return useQuery({
         queryKey: queryKeys.flights.list({ fromCode, toCode, departDate, returnDate, adults, children, page }),
         queryFn: async () => {
@@ -19,6 +22,9 @@ export function useFlights({ fromCode, toCode, departDate, returnDate, adults = 
                 adults: adults.toString(),
                 children: children.toString(),
                 page: page.toString(),
+                flightType: flightType || 'ROUNDTRIP',
+                cabinClass: cabinClass || 'ECONOMY',
+                orderBy: orderBy || 'BEST',
             });
 
             if (fromCode) params.append('fromCode', fromCode);
@@ -33,7 +39,7 @@ export function useFlights({ fromCode, toCode, departDate, returnDate, adults = 
             return data.flights || []; // API returns { flights: [...] }
         },
         // Enable even if params are missing, as API has defaults
-        enabled: true, 
+        enabled: true,
     });
 }
 

@@ -27,6 +27,7 @@ export interface HotelFilters {
     minRating?: number;
     amenities?: string[];
     hotelName?: string;
+    query?: string;
 }
 
 export interface TripItem {

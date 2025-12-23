@@ -4,6 +4,8 @@ import { queryKeys } from '@/lib/react-query';
 
 interface UseHotelsParams {
     query: string;
+    destId?: string;
+    destType?: string;
     checkIn?: Date;
     checkOut?: Date;
     page?: number;
@@ -13,10 +15,10 @@ interface UseHotelsParams {
     rooms?: number;
 }
 
-export function useHotels({ query, checkIn, checkOut, page = 0, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
+export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
     return useQuery({
-        queryKey: queryKeys.hotels.list({ query, checkIn, checkOut, page, filters, adults, children, rooms }),
-        queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, destId?: string }> => {
+        queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, filters, adults, children, rooms }),
+        queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, totalCount: number, destId?: string }> => {
             // Build query params
             const params = new URLSearchParams({
                 query,
@@ -26,6 +28,8 @@ export function useHotels({ query, checkIn, checkOut, page = 0, filters, adults 
                 rooms: rooms.toString(),
             });
 
+            if (destId) params.append('destId', destId);
+            if (destType) params.append('destType', destType);
             if (checkIn) params.append('checkIn', checkIn.toISOString().split('T')[0]);
             if (checkOut) params.append('checkOut', checkOut.toISOString().split('T')[0]);
             if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
@@ -52,15 +56,15 @@ export function useHotels({ query, checkIn, checkOut, page = 0, filters, adults 
                 return {
                     hotels: data.hotels || [],
                     hasNextPage: data.hasNextPage || false,
+                    totalCount: data.total || 0,
                     destId: data.destId
                 };
             } catch (error) {
                 console.error('Error in useHotels:', error);
                 // Return empty list on error, let the UI handle empty state
                 // The API route itself handles mock fallback, so this catch is for network errors
-                return { hotels: [], hasNextPage: false };
+                return { hotels: [], hasNextPage: false, totalCount: 0 };
             }
         },
-        placeholderData: (previousData) => previousData,
     });
 }

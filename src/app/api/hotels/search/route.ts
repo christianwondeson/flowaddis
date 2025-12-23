@@ -11,10 +11,13 @@ export async function GET(request: Request) {
     const sortOrder = searchParams.get('sortOrder') || 'popularity';
     const currency = searchParams.get('currency') || 'USD';
 
-    // Guest Filters
     const adults = searchParams.get('adults') || '2';
     const children = searchParams.get('children') || '0';
     const rooms = searchParams.get('rooms') || '1';
+
+    // Direct IDs
+    const urlDestId = searchParams.get('destId');
+    const urlDestType = searchParams.get('destType');
 
     // Filters
     const minPrice = searchParams.get('minPrice');
@@ -25,82 +28,79 @@ export async function GET(request: Request) {
     const hotelName = searchParams.get('hotelName') || '';
 
     try {
-        // 1. Resolve Location to get dest_id
-        // Normalize airport-like codes to city names to improve matching
-        const CODE_TO_CITY: Record<string, string> = {
-            ADD: 'Addis Ababa',
-            DXB: 'Dubai',
-            LHR: 'London',
-            FRA: 'Frankfurt/Main',
-            IST: 'Istanbul',
-            JFK: 'New York',
-            YYZ: 'Toronto',
-            DOH: 'Doha',
-            CDG: 'Paris',
-        };
-        let searchQuery = query.trim();
-        const airportCodeMatch = searchQuery.match(/^([A-Za-z]{3})(?:\.(AIRPORT|CITY))?$/);
-        if (airportCodeMatch) {
-            const code = airportCodeMatch[1].toUpperCase();
-            if (CODE_TO_CITY[code]) {
-                searchQuery = CODE_TO_CITY[code];
-            }
-        } else if (searchQuery.includes('.AIRPORT') || searchQuery.includes('.CITY')) {
-            const code = searchQuery.split('.')[0].toUpperCase();
-            if (CODE_TO_CITY[code]) {
-                searchQuery = CODE_TO_CITY[code];
-            }
-        }
+        let destId = urlDestId;
+        let destType = urlDestType || 'city';
+        let searchType = urlDestType || 'city';
 
-        // Append country context if it clearly targets Ethiopia
-        if (searchQuery.toLowerCase().includes('addis') && !searchQuery.toLowerCase().includes('ethiopia')) {
-            // Optional: keep simple to avoid over-constraining searches
-            // searchQuery = `${searchQuery}, Ethiopia`;
-        }
-
-        const locationOptions = {
-            method: 'GET',
-            url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
-            params: {
-                name: searchQuery,
-                locale: 'en-gb',
-            },
-            headers: getApiHeaders(),
-        };
-
-
-        const locationResponse = await axios.request(locationOptions);
-        const locations = locationResponse.data;
-
-        let destId = '-553173'; // Default to Addis Ababa
-        let searchType = 'city';
-        let destType = 'city';
-
-        if (locations && locations.length > 0) {
-            // Prioritize Ethiopian locations if query implies it
-            const ethiopianLocation = locations.find((loc: any) => loc.cc1 === 'et');
-            const targetLocation = ethiopianLocation || locations[0];
-
-            destId = targetLocation.dest_id;
-            searchType = targetLocation.search_type;
-            destType = targetLocation.dest_type;
-
-        } else {
-
-            // Curated fallback dest_ids (maintain as needed)
-            const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
-                'addis ababa': { dest_id: '-553173', dest_type: 'city', search_type: 'city' },
-                'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
-                'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
-                'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
-                'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
-                'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+        if (!destId) {
+            // 1. Resolve Location to get dest_id
+            // Normalize airport-like codes to city names to improve matching
+            const CODE_TO_CITY: Record<string, string> = {
+                ADD: 'Addis Ababa',
+                DXB: 'Dubai',
+                LHR: 'London',
+                FRA: 'Frankfurt/Main',
+                IST: 'Istanbul',
+                JFK: 'New York',
+                YYZ: 'Toronto',
+                DOH: 'Doha',
+                CDG: 'Paris',
             };
-            const key = searchQuery.toLowerCase();
-            if (FALLBACK_DESTS[key]) {
-                destId = FALLBACK_DESTS[key].dest_id;
-                searchType = FALLBACK_DESTS[key].search_type;
-                destType = FALLBACK_DESTS[key].dest_type;
+            let searchQuery = query.trim();
+            const airportCodeMatch = searchQuery.match(/^([A-Za-z]{3})(?:\.(AIRPORT|CITY))?$/);
+            if (airportCodeMatch) {
+                const code = airportCodeMatch[1].toUpperCase();
+                if (CODE_TO_CITY[code]) {
+                    searchQuery = CODE_TO_CITY[code];
+                }
+            } else if (searchQuery.includes('.AIRPORT') || searchQuery.includes('.CITY')) {
+                const code = searchQuery.split('.')[0].toUpperCase();
+                if (CODE_TO_CITY[code]) {
+                    searchQuery = CODE_TO_CITY[code];
+                }
+            }
+
+            const locationOptions = {
+                method: 'GET',
+                url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
+                params: {
+                    name: searchQuery,
+                    locale: 'en-gb',
+                },
+                headers: getApiHeaders(),
+            };
+
+            const locationResponse = await axios.request(locationOptions);
+            const locations = locationResponse.data;
+
+            destId = '-553173'; // Default to Addis Ababa
+            searchType = 'city';
+            destType = 'city';
+
+            if (locations && locations.length > 0) {
+                // Prioritize Ethiopian locations if query implies it
+                const ethiopianLocation = locations.find((loc: any) => loc.cc1 === 'et');
+                const targetLocation = ethiopianLocation || locations[0];
+
+                destId = targetLocation.dest_id;
+                searchType = targetLocation.search_type;
+                destType = targetLocation.dest_type;
+            } else {
+                // Curated fallback dest_ids (maintain as needed)
+                const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
+                    'addis ababa': { dest_id: '-553173', dest_type: 'city', search_type: 'city' },
+                    'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                    'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
+                    'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
+                    'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
+                    'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                };
+                const key = searchQuery.toLowerCase();
+                if (FALLBACK_DESTS[key]) {
+                    destId = FALLBACK_DESTS[key].dest_id;
+                    searchType = FALLBACK_DESTS[key].search_type;
+                    destType = FALLBACK_DESTS[key].dest_type;
+                }
             }
         }
 
@@ -144,15 +144,24 @@ export async function GET(request: Request) {
             headers: getApiHeaders(),
         };
 
-        console.log('Hotel Search Params:', searchOptions.params);
-
 
         const response = await axios.request(searchOptions);
         const results = response.data.result || response.data.results || [];
-        const totalCount = (response.data.count ?? response.data.total_count ?? results.length) as number;
+
+        // Robust total count detection
+        const totalCount = (
+            response.data.count ??
+            response.data.total_count ??
+            response.data.total_results ??
+            response.data.total ??
+            (response.data.aggregation?.totalCount) ??
+            (response.data.aggregation?.filteredTotalCount) ??
+            results.length
+        ) as number;
 
         let hotels = results.map((item: any) => {
-            // Price calculation
+            // ... mapping logic ...
+            // (Keeping existing mapping logic)
             const priceBreakdown = item.priceBreakdown || item.composite_price_breakdown;
             const grossAmount = priceBreakdown?.grossPrice?.value || priceBreakdown?.gross_amount_per_night?.value || item.min_total_price?.value || 0;
             const strikethroughAmount = priceBreakdown?.strikethroughPrice?.value || priceBreakdown?.strikethrough_amount_per_night?.value;
@@ -160,17 +169,17 @@ export async function GET(request: Request) {
                 ? Math.round(((strikethroughAmount - grossAmount) / strikethroughAmount) * 100)
                 : 0;
 
-            // Badges
             const badges = item.badges?.map((badge: any) => badge.text) || [];
             if (item.is_mobile_deal || item.isMobileDeal) badges.push('Mobile-only price');
 
-            // Image - prefer high res
             const image = item.photoMainUrl ||
                 item.max_1440_photo_url ||
                 item.max_photo_url ||
                 item.main_photo_url ||
-                item.photo_urls?.[0] ||
-                item.photoUrls?.[0] ||
+                (item.photo_urls && item.photo_urls.length > 0 ? item.photo_urls[0] : null) ||
+                (item.photoUrls && item.photoUrls.length > 0 ? item.photoUrls[0] : null) ||
+                item.url_1440 ||
+                item.url_square600 ||
                 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80';
 
             return {
@@ -181,7 +190,7 @@ export async function GET(request: Request) {
                 reviews: item.reviewCount || item.review_nr || 0,
                 reviewWord: item.reviewScoreWord || item.review_score_word || '',
                 price: grossAmount,
-                originalPrice: strikethroughAmount || (grossAmount * 1.2), // Fallback for UI
+                originalPrice: strikethroughAmount || (grossAmount * 1.2),
                 discountPercentage: discountPercentage || 20,
                 badges,
                 distance: item.distance_to_cc_formatted || (item.distance_to_cc ? `${item.distance_to_cc} km from centre` : 'Near centre'),
@@ -192,16 +201,25 @@ export async function GET(request: Request) {
             };
         });
 
-        // Optional server-side filter by hotel name (contains)
         if (hotelName) {
             const nameLc = hotelName.toLowerCase();
             hotels = hotels.filter((h: any) => h.name.toLowerCase().includes(nameLc));
         }
 
-        // Compute hasNextPage heuristically from total count and current page size
+        // Refined hasNextPage logic
         const pageIndex = Number(page) || 0;
         const pageSize = results.length;
-        const hasNextPage = pageSize > 0 ? (pageSize * (pageIndex + 1) < totalCount) : false;
+
+        // Heuristic: If we got a full page (usually 20), assume there's more unless totalCount says otherwise
+        let hasNextPage = false;
+        if (pageSize > 0) {
+            if (totalCount > (pageIndex + 1) * pageSize) {
+                hasNextPage = true;
+            } else if (pageSize >= 20) {
+                // Fallback heuristic if totalCount is unreliable but we got a full page
+                hasNextPage = true;
+            }
+        }
 
         return NextResponse.json({
             hotels,

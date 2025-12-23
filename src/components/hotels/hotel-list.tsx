@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { HotelCard } from './hotel-card';
+import { HotelCollectionCard } from './hotel-collection-card';
 import { Hotel } from '@/types';
 
 interface HotelListProps {
@@ -16,9 +16,9 @@ interface HotelListProps {
 export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, onBook, onHoverStart, onHoverEnd }) => {
     if (isLoading) {
         return (
-            <div className="space-y-8">
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse bg-white rounded-xl h-64 w-full border border-gray-100 shadow-sm"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="animate-pulse bg-white rounded-xl h-[380px] w-full max-w-[320px] border border-gray-100 shadow-sm"></div>
                 ))}
             </div>
         );
@@ -41,10 +41,13 @@ export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, 
     }
 
     return (
-        <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-brand-dark mb-6">Recommended Hotels</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
             {hotels.map((hotel) => (
-                <HotelCard key={hotel.id} hotel={hotel} onBook={onBook} onHoverStart={onHoverStart} onHoverEnd={onHoverEnd} />
+                <HotelCollectionCard
+                    key={hotel.id}
+                    hotel={hotel}
+                    onBook={onBook}
+                />
             ))}
         </div>
     );

@@ -19,6 +19,9 @@ export async function GET(request: Request) {
     const children = searchParams.get('children') || '0';
     const page = searchParams.get('page') || '0';
     const currency = searchParams.get('currency') || 'USD';
+    const flightType = searchParams.get('flightType') || 'ROUNDTRIP';
+    const cabinClass = searchParams.get('cabinClass') || 'ECONOMY';
+    const orderBy = searchParams.get('orderBy') || 'BEST';
 
     try {
         const options = {
@@ -28,20 +31,20 @@ export async function GET(request: Request) {
                 from_code: fromCode,
                 to_code: toCode,
                 depart_date: departDate,
-                return_date: returnDate,
+                return_date: flightType === 'ROUNDTRIP' ? returnDate : undefined,
                 adults: adults,
                 children_ages: children !== '0' ? Array(parseInt(children)).fill('10').join(',') : undefined, // Mock ages if children > 0
                 page_number: page,
-                flight_type: returnDate ? 'ROUNDTRIP' : 'ONEWAY',
-                cabin_class: 'ECONOMY',
-                order_by: 'BEST',
+                flight_type: flightType,
+                cabin_class: cabinClass,
+                order_by: orderBy,
                 locale: 'en-gb',
                 currency,
             },
             headers: getApiHeaders(),
         };
 
-    
+
         const response = await axios.request(options);
 
         // Normalize RapidAPI response to the frontend schema: { flights: [...] }

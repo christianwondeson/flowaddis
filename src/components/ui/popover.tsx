@@ -11,10 +11,26 @@ interface PopoverProps {
     align?: 'left' | 'right';
     portal?: boolean; // render in portal to escape overflow clipping
     placement?: 'auto' | 'bottom' | 'top';
+    isOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
-export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, align = 'left', portal = true, placement = 'auto' }) => {
-    const [isOpen, setIsOpen] = useState(false);
+export const Popover: React.FC<PopoverProps> = ({
+    trigger,
+    content,
+    className,
+    align = 'left',
+    portal = true,
+    placement = 'auto',
+    isOpen: externalIsOpen,
+    onOpenChange
+}) => {
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+    const setIsOpen = (open: boolean) => {
+        if (onOpenChange) onOpenChange(open);
+        setInternalIsOpen(open);
+    };
     const wrapperRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
@@ -80,7 +96,10 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, content, className, a
             style={portal && coords ? {
                 position: 'fixed',
                 top: coords.top,
-                left: align === 'right' && coords ? (coords.left - (coords.width || 0)) : coords?.left,
+                left: Math.max(8, Math.min(
+                    align === 'right' ? (coords.left - (coords.width || 0)) : coords.left,
+                    typeof window !== 'undefined' ? window.innerWidth - (contentRef.current?.offsetWidth || 240) - 8 : 8
+                )),
             } as React.CSSProperties : undefined}
             ref={contentRef}
         >

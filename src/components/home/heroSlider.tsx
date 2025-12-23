@@ -70,18 +70,18 @@ export function HeroSlider({ children }: HeroSliderProps) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-30 container mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-20">
-        <div className="text-center mb-8 md:mb-12 pointer-events-none">
+      <div className="relative z-30 container mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-20">
+        <div className="text-center mb-6 md:mb-12 pointer-events-none">
           <motion.div
             key={`text-${currentSlide}`}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white mb-4 md:mb-6 tracking-tight leading-tight px-4 drop-shadow-lg">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-white mb-3 md:mb-6 tracking-tight leading-tight px-2 md:px-4 drop-shadow-lg">
               {slides[currentSlide].title}
             </h1>
-            <p className="text-lg md:text-xl lg:text-2xl text-gray-200 max-w-2xl mx-auto font-medium px-4 drop-shadow-md">
+            <p className="text-base md:text-xl lg:text-2xl text-gray-200 max-w-2xl mx-auto font-medium px-2 md:px-4 drop-shadow-md">
               {slides[currentSlide].subtitle}
             </p>
           </motion.div>

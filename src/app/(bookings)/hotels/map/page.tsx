@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { PriceMarker } from '@/types';
+import { PriceMarker, Hotel } from '@/types';
 const LeafletMap = dynamic(() => import('@/components/map/leaflet-map').then(m => m.LeafletMap), { ssr: false });
 import { HotelList } from '@/components/hotels/hotel-list';
 import { HotelFilters } from '@/components/hotels/hotel-filters';
@@ -15,7 +15,7 @@ function HotelsMapContent() {
   const params = useSearchParams();
 
   // Pull initial params if present
-  const initialQuery = params.get('query') || 'Addis Ababa';
+  const initialQuery = params.get('query') || 'Ethiopia';
   const initialCheckIn = params.get('checkIn') || '';
   const initialCheckOut = params.get('checkOut') || '';
   const initialSort = params.get('sortOrder') || 'popularity';
@@ -26,11 +26,11 @@ function HotelsMapContent() {
   const initialAmenities = params.get('amenities');
   const initialHotelName = params.get('hotelName') || '';
 
-  const [query, setQuery] = useState(initialQuery);
   const [checkIn, setCheckIn] = useState<string | undefined>(initialCheckIn || undefined);
   const [checkOut, setCheckOut] = useState<string | undefined>(initialCheckOut || undefined);
   const [page, setPage] = useState(0);
   const [filters, setFilters] = useState<any>({
+    query: initialQuery,
     sortOrder: initialSort,
     minPrice: initialMinPrice ? Number(initialMinPrice) : undefined,
     maxPrice: initialMaxPrice ? Number(initialMaxPrice) : undefined,
@@ -40,18 +40,48 @@ function HotelsMapContent() {
     hotelName: initialHotelName || '',
   });
 
+  const checkInDate = useMemo(() => checkIn ? new Date(checkIn) : undefined, [checkIn]);
+  const checkOutDate = useMemo(() => checkOut ? new Date(checkOut) : undefined, [checkOut]);
+
   const { data, isLoading, error, isPlaceholderData } = useHotels({
-    query,
-    checkIn: checkIn ? new Date(checkIn) : undefined,
-    checkOut: checkOut ? new Date(checkOut) : undefined,
+    query: filters.query,
+    checkIn: checkInDate,
+    checkOut: checkOutDate,
     page,
     filters,
   });
 
-  const hotels = data?.hotels || [];
+  const [hotels, setHotels] = useState<Hotel[]>([]);
   const [hoveredId, setHoveredId] = useState<string | undefined>(undefined);
 
-  const center: [number, number] = [9.0108, 38.7613];
+  // Reset hotels when filters or query change
+  useEffect(() => {
+    setHotels([]);
+    setPage(0);
+  }, [checkIn, checkOut, filters]);
+
+  // Accumulate hotels when data changes
+  useEffect(() => {
+    if (data?.hotels) {
+      if (page === 0) {
+        setHotels(data.hotels);
+      } else {
+        setHotels((prev) => {
+          // Avoid duplicates
+          const existingIds = new Set(prev.map((h) => h.id));
+          const newHotels = data.hotels.filter((h) => !existingIds.has(h.id));
+          return [...prev, ...newHotels];
+        });
+      }
+    }
+  }, [data, page]);
+
+  const center = useMemo((): [number, number] => {
+    if (hotels.length > 0 && hotels[0].coordinates) {
+      return [hotels[0].coordinates.lat, hotels[0].coordinates.lng];
+    }
+    return [9.0108, 38.7613];
+  }, [hotels]);
   const markers: PriceMarker[] = hotels
     .filter((h) => h.coordinates)
     .map((h) => ({
@@ -94,7 +124,7 @@ function HotelsMapContent() {
                 hotels={hotels}
                 isLoading={isLoading && page === 0}
                 error={error}
-                onBook={() => { }}
+                onBook={(hotel) => router.push(`/hotels/${hotel.id}`)}
                 onHoverStart={(id) => setHoveredId(id)}
                 onHoverEnd={() => setHoveredId(undefined)}
               />

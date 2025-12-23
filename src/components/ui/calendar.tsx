@@ -84,21 +84,21 @@ export const Calendar: React.FC<CalendarProps> = ({ selected, onSelect, minDate 
     ];
 
     return (
-        <div className="p-4 w-fit mx-auto">
+        <div className="p-2 sm:p-4 w-full max-w-[320px] mx-auto">
             <div className="flex justify-between items-center mb-4">
-                <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-full">
-                    <ChevronLeft className="w-4 h-4 text-gray-600" />
+                <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <ChevronLeft className="w-5 h-5 text-gray-600" />
                 </button>
-                <span className="font-semibold text-gray-800">
+                <span className="font-bold text-gray-800 text-sm sm:text-base">
                     {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </span>
-                <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-full">
-                    <ChevronRight className="w-4 h-4 text-gray-600" />
+                <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
                 </button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                    <div key={day} className="text-center text-xs font-medium text-gray-400">
+                    <div key={day} className="text-center text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">
                         {day}
                     </div>
                 ))}

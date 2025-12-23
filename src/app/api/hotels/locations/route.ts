@@ -9,16 +9,14 @@ const CACHE_TTL_MS = 1000 * 60 * 5; // 5 minutes
 // Minimal curated fallback with reliable dest_ids for common cities
 // Note: Booking.com's dest_ids can change; maintain these carefully if you expand.
 const FALLBACK_PRESETS = [
-    { name: 'Addis Ababa', dest_id: '-553173', dest_type: 'city', search_type: 'city', cc1: 'et' },
-    { name: 'Bishoftu', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et' },
-    { name: 'Bahir Dar', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et' },
-    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et' }, // Placeholder dest_id
-    { name: 'Gondar', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et' }, // Placeholder dest_id
-    { name: 'Dubai', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'ae' },
-    { name: 'London', dest_id: '-2601889', dest_type: 'city', search_type: 'city', cc1: 'gb' },
-    { name: 'Frankfurt/Main', dest_id: '-1771148', dest_type: 'city', search_type: 'city', cc1: 'de' },
-    { name: 'Istanbul', dest_id: '-755070', dest_type: 'city', search_type: 'city', cc1: 'tr' },
-    { name: 'New York', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'us' },
+    { name: 'Addis Ababa', dest_id: '-553173', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Addis Ababa', countryName: 'Ethiopia' },
+    { name: 'Bishoftu', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Bishoftu', countryName: 'Ethiopia' },
+    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Hawassa', countryName: 'Ethiopia' },
+    { name: 'Bahir Dar', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Bahir Dar', countryName: 'Ethiopia' },
+    { name: 'Dubai', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'ae', cityName: 'Dubai', countryName: 'United Arab Emirates' },
+    { name: 'London', dest_id: '-2601889', dest_type: 'city', search_type: 'city', cc1: 'gb', cityName: 'London', countryName: 'United Kingdom' },
+    { name: 'Istanbul', dest_id: '-755070', dest_type: 'city', search_type: 'city', cc1: 'tr', cityName: 'Istanbul', countryName: 'Turkey' },
+    { name: 'New York', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'us', cityName: 'New York', countryName: 'United States' },
 ];
 
 export async function GET(request: Request) {
@@ -37,11 +35,16 @@ export async function GET(request: Request) {
             return NextResponse.json(cached.data);
         }
 
+        // Smarter location query: only append Ethiopia if it's not clearly international
+        const internationalCities = ['dubai', 'london', 'istanbul', 'new york', 'paris', 'nairobi', 'johannesburg', 'frankfurt', 'toronto', 'doha'];
+        const isInternational = internationalCities.some(city => key.includes(city));
+        const searchQuery = (isInternational || key.includes('ethiopia')) ? name : `${name}, Ethiopia`;
+
         const options = {
             method: 'GET',
             url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
             params: {
-                name: name.toLowerCase().includes('ethiopia') ? name : `${name}, Ethiopia`,
+                name: searchQuery,
                 locale: 'en-gb'
             },
             headers: getApiHeaders(),
