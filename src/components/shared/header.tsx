@@ -50,7 +50,14 @@ export const Header: React.FC = () => {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-1 bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-white/20">
+                    <nav
+                        className={clsx(
+                            'hidden md:flex items-center gap-1 px-2 py-1 rounded-full',
+                            isHomePage && !scrolled
+                                ? 'bg-transparent border-transparent'
+                                : 'bg-white/50 backdrop-blur-sm border border-white/20'
+                        )}
+                    >
                         {navItems.map((item) => (
                             <Link
                                 key={item.name}
@@ -100,7 +107,12 @@ export const Header: React.FC = () => {
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden p-2 text-brand-dark bg-white/50 rounded-full backdrop-blur-sm"
+                        className={clsx(
+                            'md:hidden p-2 rounded-full',
+                            isHomePage && !scrolled
+                                ? 'text-white bg-white/10 hover:bg-white/20'
+                                : 'text-brand-dark bg-white/70 backdrop-blur-sm'
+                        )}
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                     >
                         {isMenuOpen ? <X /> : <Menu />}

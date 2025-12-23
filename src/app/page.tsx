@@ -20,9 +20,9 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = React.useState('hotels');
 
   return (
-    <div className="space-y-12 md:space-y-16 lg:space-y-24 pb-16 md:pb-20">
+    <div className="space-y-12 md:space-y-16 lg:space-y-24 pb-16 md:pb-20 overflow-x-hidden">
       {/* Hero Section with Slider */}
-      <section className="relative min-h-[550px] md:h-[560px] lg:h-[640px] xl:h-[700px] flex items-center justify-center -mt-6 md:-mt-12 lg:-mt-16 xl:-mt-20">
+      <section className="relative min-h-[550px] md:h-[560px] lg:h-[640px] xl:h-[700px] flex items-center justify-center -mt-6 md:-mt-12 lg:-mt-16 xl:-mt-20 overflow-hidden no-scrollbar">
         <HeroSlider>
           <div className="w-full py-12 md:py-0">
             <SearchWidget onTabChange={(tab) => setActiveTab(tab)} />

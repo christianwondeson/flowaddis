@@ -25,6 +25,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [hasInteracted, setHasInteracted] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     // Curated presets for Ethiopian diaspora routes
@@ -51,6 +52,12 @@ export const LocationInput: React.FC<LocationInputProps> = ({
         const fetchSuggestions = async () => {
             const v = value.trim();
             const codeLike = /^(?:[A-Za-z]{3}\.(?:AIRPORT|CITY))$/.test(v) || v.includes('.AIRPORT') || v.includes('.CITY');
+
+            // If user hasn't interacted yet, keep dropdown hidden
+            if (!hasInteracted) {
+                setShowSuggestions(false);
+                return;
+            }
 
             if (v.length < 2) {
                 setSuggestions(PRESETS);
@@ -85,7 +92,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
 
         const timeoutId = setTimeout(fetchSuggestions, 300);
         return () => clearTimeout(timeoutId);
-    }, [value, api]);
+    }, [value, api, hasInteracted]);
 
     const handleSelect = (location: any) => {
         // Prefer provider code like LHR.AIRPORT for flights; fallback to name/label
@@ -108,8 +115,16 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                 placeholder={placeholder}
                 icon={<MapPin className="w-4 h-4" />}
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
+                onChange={(e) => {
+                    if (!hasInteracted) setHasInteracted(true);
+                    onChange(e.target.value);
+                }}
+                onFocus={() => {
+                    // Do not show dropdown on initial focus before interaction
+                    if (hasInteracted && suggestions.length > 0) {
+                        setShowSuggestions(true);
+                    }
+                }}
             />
 
             {showSuggestions && suggestions.length > 0 && (

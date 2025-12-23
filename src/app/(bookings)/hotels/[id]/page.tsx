@@ -8,18 +8,20 @@ import { HotelDetailAbout } from '@/components/hotels/hotel-detail-about';
 import { HotelDetailAvailability } from '@/components/hotels/hotel-detail-availability';
 import { HotelDetailSidebar } from '@/components/hotels/hotel-detail-sidebar';
 import { useHotels } from '@/hooks/use-hotels';
+import axios from 'axios';
+import { BookingModal } from '@/components/booking/booking-modal';
 
 export default function HotelDetailPage() {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('overview');
     const [hotel, setHotel] = useState<any>({
         id,
-        name: 'SML Vacation Homes at Vida Dubai Mall - Apartments with Burj Khalifa Views & access to the Dubai Mall',
-        location: 'Vida Dubai Mall, Dubai, United Arab Emirates',
-        rating: 8.6,
-        reviews: 5,
-        reviewWord: 'Excellent',
-        price: 1494,
+        name: '',
+        location: '',
+        rating: 0,
+        reviews: 0,
+        reviewWord: '',
+        price: 0,
         image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
         images: [
             'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
@@ -32,12 +34,29 @@ export default function HotelDetailPage() {
             'https://images.unsplash.com/photo-1591088398332-8a77d399e80c?auto=format&fit=crop&w=1200&q=80',
         ]
     });
+    const [isBookingOpen, setIsBookingOpen] = useState(false);
 
     // In a real app, we would fetch by ID. 
     // For now, we'll find it from the search results or use mock data.
     const { data, isLoading } = useHotels({ query: 'Ethiopia' });
 
     useEffect(() => {
+        // Seed basic details from URL query string if present
+        if (typeof window !== 'undefined') {
+            const usp = new URLSearchParams(window.location.search);
+            const name = usp.get('name');
+            const price = usp.get('price');
+            const image = usp.get('image');
+            const location = usp.get('location');
+            setHotel((prev: any) => ({
+                ...prev,
+                ...(name ? { name } : {}),
+                ...(price ? { price: Number(price) } : {}),
+                ...(image ? { image } : {}),
+                ...(location ? { location } : {}),
+            }));
+        }
+
         if (data?.hotels) {
             const found = data.hotels.find((h: any) => h.id === id);
             if (found) {
@@ -45,6 +64,56 @@ export default function HotelDetailPage() {
             }
         }
     }, [id, data]);
+
+    // Fetch photos, reviews, description, and details for this hotel
+    useEffect(() => {
+        const fetchDetails = async () => {
+            try {
+                if (!id) return;
+                const hotelId = Array.isArray(id) ? id[0] : id;
+
+                const [photosRes, reviewsRes, descRes, detailsRes] = await Promise.all([
+                    axios.get(`/api/hotels/photos?hotelId=${encodeURIComponent(hotelId)}`),
+                    axios.get(`/api/hotels/reviews?hotelId=${encodeURIComponent(hotelId)}`),
+                    axios.get(`/api/hotels/description?hotelId=${encodeURIComponent(hotelId)}&locale=en-gb`),
+                    axios.get(`/api/hotels/data?hotelId=${encodeURIComponent(hotelId)}`),
+                ]);
+
+                const photos = photosRes.data?.photos || photosRes.data || [];
+                const images = Array.isArray(photos)
+                    ? photos.map((p: any) => p.url_max || p.url_1440 || p.url_square600 || p.photo_url).filter(Boolean)
+                    : hotel.images;
+
+                const desc = descRes.data?.description || descRes.data?.data?.description || descRes.data?.data?.[0]?.description || '';
+
+                // Map details endpoint (varies by API). Try common fields safely.
+                const details = detailsRes.data?.data || detailsRes.data || {};
+                const mappedAmenities: string[] = Array.isArray(details?.facilities)
+                    ? details.facilities.map((f: any) => f.name || f)
+                    : (Array.isArray(details?.amenities) ? details.amenities : []);
+                const mappedName = details?.name || details?.hotel_name || undefined;
+                const mappedAddress = details?.address || details?.location || undefined;
+                const mappedRating = details?.review_score || details?.reviewScore || undefined;
+                const mappedReviewCount = details?.review_nr || details?.reviewCount || undefined;
+
+                setHotel((prev: any) => ({
+                    ...prev,
+                    images: images && images.length > 0 ? images : prev.images,
+                    description: desc || prev.description,
+                    amenities: mappedAmenities && mappedAmenities.length > 0 ? mappedAmenities : prev.amenities,
+                    name: mappedName || prev.name,
+                    location: mappedAddress || prev.location,
+                    rating: mappedRating != null ? mappedRating : prev.rating,
+                    reviews: mappedReviewCount != null ? mappedReviewCount : prev.reviews,
+                }));
+            } catch (e) {
+                // Silent fail; keep mock data
+                console.warn('Failed to fetch extra hotel details');
+            }
+        };
+        fetchDetails();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     if (isLoading && !hotel.name) {
         return (
@@ -60,6 +129,7 @@ export default function HotelDetailPage() {
                 hotel={hotel}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                onBook={() => setIsBookingOpen(true)}
             />
 
             <div className="container mx-auto px-4 py-8">
@@ -74,7 +144,7 @@ export default function HotelDetailPage() {
                         )}
 
                         {activeTab === 'pricing' && (
-                            <HotelDetailAvailability hotel={hotel} />
+                            <HotelDetailAvailability hotel={hotel} onBook={() => setIsBookingOpen(true)} />
                         )}
 
                         {activeTab === 'facilities' && (
@@ -107,19 +177,28 @@ export default function HotelDetailPage() {
                         {activeTab === 'reviews' && (
                             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
                                 <h2 className="text-2xl font-bold text-brand-dark mb-6">Guest Reviews</h2>
-                                <HotelDetailSidebar hotel={hotel} />
+                                <HotelDetailSidebar hotel={hotel} onBook={() => setIsBookingOpen(true)} />
                             </div>
                         )}
                     </div>
 
-                    {/* Sidebar - Only show on overview or pricing maybe? Or always? */}
+                    {/* Sidebar */}
                     {activeTab === 'overview' && (
                         <div className="w-full lg:w-1/4">
-                            <HotelDetailSidebar hotel={hotel} />
+                            <HotelDetailSidebar hotel={hotel} onBook={() => setIsBookingOpen(true)} />
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Booking Modal */}
+            <BookingModal
+                isOpen={isBookingOpen}
+                onClose={() => setIsBookingOpen(false)}
+                serviceName={hotel.name}
+                price={hotel.price}
+                type="hotel"
+            />
         </div>
     );
 }

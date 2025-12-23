@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 
 interface HotelDetailSidebarProps {
     hotel: any;
+    onBook?: () => void;
 }
 
-export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel }) => {
+export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, onBook }) => {
     return (
         <div className="space-y-4">
             {/* Review Score Card */}
@@ -89,7 +90,7 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel })
                     </div>
                 </div>
 
-                <Button className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
+                <Button onClick={onBook} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
                     Book now
                 </Button>
                 <div className="text-center text-[10px] text-gray-400">You won't be charged yet</div>

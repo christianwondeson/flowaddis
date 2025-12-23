@@ -13,7 +13,14 @@
 @layer base {
   body {
     @apply bg-brand-gray text-brand-dark font-sans antialiased;
+    /* Prevent horizontal scrollbars from animations or minor layout shifts */
+    overflow-x: hidden;
+    /* Hide scrollbars while preserving scroll functionality */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
+  /* WebKit-based browsers */
+  body::-webkit-scrollbar { display: none; }
 }
 
 :root {

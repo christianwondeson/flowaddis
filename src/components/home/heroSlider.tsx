@@ -59,12 +59,14 @@ export function HeroSlider({ children }: HeroSliderProps) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5 }}
-          className="absolute inset-0 z-0 overflow-hidden"
+          className="absolute inset-0 z-0 overflow-hidden transform-gpu"
+          style={{ willChange: 'transform, opacity' }}
         >
           <img
             src={slides[currentSlide].image}
             alt={slides[currentSlide].title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transform-gpu"
+            style={{ willChange: 'transform, opacity' }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-brand-dark/70 via-brand-dark/40 to-brand-gray" />
         </motion.div>

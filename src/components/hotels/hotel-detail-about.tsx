@@ -10,27 +10,18 @@ interface HotelDetailAboutProps {
 export const HotelDetailAbout: React.FC<HotelDetailAboutProps> = ({ hotel }) => {
     const highlights = [
         { icon: <Home className="w-5 h-5" />, label: 'The entire place is yours' },
-        { icon: <Maximize className="w-5 h-5" />, label: '112 m² size' },
+        { icon: <Maximize className="w-5 h-5" />, label: 'Spacious rooms' },
         { icon: <Wind className="w-5 h-5" />, label: 'Air conditioning' },
         { icon: <ParkingCircle className="w-5 h-5" />, label: 'Free on-site parking' },
         { icon: <Wifi className="w-5 h-5" />, label: 'Free WiFi' },
-        { icon: <Waves className="w-5 h-5" />, label: 'Outdoor swimming pool' },
+        { icon: <Waves className="w-5 h-5" />, label: 'Swimming pool' },
         { icon: <Users className="w-5 h-5" />, label: 'Family rooms' },
-        { icon: <Languages className="w-5 h-5" />, label: 'Balcony' },
+        { icon: <Languages className="w-5 h-5" />, label: 'Multilingual staff' },
         { icon: <Check className="w-5 h-5" />, label: 'Private bathroom' },
         { icon: <Ban className="w-5 h-5" />, label: 'Non-smoking rooms' },
     ];
 
-    const popularFacilities = [
-        { icon: <Waves className="w-4 h-4 text-brand-primary" />, label: 'Outdoor swimming pool' },
-        { icon: <Ban className="w-4 h-4 text-brand-primary" />, label: 'Non-smoking rooms' },
-        { icon: <Maximize className="w-4 h-4 text-brand-primary" />, label: 'Fitness center' },
-        { icon: <ParkingCircle className="w-4 h-4 text-brand-primary" />, label: 'Free parking' },
-        { icon: <Wifi className="w-4 h-4 text-brand-primary" />, label: 'Free WiFi' },
-        { icon: <Users className="w-4 h-4 text-brand-primary" />, label: 'Family rooms' },
-        { icon: <Maximize className="w-4 h-4 text-brand-primary" />, label: 'Elevator' },
-        { icon: <Wind className="w-4 h-4 text-brand-primary" />, label: 'Air conditioning' },
-    ];
+    const amenitiesFromHotel: string[] = Array.isArray(hotel?.amenities) ? hotel.amenities : [];
 
     return (
         <div className="space-y-8">
@@ -59,38 +50,45 @@ export const HotelDetailAbout: React.FC<HotelDetailAboutProps> = ({ hotel }) => 
 
             {/* Description */}
             <div className="space-y-4">
-                <p className="text-sm text-gray-500 leading-relaxed">
-                    You might be eligible for a Genius discount at {hotel.name}. <button className="text-brand-primary font-bold hover:underline">Sign in</button> to check if a Genius discount is available for your selected dates.
-                </p>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                    Genius discounts at this property are subject to booking dates, stay dates, and other available deals.
-                </p>
-
-                <h3 className="text-lg font-bold text-brand-dark pt-4">About this property</h3>
-                <div className="space-y-4 text-sm text-gray-500 leading-relaxed">
-                    <p>
-                        <span className="font-bold text-brand-dark">Spacious Accommodations:</span> {hotel.name} offers spacious 4-star apartments in {hotel.location}. Each unit features two bedrooms and two bathrooms, ensuring comfort for all guests.
-                    </p>
-                    <p>
-                        <span className="font-bold text-brand-dark">Exceptional Facilities:</span> Guests can enjoy a fitness center, year-round outdoor swimming pool, and free WiFi. Additional amenities include an elevator, outdoor seating area, family rooms, and full-day security.
-                    </p>
-                    <p>
-                        <span className="font-bold text-brand-dark">Prime Location:</span> Located near major landmarks and transport hubs. Nearby attractions include shopping malls, fountains, and cultural centers.
-                    </p>
-                </div>
+                <h3 className="text-lg font-bold text-brand-dark pt-1">About this property</h3>
+                {hotel?.description ? (
+                    <div className="space-y-2 text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                        {hotel.description}
+                    </div>
+                ) : (
+                    <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+                        <p>
+                            Enjoy a comfortable stay at <span className="font-bold text-brand-dark">{hotel.name}</span> in {hotel.location}. Popular amenities include Free WiFi, Parking, and Family rooms.
+                        </p>
+                        <p>
+                            This property offers friendly service and convenient access to nearby attractions.
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Most Popular Facilities */}
             <div className="pt-6 border-t border-gray-100">
                 <h3 className="text-base font-bold text-brand-dark mb-4">Most popular facilities</h3>
-                <div className="flex flex-wrap gap-x-6 gap-y-3">
-                    {popularFacilities.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs font-medium text-brand-dark">
-                            {item.icon}
-                            <span>{item.label}</span>
-                        </div>
-                    ))}
-                </div>
+                {amenitiesFromHotel.length > 0 ? (
+                    <div className="flex flex-wrap gap-x-6 gap-y-3">
+                        {amenitiesFromHotel.slice(0, 12).map((label: string, idx: number) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs font-medium text-brand-dark">
+                                <Check className="w-4 h-4 text-brand-primary" />
+                                <span>{label}</span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-wrap gap-x-6 gap-y-3">
+                        {[ 'Free WiFi', 'Parking', 'Family rooms', 'Air conditioning' ].map((label, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-xs font-medium text-brand-dark">
+                                <Check className="w-4 h-4 text-brand-primary" />
+                                <span>{label}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

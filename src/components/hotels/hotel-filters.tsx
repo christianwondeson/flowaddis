@@ -55,6 +55,30 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({ filters, onFilterCha
             <div className="space-y-6">
                 <h2 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Filter by:</h2>
 
+                {/* Location (no dropdown) */}
+                <div>
+                    <h3 className="text-xs font-bold text-gray-900 mb-3">Location</h3>
+                    <Input
+                        type="text"
+                        placeholder="City, region, landmark..."
+                        value={filters.query || ''}
+                        onChange={(e) => onFilterChange({ ...filters, query: e.target.value })}
+                        className="h-8 text-xs"
+                    />
+                </div>
+
+                {/* Property name (no dropdown) */}
+                <div>
+                    <h3 className="text-xs font-bold text-gray-900 mb-3">Property name</h3>
+                    <Input
+                        type="text"
+                        placeholder="e.g. Hilton, Hyatt, Skylight..."
+                        value={filters.hotelName || ''}
+                        onChange={(e) => onFilterChange({ ...filters, hotelName: e.target.value })}
+                        className="h-8 text-xs"
+                    />
+                </div>
+
                 {/* Star Rating */}
                 <div>
                     <h3 className="text-xs font-bold text-gray-900 mb-3">Star Rating</h3>

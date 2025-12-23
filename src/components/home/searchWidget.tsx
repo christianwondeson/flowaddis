@@ -119,6 +119,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               <div className="md:col-span-3">
                 <div className="grid grid-cols-2 gap-2">
                   <Popover
+                    align="center"
                     trigger={
                       <div className="w-full cursor-pointer">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
@@ -182,6 +183,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
             <div className="sm:col-span-2 md:col-span-4">
               <div className="grid grid-cols-2 gap-3">
                 <Popover
+                  align="center"
                   trigger={
                     <div className="w-full cursor-pointer">
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>

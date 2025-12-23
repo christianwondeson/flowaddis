@@ -140,7 +140,12 @@ export default function HotelsPage() {
     const router = useRouter();
 
     const handleBook = (hotel: any) => {
-        router.push(`/hotels/${hotel.id}`);
+        const params = new URLSearchParams();
+        if (hotel.name) params.set('name', hotel.name);
+        if (hotel.price != null) params.set('price', String(Math.round(hotel.price)));
+        if (hotel.image) params.set('image', hotel.image);
+        if (hotel.location) params.set('location', hotel.location);
+        router.push(`/hotels/${hotel.id}?${params.toString()}`);
     };
 
     const handleSearch = () => {

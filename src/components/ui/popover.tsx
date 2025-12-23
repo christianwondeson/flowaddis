@@ -8,7 +8,7 @@ interface PopoverProps {
     trigger: React.ReactNode;
     content: React.ReactNode;
     className?: string;
-    align?: 'left' | 'right';
+    align?: 'left' | 'right' | 'center';
     portal?: boolean; // render in portal to escape overflow clipping
     placement?: 'auto' | 'bottom' | 'top';
     isOpen?: boolean;
@@ -60,7 +60,15 @@ export const Popover: React.FC<PopoverProps> = ({
         const updatePosition = () => {
             if (!triggerRef.current) return;
             const rect = triggerRef.current.getBoundingClientRect();
-            const left = align === 'right' ? rect.right : rect.left;
+            const contentWidth = contentRef.current?.offsetWidth || 240;
+            let left: number;
+            if (align === 'right') {
+                left = rect.right - contentWidth;
+            } else if (align === 'center') {
+                left = rect.left + rect.width / 2 - contentWidth / 2;
+            } else {
+                left = rect.left;
+            }
             // Measure content height if available, else assume 320px (calendar size)
             const contentH = contentRef.current?.offsetHeight || 320;
             const spaceBelow = window.innerHeight - rect.bottom;
@@ -74,7 +82,11 @@ export const Popover: React.FC<PopoverProps> = ({
             }
             setCurrentPlacement(place);
             const top = place === 'bottom' ? rect.bottom + 8 : Math.max(8, rect.top - contentH - 8);
-            setCoords({ top, left, width: rect.width });
+
+            // Clamp within viewport horizontally
+            const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+            const clampedLeft = Math.max(8, Math.min(left, viewportWidth - contentWidth - 8));
+            setCoords({ top, left: clampedLeft, width: rect.width });
         };
         if (isOpen) {
             updatePosition();
@@ -96,10 +108,7 @@ export const Popover: React.FC<PopoverProps> = ({
             style={portal && coords ? {
                 position: 'fixed',
                 top: coords.top,
-                left: Math.max(8, Math.min(
-                    align === 'right' ? (coords.left - (coords.width || 0)) : coords.left,
-                    typeof window !== 'undefined' ? window.innerWidth - (contentRef.current?.offsetWidth || 240) - 8 : 8
-                )),
+                left: coords.left,
             } as React.CSSProperties : undefined}
             ref={contentRef}
         >

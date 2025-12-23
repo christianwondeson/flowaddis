@@ -4,12 +4,14 @@ import React from 'react';
 import { Calendar, Users, ChevronDown, Check, Info, Tag, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/currency';
 
 interface HotelDetailAvailabilityProps {
     hotel: any;
+    onBook?: () => void;
 }
 
-export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = ({ hotel }) => {
+export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = ({ hotel, onBook }) => {
     return (
         <div className="space-y-6 pt-12 border-t border-gray-100">
             <div className="flex items-center justify-between">
@@ -82,11 +84,15 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 </div>
                             </td>
                             <td className="p-3 border-r border-gray-100 align-top">
-                                <div className="text-red-500 line-through text-[10px]">US$3,736</div>
-                                <div className="text-lg font-bold text-brand-dark">US$1,494 <Info className="w-3 h-3 inline text-gray-400" /></div>
-                                <div className="text-[10px] text-gray-400">+US$75 taxes and fees</div>
-                                <div className="mt-2 inline-block px-1.5 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded-md">60% off</div>
-                                <div className="mt-1 text-green-600 font-bold text-[10px]">Limited-time Deal</div>
+                                {false && (
+                                    <div className="text-red-500 line-through text-[10px]">US$3,736</div>
+                                )}
+                                <div className="text-lg font-bold text-brand-dark">
+                                    {formatCurrency(hotel.price || 0)} <Info className="w-3 h-3 inline text-gray-400" />
+                                </div>
+                                {/* Optional: taxes/fees line if available in future */}
+                                {/* <div className="text-[10px] text-gray-400">+{formatCurrency(hotel.taxes || 0)} taxes and fees</div> */}
+                                {/* Optional: discounts if provided */}
                             </td>
                             <td className="p-3 border-r border-gray-100 align-top space-y-2">
                                 <div className="flex items-start gap-1 text-green-600 font-bold">
@@ -124,7 +130,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 </Select>
                             </td>
                             <td className="p-3 align-middle bg-brand-primary/5">
-                                <Button className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
+                                <Button onClick={onBook} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
                                     Book now
                                 </Button>
                                 <div className="text-center text-[10px] text-gray-400 mt-2">• You won't be charged yet</div>

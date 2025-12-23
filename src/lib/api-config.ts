@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
         FILTERS: '/v2/hotels/search-filters',
         PHOTOS: '/hotels/photos',
         REVIEWS: '/hotels/review-scores',
+        DESCRIPTION: '/v2/hotels/description',
         CHILDREN_POLICIES: '/hotels/children-policies',
         META_PROPERTIES: '/v2/hotels/meta-properties',
         CALENDAR_PRICING: '/v2/hotels/calendar-pricing',
