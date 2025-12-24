@@ -36,10 +36,10 @@ export const Header: React.FC = () => {
     return (
         <header
             className={clsx(
-                'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+                'fixed top-0 left-0 right-0 z-[60] transition-all duration-300',
                 isHomePage
-                    ? (scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-2' : 'bg-transparent py-4')
-                    : 'bg-white/90 backdrop-blur-md shadow-sm py-2'
+                    ? (scrolled ? 'bg-transparent backdrop-blur-md shadow-sm py-2' : 'bg-transparent py-4')
+                    : 'bg-transparent backdrop-blur-md shadow-sm py-2'
             )}
         >
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -122,7 +122,7 @@ export const Header: React.FC = () => {
 
             {/* Mobile Menu */}
             {isMenuOpen && (
-                <div className="md:hidden bg-white border-t border-gray-100 py-4 px-4 shadow-lg absolute w-full">
+                <div className="md:hidden bg-white border-t border-gray-100 py-4 px-4 shadow-lg absolute w-full z-[70]">
                     <nav className="flex flex-col gap-2">
                         {navItems.map((item) => (
                             <Link

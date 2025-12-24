@@ -84,7 +84,7 @@ export const Calendar: React.FC<CalendarProps> = ({ selected, onSelect, minDate 
     ];
 
     return (
-        <div className="p-2 sm:p-4 w-full max-w-[320px] mx-auto">
+        <div className="p-2 sm:p-4 w-full mx-auto">
             <div className="flex justify-between items-center mb-4">
                 <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <ChevronLeft className="w-5 h-5 text-gray-600" />

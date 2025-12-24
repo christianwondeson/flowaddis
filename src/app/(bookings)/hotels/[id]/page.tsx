@@ -35,6 +35,7 @@ export default function HotelDetailPage() {
         ]
     });
     const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
 
     // In a real app, we would fetch by ID. 
     // For now, we'll find it from the search results or use mock data.
@@ -106,9 +107,11 @@ export default function HotelDetailPage() {
                     rating: mappedRating != null ? mappedRating : prev.rating,
                     reviews: mappedReviewCount != null ? mappedReviewCount : prev.reviews,
                 }));
+                setIsGalleryLoading(false);
             } catch (e) {
                 // Silent fail; keep mock data
                 console.warn('Failed to fetch extra hotel details');
+                setIsGalleryLoading(false);
             }
         };
         fetchDetails();
@@ -138,7 +141,7 @@ export default function HotelDetailPage() {
                     <div className="w-full lg:w-3/4 space-y-12">
                         {activeTab === 'overview' && (
                             <>
-                                <HotelDetailGallery images={hotel.images || [hotel.image]} />
+                                <HotelDetailGallery images={hotel.images || [hotel.image]} loading={isGalleryLoading} />
                                 <HotelDetailAbout hotel={hotel} />
                             </>
                         )}

@@ -16,9 +16,9 @@ interface HotelListProps {
 export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, onBook, onHoverStart, onHoverEnd }) => {
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 justify-items-stretch">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="animate-pulse bg-white rounded-xl h-[380px] w-full max-w-[320px] border border-gray-100 shadow-sm"></div>
+                    <div key={i} className="animate-pulse bg-white rounded-xl h-[340px] md:h-[380px] w-full border border-gray-100 shadow-sm"></div>
                 ))}
             </div>
         );
@@ -41,7 +41,7 @@ export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, 
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 justify-items-stretch">
             {hotels.map((hotel) => (
                 <HotelCollectionCard
                     key={hotel.id}

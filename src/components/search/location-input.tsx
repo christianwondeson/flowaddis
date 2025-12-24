@@ -128,7 +128,9 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             />
 
             {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-[10000] left-0 right-0 md:right-auto md:min-w-[400px] mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-80 overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute z-[90] mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-[60vh] overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-top-2 duration-200 
+                                left-1/2 -translate-x-1/2 transform w-[calc(100vw-2rem)] min-w-[280px] max-w-sm 
+                                sm:left-0 sm:translate-x-0 sm:w-auto sm:min-w-[320px] md:right-auto md:min-w-[400px]">
                     {suggestions.map((item: any, idx) => (
                         <button
                             key={`${item.dest_id || item.code || item.short_code || item.name}-${idx}`}
@@ -143,11 +145,11 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="font-bold text-gray-900 truncate text-sm md:text-base">
+                                <div className="font-bold text-gray-900 text-[13px] sm:text-sm md:text-base line-clamp-2 sm:truncate">
                                     {item.name || item.label}
                                     {item.short_code ? ` (${item.short_code})` : ''}
                                 </div>
-                                <div className="text-xs text-gray-500 truncate">
+                                <div className="text-[11px] sm:text-xs text-gray-500 truncate">
                                     {[item.cityName || item.city_name, item.countryName || item.country].filter(Boolean).join(', ')}
                                     {item.nr_hotels ? ` • ${item.nr_hotels} hotels` : ''}
                                 </div>

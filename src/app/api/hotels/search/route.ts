@@ -9,6 +9,8 @@ export async function GET(request: Request) {
     const checkOut = searchParams.get('checkOut') || new Date(Date.now() + 172800000).toISOString().split('T')[0];
     const page = searchParams.get('page') || '0';
     const sortOrder = searchParams.get('sortOrder') || 'popularity';
+    const pageSizeParam = searchParams.get('pageSize');
+    const pageSize = pageSizeParam ? Math.max(1, Math.min(50, parseInt(pageSizeParam))) : 10;
     const currency = searchParams.get('currency') || 'USD';
 
     const adults = searchParams.get('adults') || '2';
@@ -206,23 +208,22 @@ export async function GET(request: Request) {
             hotels = hotels.filter((h: any) => h.name.toLowerCase().includes(nameLc));
         }
 
-        // Refined hasNextPage logic
+        // Pagination limiting on our side to ensure consistent page size
         const pageIndex = Number(page) || 0;
-        const pageSize = results.length;
+        const start = 0;
+        const limitedHotels = hotels.slice(start, pageSize);
 
-        // Heuristic: If we got a full page (usually 20), assume there's more unless totalCount says otherwise
+        // Compute hasNextPage using totalCount and pageSize
         let hasNextPage = false;
-        if (pageSize > 0) {
-            if (totalCount > (pageIndex + 1) * pageSize) {
-                hasNextPage = true;
-            } else if (pageSize >= 20) {
-                // Fallback heuristic if totalCount is unreliable but we got a full page
-                hasNextPage = true;
-            }
+        if (totalCount && totalCount > (pageIndex + 1) * pageSize) {
+            hasNextPage = true;
+        } else if (hotels.length > pageSize) {
+            // If API returned more than our pageSize, assume there are more
+            hasNextPage = true;
         }
 
         return NextResponse.json({
-            hotels,
+            hotels: limitedHotels,
             total: totalCount,
             hasNextPage,
             destId,
@@ -230,51 +231,11 @@ export async function GET(request: Request) {
 
     } catch (error: any) {
         const status = error?.response?.status;
-        console.error('Error fetching hotels:', status, error.message);
-        if (error.response?.data) {
+        console.error('Error fetching hotels:', status, error?.message);
+        if (error?.response?.data) {
             console.error('API Error Details:', JSON.stringify(error.response.data, null, 2));
         }
-
-        // Mock Data Fallback
-        const generateMockHotels = () => {
-            const hotelImages = [
-                'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1596436889106-be35e843f974?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80',
-                'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80',
-            ];
-
-            // Approximate Addis Ababa center
-            const baseLat = 9.0108;
-            const baseLng = 38.7613;
-
-            return Array.from({ length: 10 }).map((_, i) => ({
-                id: `mock-${i}`,
-                name: `Mock Hotel ${i + 1} in ${query}`,
-                location: query,
-                rating: 8.5,
-                reviews: 120 + i * 10,
-                reviewWord: 'Very Good',
-                price: 150 + i * 20,
-                originalPrice: 200 + i * 20,
-                discountPercentage: 25,
-                badges: ['Free Cancellation'],
-                distance: '2 km from centre',
-                image: hotelImages[i % hotelImages.length],
-                coordinates: { lat: baseLat + (Math.random() - 0.5) * 0.1, lng: baseLng + (Math.random() - 0.5) * 0.1 },
-                amenities: ['Free WiFi', 'Pool', 'Spa'],
-                description: 'A wonderful place to stay.',
-            }));
-        };
-
-        return NextResponse.json({
-            hotels: generateMockHotels(),
-            total: 10,
-            hasNextPage: false
-        });
+        // Return empty results on error (no mock data)
+        return NextResponse.json({ hotels: [], total: 0, hasNextPage: false });
     }
 }

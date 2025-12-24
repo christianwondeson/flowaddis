@@ -1,7 +1,6 @@
 "use client";
 
-import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { HotelCollectionCard } from './hotel-collection-card';
 import { Hotel } from '@/types';
@@ -21,55 +20,50 @@ export const HotelCollection: React.FC<HotelCollectionProps> = ({
     onBook,
     onSeeAll
 }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    const visibleHotels = useMemo(() => {
+        if (expanded) return hotels;
+        return hotels.slice(0, 3);
+    }, [expanded, hotels]);
+
     if (!isLoading && hotels.length === 0) return null;
 
     return (
-        <section className="py-8 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-                {onSeeAll && (
+        <section className="py-6 md:py-8 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900">{title}</h2>
+                {hotels.length > 3 && (
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={onSeeAll}
+                        onClick={() => {
+                            setExpanded((e) => !e);
+                            onSeeAll?.();
+                        }}
                         className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs font-bold"
                     >
-                        See all
+                        {expanded ? 'Show less' : 'See all'}
                     </Button>
                 )}
             </div>
 
-            <div className="relative group">
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-                    {isLoading ? (
-                        Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="flex-shrink-0 w-[240px] md:w-[280px] h-[360px] bg-gray-100 animate-pulse rounded-lg" />
-                        ))
-                    ) : (
-                        hotels.map((hotel) => (
+            <div>
+                {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="w-full h-[300px] bg-gray-100 animate-pulse rounded-lg" />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                        {visibleHotels.map((hotel) => (
                             <HotelCollectionCard
                                 key={hotel.id}
                                 hotel={hotel}
                                 onBook={onBook}
                             />
-                        ))
-                    )}
-                </div>
-
-                {/* Scroll Indicator / Button could be added here if needed */}
-                {!isLoading && hotels.length > 4 && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 hidden md:flex">
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            className="rounded-full shadow-lg bg-white hover:bg-gray-50 border border-gray-200"
-                            onClick={() => {
-                                const container = document.querySelector('.overflow-x-auto');
-                                container?.scrollBy({ left: 300, behavior: 'smooth' });
-                            }}
-                        >
-                            <ChevronRight className="w-5 h-5 text-gray-600" />
-                        </Button>
+                        ))}
                     </div>
                 )}
             </div>

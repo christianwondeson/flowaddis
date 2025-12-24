@@ -9,20 +9,22 @@ interface UseHotelsParams {
     checkIn?: Date;
     checkOut?: Date;
     page?: number;
+    pageSize?: number;
     filters?: HotelFilters;
     adults?: number;
     children?: number;
     rooms?: number;
 }
 
-export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
+export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
     return useQuery({
-        queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, filters, adults, children, rooms }),
+        queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, pageSize, filters, adults, children, rooms }),
         queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, totalCount: number, destId?: string }> => {
             // Build query params
             const params = new URLSearchParams({
                 query,
                 page: page.toString(),
+                pageSize: pageSize.toString(),
                 adults: adults.toString(),
                 children: children.toString(),
                 rooms: rooms.toString(),

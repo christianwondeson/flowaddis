@@ -12,15 +12,18 @@ import { HotelFilters as FilterType } from '@/types';
 import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 import { HotelCollection } from '@/components/hotels/hotel-collection';
 import { HotelFAQ } from '@/components/hotels/hotel-faq';
+import { HotelFilterBar } from '@/components/hotels/hotel-filter-bar';
 
 export default function HotelsPage() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedHotel, setSelectedHotel] = useState<any>(null);
 
     // Search State
-    const [destination, setDestination] = useState('Ethiopia');
+    const [destination, setDestination] = useState('Addis Ababa');
     const [checkIn, setCheckIn] = useState('');
     const [checkOut, setCheckOut] = useState('');
+    // Controls whether mobile search renders expanded initially
+    const [hasSearched, setHasSearched] = useState(false);
 
     // Pagination & Filters
     const [page, setPage] = useState(0);
@@ -36,7 +39,7 @@ export default function HotelsPage() {
 
     // Query State (triggers refetch)
     const [searchParams, setSearchParams] = useState({
-        query: 'Ethiopia',
+        query: 'Addis Ababa',
         destId: undefined as string | undefined,
         destType: undefined as string | undefined,
         checkIn: undefined as Date | undefined,
@@ -46,7 +49,7 @@ export default function HotelsPage() {
     // Initialize from URL
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        const urlQuery = urlParams.get('query') || 'Ethiopia';
+        const urlQuery = urlParams.get('query') || 'Addis Ababa';
         const urlDestId = urlParams.get('destId');
         const urlDestType = urlParams.get('destType');
         const urlCheckIn = urlParams.get('checkIn');
@@ -79,11 +82,13 @@ export default function HotelsPage() {
         checkIn: searchParams.checkIn,
         checkOut: searchParams.checkOut,
         page,
+        pageSize: 10,
         filters,
     });
 
     const hotels = data?.hotels || EMPTY_ARRAY;
     const hasNextPage = data?.hasNextPage || false;
+    const isLoadingMore = isLoading && page > 0;
 
     // Accumulate hotels for "Load More"
     const [allHotels, setAllHotels] = useState<any[]>([]);
@@ -111,30 +116,26 @@ export default function HotelsPage() {
     }, [hotels, page, isPlaceholderData, isLoading]);
 
     // Mock collections for demonstration
-    const airportShuttleHotels = allHotels.filter(h => h.badges?.some((b: string) => b.toLowerCase().includes('shuttle'))).slice(0, 6);
-    const breakfastHotels = allHotels.filter(h => h.amenities?.some((a: string) => a.toLowerCase().includes('breakfast'))).slice(0, 6);
-    const budgetHotels = [...allHotels].sort((a, b) => a.price - b.price).slice(0, 6);
-    const centerHotels = allHotels.filter(h => h.distance?.toLowerCase().includes('centre') || h.distance?.toLowerCase().includes('center')).slice(0, 6);
+    const airportShuttleHotels = allHotels
+        .filter(h => h.badges?.some((b: string) => b.toLowerCase().includes('shuttle')))
+        .slice(0, 6);
+    const breakfastHotels = allHotels
+        .filter(h => h.amenities?.some((a: string) => a.toLowerCase().includes('breakfast')))
+        .slice(0, 6);
+    const budgetHotels = [...allHotels]
+        .sort((a, b) => a.price - b.price)
+        .slice(0, 6);
+    // Hotels located in the center, sorted by best rating
+    const centerHotels = [...allHotels]
+        .filter(h => h.distance?.toLowerCase().includes('centre') || h.distance?.toLowerCase().includes('center'))
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 6);
+    // Most booked: approximate by highest number of reviews
+    const mostBookedHotels = [...allHotels]
+        .sort((a, b) => (b.reviews || 0) - (a.reviews || 0))
+        .slice(0, 6);
 
-    // Infinite Scroll Observer
-    useEffect(() => {
-        const sentinel = document.getElementById('sentinel');
-        if (!sentinel) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (entry.isIntersecting && !isLoading && !isPlaceholderData && hasNextPage) {
-
-                    setPage((prev) => prev + 1);
-                }
-            },
-            { threshold: 0.1, rootMargin: '400px' } // Increased margin for smoother loading
-        );
-
-        observer.observe(sentinel);
-        return () => observer.disconnect();
-    }, [isLoading, isPlaceholderData, hasNextPage, page]);
+    // Removed infinite scroll; using explicit Load More button for consistent 10-per-page pagination
 
     const { user } = useAuth();
     const router = useRouter();
@@ -158,6 +159,7 @@ export default function HotelsPage() {
                 checkIn: checkIn ? parseDateLocal(checkIn) : undefined,
                 checkOut: checkOut ? parseDateLocal(checkOut) : undefined,
             });
+            setHasSearched(true); // Collapse mobile detail after searching
         }
     };
 
@@ -199,11 +201,39 @@ export default function HotelsPage() {
                     onCheckInChange={setCheckIn}
                     onCheckOutChange={setCheckOut}
                     onSearch={handleSearch}
+                    initialOpen={!hasSearched}
                 />
 
+                {/* Mobile Filter Bar (Sort, Filter, Map) */}
+                <div className="mt-4">
+                    <HotelFilterBar
+                        hotels={allHotels}
+                        filters={filters}
+                        onFilterChange={handleFilterChange}
+                        checkIn={checkIn}
+                        checkOut={checkOut}
+                        destId={data?.destId}
+                        linkParams={{
+                            query: destination,
+                            checkIn: checkIn || undefined,
+                            checkOut: checkOut || undefined,
+                            adults: '2',
+                            children: '0',
+                            rooms: '1',
+                            sortOrder: filters.sortOrder,
+                            minPrice: filters.minPrice,
+                            maxPrice: filters.maxPrice,
+                            minRating: filters.minRating,
+                            stars: (filters.stars || []).join(','),
+                            amenities: (filters.amenities || []).join(','),
+                            hotelName: filters.hotelName || undefined,
+                        }}
+                    />
+                </div>
+
                 <div className="flex flex-col lg:flex-row gap-8 mt-8">
-                    {/* Filters Sidebar */}
-                    <div className="w-full lg:w-1/4">
+                    {/* Filters Sidebar (visible on lg and above) */}
+                    <div className="hidden lg:block lg:w-1/4">
                         <HotelFilters
                             hotels={allHotels}
                             filters={filters}
@@ -270,21 +300,22 @@ export default function HotelsPage() {
                             onBook={handleBook}
                         />
 
-                        {/* Infinite Scroll Sentinel */}
-                        {hasNextPage && (
-                            <div id="sentinel" className="h-20 w-full flex items-center justify-center">
-                                {isLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-primary"></div>}
-                            </div>
-                        )}
+                        {/* Infinite scroll sentinel removed */}
 
-                        {/* Fallback Load More Button */}
-                        {hasNextPage && !isLoading && (
+                        {/* Load More Button with loading indicator */}
+                        {hasNextPage && (
                             <div className="flex justify-center mt-4">
                                 <button
-                                    onClick={() => setPage(p => p + 1)}
-                                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm font-bold"
+                                    onClick={() => !isLoadingMore && setPage(p => p + 1)}
+                                    disabled={isLoadingMore}
+                                    aria-busy={isLoadingMore}
+                                    className={`px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-2 
+                                        ${isLoadingMore ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                 >
-                                    Load More Results
+                                    {isLoadingMore && (
+                                        <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-brand-primary"></span>
+                                    )}
+                                    {isLoadingMore ? 'Loading…' : 'Load More Results'}
                                 </button>
                             </div>
                         )}

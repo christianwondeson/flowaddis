@@ -50,9 +50,16 @@ const bookingSchema = z.object({
     email: z.string().email('Invalid email address'),
     phone: z.string()
         .transform(normalizePhone)
-        // E.164 pattern: +{country}{nsn} with 8-15 digits total, allow also local numbers without + if valid length
         .refine((v) => /^\+?[1-9]\d{7,14}$/.test(v), 'Enter a valid international phone number (e.g. +14155552671)'),
-    date: z.string().min(1, 'Date is required'),
+    checkIn: z.string().min(1, 'Check-in is required'),
+    checkOut: z.string().min(1, 'Check-out is required'),
+}).refine((data) => {
+    const ci = new Date(data.checkIn);
+    const co = new Date(data.checkOut);
+    return co.getTime() > ci.getTime();
+}, {
+    message: 'Check-out must be after check-in',
+    path: ['checkOut']
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
@@ -83,10 +90,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             name: '',
             email: '',
             phone: '',
-            date: '',
+            checkIn: '',
+            checkOut: '',
         },
     });
-    const selectedDate = watch('date');
+    const selectedCheckIn = watch('checkIn');
+    const selectedCheckOut = watch('checkOut');
 
     // Country and national number UI state
     const [countryCode, setCountryCode] = useState<string>('ET');
@@ -108,7 +117,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 customerName: data.name,
                 email: data.email,
                 phone: data.phone,
-                date: data.date
+                checkIn: data.checkIn,
+                checkOut: data.checkOut,
             },
         });
         onClose();
@@ -141,7 +151,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     customerName: formData.name,
                     email: formData.email,
                     phone: formData.phone,
-                    date: formData.date
+                    checkIn: formData.checkIn,
+                    checkOut: formData.checkOut,
                 },
             });
         }
@@ -154,7 +165,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             clientName: formData.name,
             email: formData.email,
             service: serviceName,
-            date: formData.date,
+            checkIn: formData.checkIn,
+            checkOut: formData.checkOut,
             amount: price,
             status: 'Confirmed' as const,
         };
@@ -266,27 +278,51 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         </div>
                                     </div>
                                 </div>
-                                <Popover
-                                    trigger={
-                                        <div className="w-full cursor-pointer">
-                                            <label htmlFor="date" className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Date</label>
-                                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                                <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                <span className="text-gray-900 font-medium">{selectedDate || 'Select Date'}</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Popover
+                                        trigger={
+                                            <div className="w-full cursor-pointer">
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
+                                                <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                                    <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                                    <span className="text-gray-900 font-medium">{selectedCheckIn || 'Select date'}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    }
-                                    content={
-                                        <Calendar
-                                            selected={selectedDate ? new Date(selectedDate) : undefined}
-                                            onSelect={(date) => setValue('date', date.toISOString().split('T')[0], { shouldValidate: true })}
-                                            minDate={new Date()}
-                                        />
-                                    }
-                                />
-                                {errors.date?.message && (
-                                    <p className="text-red-500 text-xs mt-1 ml-1">{errors.date.message}</p>
-                                )}
+                                        }
+                                        content={
+                                            <Calendar
+                                                selected={selectedCheckIn ? new Date(selectedCheckIn) : undefined}
+                                                onSelect={(date) => setValue('checkIn', date.toISOString().split('T')[0], { shouldValidate: true })}
+                                                minDate={new Date()}
+                                            />
+                                        }
+                                    />
+                                    {errors.checkIn?.message && (
+                                        <p className="text-red-500 text-xs mt-1 ml-1 sm:col-span-2">{errors.checkIn.message}</p>
+                                    )}
+
+                                    <Popover
+                                        trigger={
+                                            <div className="w-full cursor-pointer">
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
+                                                <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+                                                    <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
+                                                    <span className="text-gray-900 font-medium">{selectedCheckOut || 'Select date'}</span>
+                                                </div>
+                                            </div>
+                                        }
+                                        content={
+                                            <Calendar
+                                                selected={selectedCheckOut ? new Date(selectedCheckOut) : undefined}
+                                                onSelect={(date) => setValue('checkOut', date.toISOString().split('T')[0], { shouldValidate: true })}
+                                                minDate={selectedCheckIn ? new Date(new Date(selectedCheckIn).getTime() + 86400000) : new Date()}
+                                            />
+                                        }
+                                    />
+                                    {errors.checkOut?.message && (
+                                        <p className="text-red-500 text-xs mt-1 ml-1 sm:col-span-2">{errors.checkOut.message}</p>
+                                    )}
+                                </div>
 
                                 <div className="flex gap-3 pt-4">
                                     <Button
