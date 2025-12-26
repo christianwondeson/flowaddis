@@ -5,9 +5,11 @@ import { Home, Maximize, Wind, ParkingCircle, Wifi, Waves, Users, Languages, Ban
 
 interface HotelDetailAboutProps {
     hotel: any;
+    facilities?: any[];
+    loading?: boolean;
 }
 
-export const HotelDetailAbout: React.FC<HotelDetailAboutProps> = ({ hotel }) => {
+export const HotelDetailAbout: React.FC<HotelDetailAboutProps> = ({ hotel, facilities = [], loading = false }) => {
     const highlights = [
         { icon: <Home className="w-5 h-5" />, label: 'The entire place is yours' },
         { icon: <Maximize className="w-5 h-5" />, label: 'Spacious rooms' },
@@ -69,19 +71,35 @@ export const HotelDetailAbout: React.FC<HotelDetailAboutProps> = ({ hotel }) => 
 
             {/* Most Popular Facilities */}
             <div className="pt-6 border-t border-gray-100">
-                <h3 className="text-base font-bold text-brand-dark mb-4">Most popular facilities</h3>
-                {amenitiesFromHotel.length > 0 ? (
-                    <div className="flex flex-wrap gap-x-6 gap-y-3">
-                        {amenitiesFromHotel.slice(0, 12).map((label: string, idx: number) => (
-                            <div key={idx} className="flex items-center gap-2 text-xs font-medium text-brand-dark">
-                                <Check className="w-4 h-4 text-brand-primary" />
-                                <span>{label}</span>
+                <h3 className="text-base font-bold text-brand-dark mb-6">Property facilities</h3>
+
+                {loading ? (
+                    <div className="flex items-center gap-2 text-brand-primary animate-pulse">
+                        <Info className="w-4 h-4" />
+                        <span className="text-sm">Loading facilities...</span>
+                    </div>
+                ) : facilities.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {facilities.slice(0, 6).map((group: any, idx: number) => (
+                            <div key={idx} className="space-y-3">
+                                <h4 className="text-sm font-bold text-brand-dark flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 bg-brand-primary rounded-full" />
+                                    {group.facility_type_name}
+                                </h4>
+                                <div className="space-y-2 pl-3.5">
+                                    {group.facilities.slice(0, 5).map((facility: any, fIdx: number) => (
+                                        <div key={fIdx} className="flex items-center gap-2 text-xs text-gray-600">
+                                            <Check className="w-3.5 h-3.5 text-brand-primary/60" />
+                                            <span>{facility.facility_name}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                     </div>
                 ) : (
                     <div className="flex flex-wrap gap-x-6 gap-y-3">
-                        {[ 'Free WiFi', 'Parking', 'Family rooms', 'Air conditioning' ].map((label, idx) => (
+                        {(amenitiesFromHotel.length > 0 ? amenitiesFromHotel.slice(0, 12) : ['Free WiFi', 'Parking', 'Family rooms', 'Air conditioning']).map((label: string, idx: number) => (
                             <div key={idx} className="flex items-center gap-2 text-xs font-medium text-brand-dark">
                                 <Check className="w-4 h-4 text-brand-primary" />
                                 <span>{label}</span>

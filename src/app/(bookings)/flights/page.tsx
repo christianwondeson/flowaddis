@@ -108,30 +108,22 @@ export default function FlightsPage() {
                 <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 overflow-visible relative z-50">
                     <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                            <Popover
-                                trigger={
-                                    <button className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-brand-primary transition-colors">
-                                        {flightType === 'ROUNDTRIP' ? 'Round-trip' : 'One-way'}
-                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                    </button>
-                                }
-                                content={
-                                    <div className="py-1 w-40">
-                                        <button
-                                            onClick={() => setFlightType('ROUNDTRIP')}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${flightType === 'ROUNDTRIP' ? 'text-brand-primary font-bold' : 'text-gray-700'}`}
-                                        >
-                                            Round-trip
-                                        </button>
-                                        <button
-                                            onClick={() => setFlightType('ONEWAY')}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${flightType === 'ONEWAY' ? 'text-brand-primary font-bold' : 'text-gray-700'}`}
-                                        >
-                                            One-way
-                                        </button>
-                                    </div>
-                                }
-                            />
+                            <div className="inline-flex rounded-xl bg-gray-100 p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setFlightType('ROUNDTRIP')}
+                                    className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ROUNDTRIP' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-700 hover:text-brand-primary'}`}
+                                >
+                                    Round trip
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFlightType('ONEWAY')}
+                                    className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ONEWAY' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-700 hover:text-brand-primary'}`}
+                                >
+                                    One way
+                                </button>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">

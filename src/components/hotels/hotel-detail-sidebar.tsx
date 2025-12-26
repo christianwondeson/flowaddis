@@ -6,39 +6,66 @@ import { Button } from '@/components/ui/button';
 
 interface HotelDetailSidebarProps {
     hotel: any;
+    reviews?: any[];
+    loading?: boolean;
     onBook?: () => void;
 }
 
-export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, onBook }) => {
+export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, reviews = [], loading = false, onBook }) => {
     return (
         <div className="space-y-4">
             {/* Review Score Card */}
             <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="text-right">
-                        <div className="font-bold text-brand-dark">Excellent</div>
-                        <div className="text-[10px] text-gray-400">5 reviews</div>
-                    </div>
-                    <div className="w-10 h-10 bg-brand-primary text-white rounded-t-xl rounded-br-xl flex items-center justify-center font-bold text-lg shadow-sm shadow-brand-primary/20">
-                        8.6
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="text-[11px] text-gray-500 italic leading-relaxed border-l-2 border-brand-primary/20 pl-3">
-                        "I stayed overnight in {hotel.location.split(',')[0]} and it was simply amazing. The location couldn't have been better – right in the heart of the city! From the balcony we..."
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
-                            O
+                {loading ? (
+                    <div className="animate-pulse space-y-4">
+                        <div className="flex justify-between items-center">
+                            <div className="h-4 bg-gray-200 rounded w-24"></div>
+                            <div className="h-10 w-10 bg-gray-200 rounded-t-xl rounded-br-xl"></div>
                         </div>
-                        <div className="text-[10px]">
-                            <span className="font-bold text-gray-900">Ozkan</span>
-                            <span className="text-gray-500 ml-1">🇩🇪 Germany</span>
-                        </div>
+                        <div className="h-12 bg-gray-100 rounded w-full"></div>
                     </div>
-                </div>
+                ) : reviews.length > 0 ? (
+                    <>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-right">
+                                <div className="font-bold text-brand-dark">
+                                    {hotel.rating >= 4 ? 'Exceptional' : hotel.rating >= 3.5 ? 'Excellent' : 'Good'}
+                                </div>
+                                <div className="text-[10px] text-gray-400">{hotel.reviews} reviews</div>
+                            </div>
+                            <div className="w-10 h-10 bg-brand-primary text-white rounded-t-xl rounded-br-xl flex items-center justify-center font-bold text-lg shadow-sm shadow-brand-primary/20">
+                                {Number(hotel.rating).toFixed(1)}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="text-[11px] text-gray-500 italic leading-relaxed border-l-2 border-brand-primary/20 pl-3 line-clamp-3">
+                                "{reviews[0].pros || reviews[0].title || 'No comment provided.'}"
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                {reviews[0].author?.avatar ? (
+                                    <img src={reviews[0].author.avatar} alt={reviews[0].author.name} className="w-6 h-6 rounded-full object-cover" />
+                                ) : (
+                                    <div className="w-6 h-6 bg-brand-primary/10 text-brand-primary rounded-full flex items-center justify-center text-[10px] font-bold">
+                                        {reviews[0].author?.name?.charAt(0) || 'G'}
+                                    </div>
+                                )}
+                                <div className="text-[10px]">
+                                    <span className="font-bold text-gray-900">{reviews[0].author?.name || 'Guest'}</span>
+                                    <span className="text-gray-500 ml-1">
+                                        {reviews[0].author?.countrycode?.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="text-center py-4">
+                        <div className="text-sm font-bold text-brand-dark mb-1">No reviews yet</div>
+                        <div className="text-[10px] text-gray-400">Be the first to review!</div>
+                    </div>
+                )}
 
                 <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
                     <span className="text-xs font-bold text-brand-dark">Staff</span>

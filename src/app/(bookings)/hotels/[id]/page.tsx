@@ -10,6 +10,7 @@ import { HotelDetailSidebar } from '@/components/hotels/hotel-detail-sidebar';
 import { useHotels } from '@/hooks/use-hotels';
 import axios from 'axios';
 import { BookingModal } from '@/components/booking/booking-modal';
+import { formatDateLocal } from '@/lib/date-utils';
 
 export default function HotelDetailPage() {
     const { id } = useParams();
@@ -37,6 +38,15 @@ export default function HotelDetailPage() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
 
+    // Manage dates
+    const [checkInDate, setCheckInDate] = useState<string>('');
+    const [checkOutDate, setCheckOutDate] = useState<string>('');
+
+    // Manage guests and rooms
+    const [adults, setAdults] = useState<number>(2);
+    const [children, setChildren] = useState<number>(0);
+    const [rooms, setRoomsCount] = useState<number>(1);
+
     // In a real app, we would fetch by ID. 
     // For now, we'll find it from the search results or use mock data.
     const { data, isLoading } = useHotels({ query: 'Ethiopia' });
@@ -49,6 +59,18 @@ export default function HotelDetailPage() {
             const price = usp.get('price');
             const image = usp.get('image');
             const location = usp.get('location');
+            const ci = usp.get('checkin') || usp.get('checkInDate') || formatDateLocal(new Date(Date.now() + 86400000));
+            const co = usp.get('checkout') || usp.get('checkOutDate') || formatDateLocal(new Date(Date.now() + 172800000));
+            const ad = Number(usp.get('adults')) || 2;
+            const ch = Number(usp.get('children')) || 0;
+            const rm = Number(usp.get('rooms')) || 1;
+
+            setCheckInDate(ci);
+            setCheckOutDate(co);
+            setAdults(ad);
+            setChildren(ch);
+            setRoomsCount(rm);
+
             setHotel((prev: any) => ({
                 ...prev,
                 ...(name ? { name } : {}),
@@ -147,7 +169,24 @@ export default function HotelDetailPage() {
                         )}
 
                         {activeTab === 'pricing' && (
-                            <HotelDetailAvailability hotel={hotel} onBook={() => setIsBookingOpen(true)} />
+                            <HotelDetailAvailability
+                                hotel={hotel}
+                                checkInDate={checkInDate}
+                                checkOutDate={checkOutDate}
+                                adults={adults}
+                                childrenCount={children}
+                                roomsCount={rooms}
+                                onDateChange={(ci: string, co: string) => {
+                                    setCheckInDate(ci);
+                                    setCheckOutDate(co);
+                                }}
+                                onGuestsChange={(ad: number, ch: number, rm: number) => {
+                                    setAdults(ad);
+                                    setChildren(ch);
+                                    setRoomsCount(rm);
+                                }}
+                                onBook={() => setIsBookingOpen(true)}
+                            />
                         )}
 
                         {activeTab === 'facilities' && (
@@ -201,6 +240,8 @@ export default function HotelDetailPage() {
                 serviceName={hotel.name}
                 price={hotel.price}
                 type="hotel"
+                initialCheckIn={checkInDate}
+                initialCheckOut={checkOutDate}
             />
         </div>
     );

@@ -19,7 +19,9 @@ export const API_ENDPOINTS = {
         SEARCH_BY_COORDINATES: '/v2/hotels/search-by-coordinates',
         FILTERS: '/v2/hotels/search-filters',
         PHOTOS: '/hotels/photos',
-        REVIEWS: '/hotels/review-scores',
+        REVIEW_SCORES: '/hotels/review-scores',
+        REVIEWS: '/v1/hotels/reviews',
+        FACILITIES: '/v1/hotels/facilities',
         DESCRIPTION: '/v2/hotels/description',
         CHILDREN_POLICIES: '/hotels/children-policies',
         META_PROPERTIES: '/v2/hotels/meta-properties',
@@ -28,6 +30,7 @@ export const API_ENDPOINTS = {
         LOCATIONS: '/v1/hotels/locations',
         NEARBY_CITIES: '/v1/hotels/nearby-cities',
         DETAILS: '/v1/hotels/data',
+        ROOM_LIST: '/v1/hotels/room-list',
     },
     FLIGHTS: {
         SEARCH: '/flights/search',

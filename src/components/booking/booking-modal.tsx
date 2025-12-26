@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { X, ShoppingBag, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Receipt } from './receipt';
 import { PaymentForm } from './payment-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/currency';
+import { formatDateEnglishStr } from '@/lib/date-utils';
 import { useTripStore } from '@/store/trip-store';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useForm } from 'react-hook-form';
@@ -24,6 +25,8 @@ interface BookingModalProps {
     serviceName?: string;
     price?: number;
     type?: 'flight' | 'hotel' | 'shuttle' | 'conference';
+    initialCheckIn?: string;
+    initialCheckOut?: string;
 }
 
 const normalizePhone = (v: string) => v.replace(/[^+\d]/g, '');
@@ -70,6 +73,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     serviceName = 'Service',
     price = 0,
     type = 'hotel',
+    initialCheckIn = '',
+    initialCheckOut = '',
 }) => {
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
     const { user } = useAuth();
@@ -90,12 +95,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             name: '',
             email: '',
             phone: '',
-            checkIn: '',
-            checkOut: '',
+            checkIn: initialCheckIn,
+            checkOut: initialCheckOut,
         },
     });
     const selectedCheckIn = watch('checkIn');
     const selectedCheckOut = watch('checkOut');
+
+    // Keep form dates in sync with props when modal opens or dates change
+    useEffect(() => {
+        if (!isOpen) return;
+        if (initialCheckIn) setValue('checkIn', initialCheckIn, { shouldValidate: true });
+        if (initialCheckOut) setValue('checkOut', initialCheckOut, { shouldValidate: true });
+    }, [isOpen, initialCheckIn, initialCheckOut, setValue]);
 
     // Country and national number UI state
     const [countryCode, setCountryCode] = useState<string>('ET');
@@ -236,7 +248,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 {/* Country selector + phone input */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Phone Number</label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                         <div className="col-span-1">
                                             <Select value={countryCode} onValueChange={(v) => {
                                                 setCountryCode(v);
@@ -261,7 +273,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <div className="col-span-2">
+                                        <div className="col-span-1 sm:col-span-2">
                                             <Input
                                                 id="phone"
                                                 label={undefined as any}
@@ -285,7 +297,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
                                                 <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                                                     <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                    <span className="text-gray-900 font-medium">{selectedCheckIn || 'Select date'}</span>
+                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckIn) || 'Select date'}</span>
                                                 </div>
                                             </div>
                                         }
@@ -307,7 +319,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
                                                 <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                                                     <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                    <span className="text-gray-900 font-medium">{selectedCheckOut || 'Select date'}</span>
+                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckOut) || 'Select date'}</span>
                                                 </div>
                                             </div>
                                         }
@@ -324,16 +336,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     )}
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={handleSubmit(handleAddToTrip)}
-                                        className="flex-1"
+                                        className="w-full sm:flex-1"
                                     >
                                         <ShoppingBag className="w-4 h-4 mr-2" /> Add to Trip
                                     </Button>
-                                    <Button type="submit" className="flex-1">
+                                    <Button type="submit" className="w-full sm:flex-1">
                                         Book Now
                                     </Button>
                                 </div>
