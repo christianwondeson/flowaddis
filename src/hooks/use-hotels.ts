@@ -16,7 +16,7 @@ interface UseHotelsParams {
     rooms?: number;
 }
 
-export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1 }: UseHotelsParams) {
+export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1, }: UseHotelsParams, options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, pageSize, filters, adults, children, rooms }),
         queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, totalCount: number, destId?: string }> => {
@@ -68,5 +68,10 @@ export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0
                 return { hotels: [], hasNextPage: false, totalCount: 0 };
             }
         },
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        staleTime: 60_000,
+        enabled: options?.enabled ?? true,
     });
 }

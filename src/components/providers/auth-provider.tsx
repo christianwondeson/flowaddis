@@ -12,7 +12,7 @@ import {
     signInWithPopup,
     sendEmailVerification,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getDocFromCache } from 'firebase/firestore';
 
 interface User {
     id: string;
@@ -31,6 +31,7 @@ interface AuthContextType {
     logout: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
     sendVerificationEmail: () => Promise<void>;
+    promoteToAdmin?: (inviteCode: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,15 +67,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
 
                     const userDocRef = doc(db, "users", firebaseUser.uid);
-                    const userDoc = await getDoc(userDocRef);
+                    // If offline, try cache first to avoid throwing
+                    let userDoc;
+                    if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
+                        try {
+                            userDoc = await getDocFromCache(userDocRef);
+                        } catch {
+                            userDoc = undefined as any;
+                        }
+                    }
+                    // If we don't have a cached doc (or we're online), try server
+                    if (!userDoc) {
+                        try {
+                            userDoc = await getDoc(userDocRef);
+                        } catch {
+                            // As a last attempt, try cache
+                            try {
+                                userDoc = await getDocFromCache(userDocRef);
+                            } catch {
+                                userDoc = undefined as any;
+                            }
+                        }
+                    }
 
                     let role: 'admin' | 'user' = 'user';
                     let name = firebaseUser.displayName || '';
 
-                    if (userDoc.exists()) {
+                    if (userDoc && userDoc.exists && userDoc.exists()) {
                         const userData = userDoc.data();
                         role = userData.role as 'admin' | 'user';
                         name = userData.name || name;
+                    } else {
+                        // Seed a user document if missing
+                        await setDoc(userDocRef, {
+                            name: name || firebaseUser.email?.split('@')[0] || '',
+                            email: firebaseUser.email,
+                            role: 'user',
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+
+                    // Auto-promote based on env allowlist (comma-separated emails)
+                    const allowlist = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+                        .split(',')
+                        .map(e => e.trim().toLowerCase())
+                        .filter(Boolean);
+                    const emailLower = (firebaseUser.email || '').toLowerCase();
+                    if (allowlist.includes(emailLower) && role !== 'admin') {
+                        try {
+                            await setDoc(userDocRef, { role: 'admin' }, { merge: true });
+                            role = 'admin';
+                        } catch {
+                            // If offline, still reflect in local state; Firestore will merge later
+                            role = 'admin';
+                        }
                     }
 
                     setUser({
@@ -155,8 +201,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await sendEmailVerification(auth.currentUser);
     };
 
+    // Testing helper: promote current user to admin with invite code (for local/dev testing only)
+    const promoteToAdmin = async (inviteCode: string) => {
+        if (!auth?.currentUser) return false;
+        if (!db) return false;
+        const expected = process.env.NEXT_PUBLIC_ADMIN_INVITE_CODE;
+        if (!expected || inviteCode !== expected) return false;
+        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        await setDoc(userDocRef, { role: 'admin' }, { merge: true });
+        setUser(prev => prev ? { ...prev, role: 'admin' } : prev);
+        return true;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, sendMagicLink, logout, loginWithGoogle, sendVerificationEmail }}>
+        <AuthContext.Provider value={{ user, loading, login, register, sendMagicLink, logout, loginWithGoogle, sendVerificationEmail, promoteToAdmin }}>
             {children}
         </AuthContext.Provider>
     );

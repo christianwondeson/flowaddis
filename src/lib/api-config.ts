@@ -3,12 +3,15 @@ export const API_CONFIG = {
     RAPIDAPI_KEY: process.env.NEXT_PUBLIC_RAPIDAPI_KEY || 'a7512b900fmsh9200ccac6d1f7a9p1430b2jsnca937c78f2b2',
     RAPIDAPI_HOST: 'booking-com.p.rapidapi.com',
     BASE_URL: 'https://booking-com.p.rapidapi.com/v1',
+    // Flights config per user: https://booking-com18.p.rapidapi.com/flights
+    FLIGHTS_HOST: 'booking-com18.p.rapidapi.com',
+    FLIGHTS_BASE_URL: 'https://booking-com18.p.rapidapi.com/flights',
 } as const;
 
-// API Headers
-export const getApiHeaders = () => ({
+// API Headers (optionally override host)
+export const getApiHeaders = (hostOverride?: string) => ({
     'x-rapidapi-key': API_CONFIG.RAPIDAPI_KEY,
-    'x-rapidapi-host': API_CONFIG.RAPIDAPI_HOST,
+    'x-rapidapi-host': hostOverride || API_CONFIG.RAPIDAPI_HOST,
     'Content-Type': 'application/json',
 });
 
@@ -33,9 +36,11 @@ export const API_ENDPOINTS = {
         ROOM_LIST: '/v1/hotels/room-list',
     },
     FLIGHTS: {
-        SEARCH: '/flights/search',
-        LOCATIONS: '/flights/locations',
-        OFFER_DETAILS: '/flights/offer-details',
+        // Note: when using FLIGHTS_BASE_URL above, these are relative to that base
+        SEARCH_RETURN: '/search-return',
+        SEARCH_ONEWAY: '/search-oneway',
+        LOCATIONS: '/auto-complete',
+        OFFER_DETAILS: '/offer-details',
     },
     CARS: {
         SEARCH: '/cars/searchCarRentals',

@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { Popover } from '@/components/ui/popover';
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(m => m.Calendar), { ssr: false });
 const FlightRouteSelect = dynamic(() => import('@/components/search/flight-route-select').then(m => m.FlightRouteSelect), { ssr: false });
-import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
+import { formatDateLocal, parseDateLocal, formatDateEnglishStr } from '@/lib/date-utils';
 
 type TabType = 'flights' | 'hotels' | 'conferences' | 'shuttles';
 
@@ -31,8 +31,8 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
   // Flight State
   const [flightFromCode, setFlightFromCode] = useState('ADD.AIRPORT');
   const [flightToCode, setFlightToCode] = useState('JFK.AIRPORT');
-  const [flightDate, setFlightDate] = useState<string>('');
-  const [flightReturnDate, setFlightReturnDate] = useState<string>('');
+  const [flightDate, setFlightDate] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
+  const [flightReturnDate, setFlightReturnDate] = useState<string>(formatDateLocal(new Date(Date.now() + 172800000)));
   const [trav, setTrav] = useState({
     adults: 1,
     children: 0,
@@ -44,8 +44,8 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
   // Hotel State
   const [hotelDestination, setHotelDestination] = useState('Addis Ababa');
   const [hotelLocation, setHotelLocation] = useState<{ dest_id?: string; dest_type?: string }>({ dest_id: '-553173', dest_type: 'city' });
-  const [hotelCheckIn, setHotelCheckIn] = useState<string>('');
-  const [hotelCheckOut, setHotelCheckOut] = useState<string>('');
+  const [hotelCheckIn, setHotelCheckIn] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
+  const [hotelCheckOut, setHotelCheckOut] = useState<string>(formatDateLocal(new Date(Date.now() + 172800000)));
   const [hotelGuests, setHotelGuests] = useState({ adults: 2, children: 0, rooms: 1 });
 
   const handleSearch = () => {
@@ -71,6 +71,9 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       params.append('adults', hotelGuests.adults.toString());
       params.append('children', hotelGuests.children.toString());
       params.append('rooms', hotelGuests.rooms.toString());
+      // Default to popularity sort and high-star hotels when launching from home
+      params.append('sortOrder', 'popularity');
+      params.append('stars', '4,5');
       router.push(`/hotels?${params.toString()}`);
     }
   };
@@ -125,7 +128,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
                         <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                           <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                          <span className="text-gray-900 font-medium text-xs truncate">{flightDate || 'Select Date'}</span>
+                          <span className="text-gray-900 font-medium text-xs truncate">{flightDate ? formatDateEnglishStr(flightDate) : 'Select Date'}</span>
                         </div>
                       </div>
                     }
@@ -145,7 +148,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Return</label>
                         <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                           <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                          <span className="text-gray-900 font-medium text-xs truncate">{flightReturnDate || 'Select Date'}</span>
+                          <span className="text-gray-900 font-medium text-xs truncate">{flightReturnDate ? formatDateEnglishStr(flightReturnDate) : 'Select Date'}</span>
                         </div>
                       </div>
                     }
@@ -189,7 +192,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
                       <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                         <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                        <span className="text-gray-900 font-medium text-sm truncate">{hotelCheckIn || 'Select Date'}</span>
+                        <span className="text-gray-900 font-medium text-sm truncate">{hotelCheckIn ? formatDateEnglishStr(hotelCheckIn) : 'Select Date'}</span>
                       </div>
                     </div>
                   }
@@ -209,7 +212,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
                       <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                         <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                        <span className="text-gray-900 font-medium text-sm truncate">{hotelCheckOut || 'Select Date'}</span>
+                        <span className="text-gray-900 font-medium text-sm truncate">{hotelCheckOut ? formatDateEnglishStr(hotelCheckOut) : 'Select Date'}</span>
                       </div>
                     </div>
                   }

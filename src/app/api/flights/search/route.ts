@@ -1,55 +1,101 @@
 import { NextResponse } from 'next/server';
-import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
+import { API_CONFIG } from '@/lib/api-config';
 import axios from 'axios';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const rawFrom = searchParams.get('fromCode') || 'ADD'; // Default to Addis Ababa
-    const rawTo = searchParams.get('toCode') || 'DXB'; // Default to Dubai
-    // Normalize codes like "ADD.AIRPORT" or "CDG.CITY" to IATA 3-letter
-    const norm = (v: string) => {
+
+    // Accept both our app's params and RapidAPI spec. Prefer RapidAPI names if present.
+    const rawFrom = searchParams.get('fromId') || searchParams.get('fromCode') || 'ADD';
+    const rawTo = searchParams.get('toId') || searchParams.get('toCode') || 'DXB';
+    // Normalize inputs like "ADD.AIRPORT" to IATA code
+    const normIata = (v: string) => {
         const base = v.includes('.') ? v.split('.')[0] : v;
         return base.trim().toUpperCase().slice(0, 3);
     };
-    const fromCode = norm(rawFrom);
-    const toCode = norm(rawTo);
-    const departDate = searchParams.get('departDate') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    const returnDate = searchParams.get('returnDate');
+    const fromId = normIata(rawFrom);
+    const toId = normIata(rawTo);
+
+    const departureDate = searchParams.get('departureDate') || searchParams.get('departDate') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const returnDate = searchParams.get('returnDate') || searchParams.get('return_date') || undefined;
+
     const adults = searchParams.get('adults') || '1';
-    const children = searchParams.get('children') || '0';
-    const page = searchParams.get('page') || '0';
+    // children and infants: allow count or ages. If a plain integer, synthesize ages of 10 years.
+    const rawChildren = searchParams.get('children') || undefined;
+    const rawInfants = searchParams.get('infants') || undefined;
+    const toAges = (v?: string) => {
+        if (!v) return undefined;
+        if (v.includes(',')) return v; // already ages list
+        const n = parseInt(v, 10);
+        if (Number.isFinite(n) && n > 0) {
+            return Array(n).fill('10').join(',');
+        }
+        return undefined;
+    };
+    const childrenAges = toAges(rawChildren);
+    const infantsAges = toAges(rawInfants);
+
+    const page = searchParams.get('page') || '1';
     const currency = searchParams.get('currency') || 'USD';
-    const flightType = searchParams.get('flightType') || 'ROUNDTRIP';
+    const flightType = (searchParams.get('flightType') || (returnDate ? 'ROUNDTRIP' : 'ONEWAY')).toUpperCase();
     const cabinClass = searchParams.get('cabinClass') || 'ECONOMY';
     const orderBy = searchParams.get('orderBy') || 'BEST';
+    const nonstopFlightsOnly = searchParams.get('nonstopFlightsOnly') || undefined;
+    const numberOfStops = searchParams.get('numberOfStops') || undefined; // e.g., nonstop_flights | maximum_one_stop | all
+    const priceRange = searchParams.get('priceRange') || undefined; // e.g., "min,max"
+    const airlines = searchParams.get('airlines') || undefined; // e.g., "LH,NK"
+    const timeGo = searchParams.get('timeGo') || undefined; // e.g., "departure,02:00,15:30"
+    const timeReturn = searchParams.get('timeReturn') || undefined;
+    const travelTime = searchParams.get('travelTime') || undefined; // e.g., "min,max" minutes
 
     try {
+        // Choose RapidAPI endpoint (Flights service has a different host/base)
+        const FLIGHTS_HOST = API_CONFIG.FLIGHTS_HOST;
+        const FLIGHTS_BASE = API_CONFIG.FLIGHTS_BASE_URL; // e.g., https://booking-com18.p.rapidapi.com/flights
+        const isRoundTrip = flightType === 'ROUNDTRIP' && !!departureDate && !!returnDate;
+        const url = `${FLIGHTS_BASE}/${isRoundTrip ? 'search-return' : 'search-oneway'}`;
+
+        // Build params per RapidAPI spec
+        const params: Record<string, string | undefined> = {
+            fromId,
+            toId,
+            departureDate,
+            returnDate: isRoundTrip ? returnDate : undefined,
+            page,
+            cabinClass,
+            adults,
+            children: childrenAges,
+            infants: infantsAges,
+            nonstopFlightsOnly,
+            numberOfStops,
+            priceRange,
+            airlines,
+            timeGo,
+            timeReturn,
+            travelTime,
+        };
+
+        // Remove undefined entries
+        Object.keys(params).forEach((k) => (params[k] === undefined ? delete params[k] : null));
+
         const options = {
             method: 'GET',
-            url: `${API_CONFIG.BASE_URL}${API_ENDPOINTS.FLIGHTS.SEARCH}`,
-            params: {
-                from_code: fromCode,
-                to_code: toCode,
-                depart_date: departDate,
-                return_date: flightType === 'ROUNDTRIP' ? returnDate : undefined,
-                adults: adults,
-                children_ages: children !== '0' ? Array(parseInt(children)).fill('10').join(',') : undefined, // Mock ages if children > 0
-                page_number: page,
-                flight_type: flightType,
-                cabin_class: cabinClass,
-                order_by: orderBy,
-                locale: 'en-gb',
-                currency,
+            url,
+            params,
+            headers: {
+                'x-rapidapi-key': API_CONFIG.RAPIDAPI_KEY,
+                'x-rapidapi-host': FLIGHTS_HOST,
+                'Content-Type': 'application/json',
             },
-            headers: getApiHeaders(),
-        };
+        } as const;
 
 
         const response = await axios.request(options);
 
         // Normalize RapidAPI response to the frontend schema: { flights: [...] }
         const data = response.data as any;
-        const offers = Array.isArray(data?.flightOffers) ? data.flightOffers : [];
+        // Try multiple shapes based on RapidAPI response
+        const offers = Array.isArray(data?.flightOffers) ? data.flightOffers : (Array.isArray(data?.data) ? data.data : []);
 
         const toTime = (iso?: string) => {
             if (!iso) return '';
@@ -103,18 +149,22 @@ export async function GET(request: Request) {
                 stops,
                 price: { amount: Number(priceUnits) || 0, currency },
                 cabinClass,
+                selectionKey: offer?.selectionKey,
             };
         });
 
-        const totalCount = (response.data?.aggregation?.filteredTotalCount ?? response.data?.aggregation?.totalCount ?? flights.length) as number;
-        // Heuristic for hasNextPage: if current page items * (pageIndex+1) < totalCount
+        // Basic totals fallbacks
+        const totalCount = (data?.aggregation?.filteredTotalCount ?? data?.aggregation?.totalCount ?? flights.length) as number;
+        // Heuristic for hasNextPage
         const pageIndex = Number(page) || 0;
-        const pageSize = flights.length || 0; // RapidAPI may vary; best-effort
+        const pageSize = flights.length || 0;
         const hasNextPage = pageSize > 0 ? (pageSize * (pageIndex + 1) < totalCount) : false;
-        return NextResponse.json({ flights, total: totalCount, hasNextPage });
+        const searchPath = (data?.searchPath || data?.resultSetMetaData?.searchPath) as string | undefined;
+        return NextResponse.json({ flights, total: totalCount, hasNextPage, searchPath, mock: false });
     } catch (error: any) {
         const status = error?.response?.status;
-        console.error('Error fetching flights:', status, error.message);
+        const data = error?.response?.data;
+        console.error('Error fetching flights:', status, error.message, data);
 
         // Mock Fallback for Flights
         const mockFlights = [
@@ -171,7 +221,9 @@ export async function GET(request: Request) {
         return NextResponse.json({
             flights: mockFlights,
             total: mockFlights.length,
-            hasNextPage: false
+            hasNextPage: false,
+            mock: true,
+            error: status || 'mock-fallback'
         });
     }
 }

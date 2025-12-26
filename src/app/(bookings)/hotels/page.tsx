@@ -7,7 +7,7 @@ import { HotelList } from '@/components/hotels/hotel-list';
 import { HotelFilters } from '@/components/hotels/hotel-filters';
 import { useHotels } from '@/hooks/use-hotels';
 import { useAuth } from '@/components/providers/auth-provider';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { HotelFilters as FilterType } from '@/types';
 import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 import { HotelCollection } from '@/components/hotels/hotel-collection';
@@ -15,65 +15,74 @@ import { HotelFAQ } from '@/components/hotels/hotel-faq';
 import { HotelFilterBar } from '@/components/hotels/hotel-filter-bar';
 
 export default function HotelsPage() {
+    // Read initial params from URL synchronously to avoid an extra initial fetch
+    const search = useSearchParams();
+    const initialQuery = search.get('query') || 'Addis Ababa';
+    const initialDestId = search.get('destId') || undefined;
+    const initialDestType = search.get('destType') || undefined;
+    const urlCheckIn = search.get('checkIn');
+    const urlCheckOut = search.get('checkOut');
+    const today = new Date();
+    const defaultCheckin = urlCheckIn ? new Date(urlCheckIn) : new Date(today.getTime() + 86400000);
+    const defaultCheckout = urlCheckOut ? new Date(urlCheckOut) : new Date(defaultCheckin.getTime() + 86400000);
+    const initialCheckInStr = formatDateLocal(defaultCheckin);
+    const initialCheckOutStr = formatDateLocal(defaultCheckout);
+    const initialSortOrder = (search.get('sortOrder') as any) || 'popularity';
+    const initialStars = (search.get('stars') || '')
+        .split(',')
+        .map(s => Number(s))
+        .filter(Boolean);
+    const initialMinPrice = search.get('minPrice');
+    const initialMaxPrice = search.get('maxPrice');
+    const initialMinRating = search.get('minRating');
+    const initialAmenities = (search.get('amenities') || '')
+        .split(',')
+        .filter(Boolean);
+    const initialHotelName = search.get('hotelName') || '';
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedHotel, setSelectedHotel] = useState<any>(null);
 
     // Search State
-    const [destination, setDestination] = useState('Addis Ababa');
-    const [checkIn, setCheckIn] = useState('');
-    const [checkOut, setCheckOut] = useState('');
-    // Controls whether mobile search renders expanded initially
-    const [hasSearched, setHasSearched] = useState(false);
+    const [destination, setDestination] = useState(initialQuery);
+    const [checkIn, setCheckIn] = useState(initialCheckInStr);
+    const [checkOut, setCheckOut] = useState(initialCheckOutStr);
+    // Controls whether mobile search renders expanded initially (collapse if URL has params)
+    const [hasSearched, setHasSearched] = useState(Boolean(search?.toString()))
 
     // Pagination & Filters
     const [page, setPage] = useState(0);
     const [filters, setFilters] = useState<FilterType>({
-        sortOrder: 'popularity',
-        stars: [],
-        minPrice: undefined,
-        maxPrice: undefined,
-        minRating: undefined,
-        amenities: [],
-        hotelName: '',
+        sortOrder: initialSortOrder,
+        stars: initialStars,
+        minPrice: initialMinPrice ? Number(initialMinPrice) : undefined,
+        maxPrice: initialMaxPrice ? Number(initialMaxPrice) : undefined,
+        minRating: initialMinRating ? Number(initialMinRating) : undefined,
+        amenities: initialAmenities,
+        hotelName: initialHotelName,
     });
 
     // Query State (triggers refetch)
-    const [searchParams, setSearchParams] = useState({
-        query: 'Addis Ababa',
-        destId: undefined as string | undefined,
-        destType: undefined as string | undefined,
-        checkIn: undefined as Date | undefined,
-        checkOut: undefined as Date | undefined,
+    const [searchParams, setSearchParams] = useState<{
+        query: string;
+        destId?: string;
+        destType?: string;
+        checkIn?: Date;
+        checkOut?: Date;
+    }>({
+        query: initialQuery,
+        destId: initialDestId,
+        destType: initialDestType,
+        checkIn: defaultCheckin,
+        checkOut: defaultCheckout,
     });
 
-    // Initialize from URL
+    // Keep hasSearched in sync once on mount (in case of SSR hydration differences)
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlQuery = urlParams.get('query') || 'Addis Ababa';
-        const urlDestId = urlParams.get('destId');
-        const urlDestType = urlParams.get('destType');
-        const urlCheckIn = urlParams.get('checkIn');
-        const urlCheckOut = urlParams.get('checkOut');
-
-        const today = new Date();
-        const defaultCheckin = urlCheckIn ? new Date(urlCheckIn) : new Date(today.getTime() + 86400000);
-        const defaultCheckout = urlCheckOut ? new Date(urlCheckOut) : new Date(defaultCheckin.getTime() + 86400000);
-
-        setDestination(urlQuery);
-        setCheckIn(formatDateLocal(defaultCheckin));
-        setCheckOut(formatDateLocal(defaultCheckout));
-
-        setSearchParams({
-            query: urlQuery,
-            destId: urlDestId || undefined,
-            destType: urlDestType || undefined,
-            checkIn: defaultCheckin,
-            checkOut: defaultCheckout,
-        });
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            setHasSearched(Boolean(urlParams.size));
+        }
     }, []);
-
-    // Stable empty array to prevent infinite loops
-    const EMPTY_ARRAY: any[] = [];
 
     const { data, isLoading, error, isPlaceholderData } = useHotels({
         query: searchParams.query,
@@ -86,7 +95,7 @@ export default function HotelsPage() {
         filters,
     });
 
-    const hotels = data?.hotels || EMPTY_ARRAY;
+    const hotels = data?.hotels || [];
     const hasNextPage = data?.hasNextPage || false;
     const isLoadingMore = isLoading && page > 0;
 
@@ -135,10 +144,31 @@ export default function HotelsPage() {
         .sort((a, b) => (b.reviews || 0) - (a.reviews || 0))
         .slice(0, 6);
 
-    // Removed infinite scroll; using explicit Load More button for consistent 10-per-page pagination
-
     const { user } = useAuth();
     const router = useRouter();
+
+    const buildUrlWithState = (extra: Record<string, any> = {}) => {
+        const params = new URLSearchParams();
+        if (destination) params.set('query', destination);
+        if (checkIn) params.set('checkIn', checkIn);
+        if (checkOut) params.set('checkOut', checkOut);
+        // persist destination identifiers from current searchParams if available
+        if (searchParams.destId) params.set('destId', searchParams.destId);
+        if (searchParams.destType) params.set('destType', searchParams.destType);
+        if (filters.sortOrder) params.set('sortOrder', String(filters.sortOrder));
+        if (filters.stars && filters.stars.length > 0) params.set('stars', filters.stars.join(','));
+        if (filters.minPrice != null) params.set('minPrice', String(filters.minPrice));
+        if (filters.maxPrice != null) params.set('maxPrice', String(filters.maxPrice));
+        if (filters.minRating != null) params.set('minRating', String(filters.minRating));
+        if (filters.amenities && filters.amenities.length > 0) params.set('amenities', filters.amenities.join(','));
+        if (filters.hotelName) params.set('hotelName', filters.hotelName);
+        // merge extras
+        Object.entries(extra).forEach(([k, v]) => {
+            if (v === undefined || v === null || v === '') return;
+            params.set(k, String(v));
+        });
+        return `?${params.toString()}`;
+    };
 
     const handleBook = (hotel: any) => {
         const params = new URLSearchParams();
@@ -146,20 +176,31 @@ export default function HotelsPage() {
         if (hotel.price != null) params.set('price', String(Math.round(hotel.price)));
         if (hotel.image) params.set('image', hotel.image);
         if (hotel.location) params.set('location', hotel.location);
+        // Preserve current search context for the detail page and back navigation
+        if (checkIn) params.set('checkin', checkIn);
+        if (checkOut) params.set('checkout', checkOut);
+        // You can also pass guest counts if you track them here (defaulting for now)
+        params.set('adults', '2');
+        params.set('children', '0');
+        params.set('rooms', '1');
         router.push(`/hotels/${hotel.id}?${params.toString()}`);
     };
 
     const handleSearch = () => {
         if (destination.trim()) {
             setPage(0); // Reset page on new search
+            const ci = checkIn ? parseDateLocal(checkIn) : searchParams.checkIn;
+            const co = checkOut ? parseDateLocal(checkOut) : searchParams.checkOut;
             setSearchParams({
                 query: destination,
                 destId: undefined,
                 destType: undefined,
-                checkIn: checkIn ? parseDateLocal(checkIn) : undefined,
-                checkOut: checkOut ? parseDateLocal(checkOut) : undefined,
+                checkIn: ci,
+                checkOut: co,
             });
             setHasSearched(true); // Collapse mobile detail after searching
+            // Sync URL for persistence across navigation
+            router.push(buildUrlWithState());
         }
     };
 
@@ -177,6 +218,17 @@ export default function HotelsPage() {
                 destType: undefined
             }));
         }
+        // Update URL to persist filters
+        const nextUrl = buildUrlWithState({
+            sortOrder: newFilters.sortOrder,
+            stars: newFilters.stars && newFilters.stars.length ? newFilters.stars.join(',') : undefined,
+            minPrice: newFilters.minPrice,
+            maxPrice: newFilters.maxPrice,
+            minRating: newFilters.minRating,
+            amenities: newFilters.amenities && newFilters.amenities.length ? newFilters.amenities.join(',') : undefined,
+            hotelName: newFilters.hotelName,
+        });
+        router.push(nextUrl);
     };
 
     return (
