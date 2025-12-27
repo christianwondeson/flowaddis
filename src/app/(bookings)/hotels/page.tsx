@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { BookingModal } from '@/components/booking/booking-modal';
 import { HotelSearchForm } from '@/components/hotels/hotel-search-form';
 import { HotelList } from '@/components/hotels/hotel-list';
@@ -14,7 +14,7 @@ import { HotelCollection } from '@/components/hotels/hotel-collection';
 import { HotelFAQ } from '@/components/hotels/hotel-faq';
 import { HotelFilterBar } from '@/components/hotels/hotel-filter-bar';
 
-export default function HotelsPage() {
+function HotelsPageContent() {
     // Read initial params from URL synchronously to avoid an extra initial fetch
     const search = useSearchParams();
     const initialQuery = search.get('query') || 'Addis Ababa';
@@ -424,5 +424,13 @@ export default function HotelsPage() {
                 type="hotel"
             />
         </div>
+    );
+}
+
+export default function HotelsPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading hotels…</div>}>
+            <HotelsPageContent />
+        </Suspense>
     );
 }

@@ -65,9 +65,9 @@ export const Header: React.FC = () => {
                                 className={clsx(
                                     'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all',
                                     isActive(item.path)
-                                        ? 'bg-brand-primary text-white shadow-md'
+                                        ? 'bg-brand-primary text-black shadow-md'
                                         : (isHomePage && !scrolled
-                                            ? 'text-white hover:bg-white/20'
+                                            ? 'text-black hover:bg-white/20'
                                             : 'text-brand-dark hover:bg-white hover:text-brand-primary')
                                 )}
                             >

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Plane, Calendar as CalendarIcon, Users, Search, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { FlightRouteSelect } from '@/components/search/flight-route-select';
 import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateEnglish } from '@/lib/date-utils';
 
-export default function FlightsPage() {
+function FlightsPageContent() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
 
@@ -381,5 +381,13 @@ export default function FlightsPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function FlightsPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading flights…</div>}>
+            <FlightsPageContent />
+        </Suspense>
     );
 }

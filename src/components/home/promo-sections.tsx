@@ -168,11 +168,22 @@ export function TrendingDestinations() {
     );
 }
 
+// Known local images for Ethiopian cities
+const CITY_IMAGE_MAP: Record<string, string> = {
+    'bahir dar': '/assets/images/wnchi-lake-crater.png',
+    'hawassa': '/assets/images/sofomar-cave.png',
+    'gondar': '/assets/images/benuna.jpg',
+};
+
+const imageForCity = (name: string, fallback?: string) => {
+    const key = name.toLowerCase();
+    return CITY_IMAGE_MAP[key] || fallback || '/assets/images/addis-ababa-night.jpg';
+};
+
 const MANUAL_CITIES = [
     { name: 'Addis Ababa', dest_id: '900040142', nr_hotels: 150, image: 'https://tse2.mm.bing.net/th/id/OIP.eirxq5q5BdeR1K1ETCuItgHaE4?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3' },
     { name: 'Bishoftu', dest_id: '900040143', nr_hotels: 12, image: 'https://th.bing.com/th/id/OIP.WXUWfYZOZa9vSodkaEp0wgHaDt?w=318&h=175&c=7&r=0&o=7&cb=ucfimg2&pid=1.7&rm=3&ucfimg=1' },
     { name: 'Debre Zeyt', dest_id: '900040149', nr_hotels: 10, image: 'https://th.bing.com/th/id/OIP.9hPKHWrnsOkiw48lmxszogHaE8?w=243&h=180&c=7&r=0&o=7&cb=ucfimg2&pid=1.7&rm=3&ucfimg=1' },
-    { name: 'Sululta', dest_id: '900040150', nr_hotels: 5, image: 'data:image/webp;base64,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' },
 ];
 
 export function ExploreEthiopia() {
@@ -187,17 +198,26 @@ export function ExploreEthiopia() {
                 const data = await response.json();
 
                 // Merge API data with manual data, prioritizing manual data
-                const apiCities = data || [];
+                const apiCities = (data || []) as any[];
                 const merged = [...MANUAL_CITIES];
 
                 apiCities.forEach((apiCity: any) => {
                     const exists = merged.some(c => c.name.toLowerCase() === apiCity.name.toLowerCase());
-                    if (!exists) {
-                        merged.push(apiCity);
-                    }
-                });
+                        if (!exists) {
+                            merged.push({
+                                ...apiCity,
+                                image: imageForCity(apiCity.name, apiCity.image),
+                            });
+                        }
+                    });
 
-                setCities(merged.slice(0, 6));
+                // Normalize images for all merged entries
+                const normalized = merged.map(c => ({
+                    ...c,
+                    image: imageForCity(c.name, c.image),
+                }));
+
+                setCities(normalized.slice(0, 6));
             } catch (error) {
                 console.error('Error fetching nearby cities:', error);
                 setCities(MANUAL_CITIES.slice(0, 6));

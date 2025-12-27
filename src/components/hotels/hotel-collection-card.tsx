@@ -14,7 +14,7 @@ interface HotelCollectionCardProps {
 export const HotelCollectionCard: React.FC<HotelCollectionCardProps> = ({ hotel, onBook }) => {
     return (
         <Card
-            className="w-full md:w-[280px] overflow-hidden hover:shadow-md transition-all duration-300 border border-gray-200 bg-white cursor-pointer group"
+            className="w-full md:w-[300px] overflow-hidden hover:shadow-md transition-all duration-300 border border-gray-200 bg-white cursor-pointer group"
             onClick={() => onBook(hotel)}
         >
             <div className="h-36 md:h-48 overflow-hidden relative">
