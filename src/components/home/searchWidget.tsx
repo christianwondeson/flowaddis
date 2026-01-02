@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { Plane, Hotel, Users, Bus, Search, MapPin, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AirportInput } from '@/components/search/airport-input';
 import { LocationInput } from '@/components/search/location-input';
 import dynamic from 'next/dynamic';
 const GuestSelector = dynamic(() => import('@/components/search/guest-selector').then(m => m.GuestSelector), { ssr: false });

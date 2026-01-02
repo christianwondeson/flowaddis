@@ -5,6 +5,8 @@ import { Users } from 'lucide-react';
 import { Popover } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 
+import { Counter } from '@/components/shared/counter';
+
 export type CabinClass = 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST';
 
 export interface TravelerState {
@@ -17,21 +19,6 @@ interface TravelerCabinSelectorProps {
   value: TravelerState;
   onChange: (next: TravelerState) => void;
 }
-
-const Row: React.FC<{ label: string; sub?: string; value: number; onChange: (v: number) => void }>
-  = ({ label, sub, value, onChange }) => (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <div className="font-medium text-sm text-gray-800">{label}</div>
-        {sub && <div className="text-xs text-gray-400">{sub}</div>}
-      </div>
-      <div className="flex items-center gap-2">
-        <button onClick={() => onChange(Math.max(0, value - 1))} className="w-7 h-7 flex items-center justify-center rounded-full border text-gray-700">-</button>
-        <div className="w-6 text-center text-sm font-semibold">{value}</div>
-        <button onClick={() => onChange(value + 1)} className="w-7 h-7 flex items-center justify-center rounded-full border text-gray-700">+</button>
-      </div>
-    </div>
-  );
 
 export const TravelerCabinSelector: React.FC<TravelerCabinSelectorProps> = ({ value, onChange }) => {
   const summary = useMemo(() => {
@@ -59,10 +46,21 @@ export const TravelerCabinSelector: React.FC<TravelerCabinSelectorProps> = ({ va
         </div>
       }
       content={
-        <div className="w-[340px] md:w-[420px]">
-          <div className="space-y-2">
-            <Row label="Adults" value={value.adults} onChange={(v) => setField('adults', v)} />
-            <Row label="Children" sub="0-17" value={value.children} onChange={(v) => setField('children', v)} />
+        <div className="w-[340px] md:w-[420px] p-1">
+          <div className="space-y-1">
+            <Counter
+              label="Adults"
+              value={value.adults}
+              min={1}
+              onChange={(v) => setField('adults', v)}
+            />
+            <Counter
+              label="Children"
+              subLabel="0-17"
+              value={value.children}
+              min={0}
+              onChange={(v) => setField('children', v)}
+            />
           </div>
 
           <div className="mt-3 pt-3 border-t">

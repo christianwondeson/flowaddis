@@ -77,7 +77,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialCheckOut = '',
 }) => {
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
-    const { user } = useAuth();
+    const { user, requireAuth } = useAuth();
     const [step, setStep] = useState<'form' | 'payment' | 'receipt'>('form');
     const [bookingData, setBookingData] = useState<any>(null);
 
@@ -121,6 +121,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const handleAddToTrip = (data: BookingFormData) => {
+        if (!user) {
+            requireAuth();
+            return;
+        }
         addToTrip({
             type,
             price,
@@ -139,6 +143,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const handleFormSubmit = (data: BookingFormData) => {
+        if (!user) {
+            requireAuth();
+            return;
+        }
         // Additional country-based length validation
         const natDigits = nationalNumber.replace(/\D/g, '');
         if (natDigits.length < selectedCountry.min || natDigits.length > selectedCountry.max) {

@@ -79,9 +79,9 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
             {/* Desktop/Laptop layout */}
             <div className="hidden md:block">
                 {/* Top row: main + two stacked previews */}
-                <div className="grid grid-cols-3 gap-3 h-[520px]">
+                <div className="grid grid-cols-3 gap-3 h-[400px]">
                     {/* Main image */}
-                    <div className="col-span-2 relative rounded-xl overflow-hidden">
+                    <div className="col-span-2 relative rounded-xl overflow-hidden bg-gray-100">
                         <img
                             src={safeImages[current]}
                             alt={`Hotel main ${current + 1}`}
@@ -90,12 +90,12 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                     </div>
 
                     {/* Two stacked previews on the right */}
-                    <div className="grid grid-rows-2 gap-3">
+                    <div className="grid grid-rows-2 gap-3 min-h-0">
                         {safeImages.slice(1, 3).map((img, i) => (
                             <button
                                 key={i}
                                 onClick={() => setCurrent(i + 1)}
-                                className="relative rounded-xl overflow-hidden"
+                                className="relative rounded-xl overflow-hidden bg-gray-100 h-full w-full"
                                 aria-label={`Show image ${i + 2}`}
                             >
                                 {img ? (

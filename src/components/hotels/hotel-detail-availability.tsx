@@ -6,10 +6,12 @@ import { Popover } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { formatCurrency } from '@/lib/currency';
 import { formatDateEnglishStr } from '@/lib/date-utils';
+import { sanitizeHtml } from '@/lib/utils/sanitize';
+import { Hotel, RoomBlock, RoomDetails } from '@/types/api';
 import axios from 'axios';
 
 interface HotelDetailAvailabilityProps {
-    hotel: any;
+    hotel: Hotel;
     checkInDate?: string;
     checkOutDate?: string;
     adults?: number;
@@ -31,8 +33,8 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     onGuestsChange,
     onBook
 }) => {
-    const [rooms, setRooms] = useState<any[]>([]);
-    const [roomDetails, setRoomDetails] = useState<any>({});
+    const [rooms, setRooms] = useState<RoomBlock[]>([]);
+    const [roomDetails, setRoomDetails] = useState<Record<string, RoomDetails>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -174,8 +176,8 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                     />
                 </div>
                 <div className="md:col-span-2 bg-white p-3 md:p-2 rounded-xl md:rounded-lg flex items-center gap-2 border border-transparent hover:border-brand-primary/20 transition-all shadow-sm md:shadow-none">
-                    <Popover 
-                        isOpen={isGuestSelectOpen} 
+                    <Popover
+                        isOpen={isGuestSelectOpen}
                         onOpenChange={setIsGuestSelectOpen}
                         trigger={
                             <div className="flex items-center gap-3 md:gap-2 cursor-pointer w-full">
@@ -194,12 +196,12 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">Adults</span>
                                     <div className="flex items-center gap-3">
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); setTempAdults(Math.max(1, tempAdults - 1)); }}
                                             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
                                         >-</button>
                                         <span className="text-sm font-bold w-4 text-center">{tempAdults}</span>
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); setTempAdults(tempAdults + 1); }}
                                             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
                                         >+</button>
@@ -208,12 +210,12 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">Children</span>
                                     <div className="flex items-center gap-3">
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); setTempChildren(Math.max(0, tempChildren - 1)); }}
                                             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
                                         >-</button>
                                         <span className="text-sm font-bold w-4 text-center">{tempChildren}</span>
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); setTempChildren(tempChildren + 1); }}
                                             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
                                         >+</button>
@@ -222,18 +224,18 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium">Rooms</span>
                                     <div className="flex items-center gap-3">
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); setTempRooms(Math.max(1, tempRooms - 1)); }}
                                             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
                                         >-</button>
                                         <span className="text-sm font-bold w-4 text-center">{tempRooms}</span>
-                                        <button 
+                                        <button
                                             onClick={(e) => { e.stopPropagation(); setTempRooms(tempRooms + 1); }}
                                             className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
                                         >+</button>
                                     </div>
                                 </div>
-                                <Button 
+                                <Button
                                     className="w-full bg-brand-primary text-white text-xs h-11 rounded-xl"
                                     onClick={() => setIsGuestSelectOpen(false)}
                                 >
@@ -243,7 +245,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                         }
                     />
                 </div>
-                <Button 
+                <Button
                     onClick={handleSearchUpdate}
                     className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm h-12 md:h-full rounded-xl md:rounded-lg transition-all active:scale-95 shadow-md shadow-brand-primary/20"
                 >
@@ -270,7 +272,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                 <span key={i} className="mr-2 font-medium">{bed.name_with_count}</span>
                                             ))}
                                         </div>
-                                        {details.highlights?.length > 0 && (
+                                        {details.highlights && details.highlights.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-2">
                                                 {details.highlights?.slice(0, 3).map((highlight: any, i: number) => (
                                                     <span key={i} className="px-2 py-0.5 bg-brand-primary/5 text-brand-primary border border-brand-primary/10 rounded-full text-[10px] font-bold">
@@ -295,7 +297,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         {Array.from({ length: block.nr_adults || 2 }).map((_, i) => (
                                             <Users key={i} className="w-4 h-4 text-brand-dark" />
                                         ))}
-                                        {block.nr_children > 0 && Array.from({ length: block.nr_children }).map((_, i) => (
+                                        {(block.nr_children ?? 0) > 0 && Array.from({ length: block.nr_children ?? 0 }).map((_, i) => (
                                             <Users key={i} className="w-3.5 h-3.5 text-gray-400" />
                                         ))}
                                         {block.extrabed_available && (
@@ -310,7 +312,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                     {block.transactional_policy_objects?.slice(0, 2).map((policy: any, i: number) => (
                                         <div key={i} className="flex items-start gap-1 text-[12px] text-green-700 font-semibold">
                                             <Check className="w-3 h-3 mt-0.5" />
-                                            <span dangerouslySetInnerHTML={{ __html: policy.text }} />
+                                            <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(policy.text) }} />
                                         </div>
                                     ))}
                                     {block.refundable === 0 && (
@@ -402,7 +404,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                 {Array.from({ length: block.nr_adults || 2 }).map((_, i) => (
                                                     <Users key={i} className="w-3 h-3 text-brand-dark" />
                                                 ))}
-                                                {block.nr_children > 0 && Array.from({ length: block.nr_children }).map((_, i) => (
+                                                {(block.nr_children ?? 0) > 0 && Array.from({ length: block.nr_children ?? 0 }).map((_, i) => (
                                                     <Users key={i} className="w-2.5 h-2.5 text-gray-400" />
                                                 ))}
                                             </div>
@@ -419,7 +421,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                             {block.transactional_policy_objects?.map((policy: any, i: number) => (
                                                 <div key={i} className="flex items-start gap-1 text-green-600 font-bold">
                                                     <Check className="w-3 h-3 mt-0.5" />
-                                                    <span dangerouslySetInnerHTML={{ __html: policy.text }} />
+                                                    <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(policy.text) }} />
                                                 </div>
                                             ))}
                                             {block.refundable === 0 && (

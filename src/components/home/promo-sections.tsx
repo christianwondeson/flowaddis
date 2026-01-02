@@ -7,11 +7,16 @@ import { Card } from '@/components/ui/card';
 import { ArrowRight, Gift, Heart, ChevronRight, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useHotels } from '@/hooks/use-hotels';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTripStore } from '@/store/trip-store';
 import { Popover } from '@/components/ui/popover';
 
 export function SignInPromo() {
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const currentPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+    const redirectQuery = `redirect=${encodeURIComponent(currentPath)}`;
+
     return (
         <Card className="p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white overflow-hidden relative group">
             <div className="flex flex-col md:flex-row items-center gap-6">
@@ -21,10 +26,14 @@ export function SignInPromo() {
                         Save 10% or more at participating properties – just look for the blue Genius label
                     </p>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                        <Button className="rounded-md px-6">Sign in</Button>
-                        <Button variant="ghost" className="text-brand-primary font-bold hover:bg-brand-primary/5">
-                            Register
-                        </Button>
+                        <Link href={`/signin?${redirectQuery}`}>
+                            <Button className="rounded-md px-6">Sign in</Button>
+                        </Link>
+                        <Link href={`/signup?${redirectQuery}`}>
+                            <Button variant="ghost" className="text-brand-primary font-bold hover:bg-brand-primary/5">
+                                Register
+                            </Button>
+                        </Link>
                     </div>
                 </div>
                 <div className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
@@ -203,13 +212,13 @@ export function ExploreEthiopia() {
 
                 apiCities.forEach((apiCity: any) => {
                     const exists = merged.some(c => c.name.toLowerCase() === apiCity.name.toLowerCase());
-                        if (!exists) {
-                            merged.push({
-                                ...apiCity,
-                                image: imageForCity(apiCity.name, apiCity.image),
-                            });
-                        }
-                    });
+                    if (!exists) {
+                        merged.push({
+                            ...apiCity,
+                            image: imageForCity(apiCity.name, apiCity.image),
+                        });
+                    }
+                });
 
                 // Normalize images for all merged entries
                 const normalized = merged.map(c => ({

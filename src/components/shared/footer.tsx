@@ -16,56 +16,61 @@ export const Footer: React.FC = () => {
                         </p>
                     </div>
 
-                    {/* Quick Links */}
+                    {/* Services */}
                     <div>
                         <h3 className="text-lg font-bold mb-6 text-white">Services</h3>
                         <ul className="space-y-4 text-gray-400 text-sm">
-                            <li><Link href="/flights" className="hover:text-brand-secondary transition-colors">International Flights</Link></li>
-                            <li><Link href="/hotels" className="hover:text-brand-secondary transition-colors">Luxury Hotels</Link></li>
-                            <li><Link href="/conferences" className="hover:text-brand-secondary transition-colors">Conference Halls</Link></li>
-                            <li><Link href="/shuttles" className="hover:text-brand-secondary transition-colors">Airport Shuttle</Link></li>
+                            <li><Link href="/flights" className="hover:text-brand-secondary transition-colors">Flights</Link></li>
+                            <li><Link href="/hotels" className="hover:text-brand-secondary transition-colors">Hotels</Link></li>
+                            <li><Link href="/conferences" className="hover:text-brand-secondary transition-colors">Conferences</Link></li>
+                            <li><Link href="/shuttles" className="hover:text-brand-secondary transition-colors">Shuttles</Link></li>
                         </ul>
                     </div>
 
-                    {/* Contact */}
+                    {/* Company */}
                     <div>
-                        <h3 className="text-lg font-bold mb-6 text-white">Contact Us</h3>
+                        <h3 className="text-lg font-bold mb-6 text-white">Company</h3>
+                        <ul className="space-y-4 text-gray-400 text-sm">
+                            <li><Link href="/about" className="hover:text-brand-secondary transition-colors">About Us</Link></li>
+                            <li><Link href="/privacy" className="hover:text-brand-secondary transition-colors">Privacy Policy</Link></li>
+                            <li><Link href="/terms" className="hover:text-brand-secondary transition-colors">Terms of Service</Link></li>
+                            <li><Link href="/contact" className="hover:text-brand-secondary transition-colors">Contact Us</Link></li>
+                        </ul>
+                    </div>
+
+                    {/* Support */}
+                    <div>
+                        <h3 className="text-lg font-bold mb-6 text-white">Support</h3>
                         <ul className="space-y-4 text-gray-400 text-sm">
                             <li className="flex items-center gap-3">
-                                <MapPin className="w-5 h-5 text-brand-primary" />
-                                <span>Bole, Addis Ababa, Ethiopia</span>
+                                <Phone className="w-4 h-4 text-brand-primary" />
+                                <span>+251 911 520 275</span>
                             </li>
                             <li className="flex items-center gap-3">
-                                <Phone className="w-5 h-5 text-brand-primary" />
-                                <div className="flex flex-col">
-                                    <span>+251 911 520 275</span>
-                                    <span>+251 921 929 159</span>
-                                </div>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <MessageCircle className="w-5 h-5 text-green-500" />
-                                <a href="https://wa.me/251911520275" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">
-                                    WhatsApp Us
-                                </a>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <Mail className="w-5 h-5 text-brand-primary" />
+                                <Mail className="w-4 h-4 text-brand-primary" />
                                 <span>info@flowaddis.com</span>
                             </li>
+                            <li className="flex items-center gap-3">
+                                <MessageCircle className="w-4 h-4 text-green-500" />
+                                <a href="https://wa.me/251911520275" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">
+                                    WhatsApp
+                                </a>
+                            </li>
+                            <li><Link href="/help" className="hover:text-brand-secondary transition-colors">Help Center</Link></li>
                         </ul>
                     </div>
 
                     {/* Newsletter */}
                     <div>
                         <h3 className="text-lg font-bold mb-6 text-white">Stay Updated</h3>
-                        <p className="text-gray-400 text-sm mb-4">Subscribe to our newsletter for exclusive offers.</p>
+                        <p className="text-gray-400 text-sm mb-4">Subscribe for exclusive offers.</p>
                         <div className="flex gap-2">
                             <input
                                 type="email"
-                                placeholder="Enter your email"
-                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-primary w-full transition-colors"
+                                placeholder="Email"
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary w-full transition-colors"
                             />
-                            <button className="bg-brand-primary px-6 py-3 rounded-xl text-sm font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-900/20">
+                            <button className="bg-brand-primary px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 transition-colors">
                                 Join
                             </button>
                         </div>
@@ -75,10 +80,9 @@ export const Footer: React.FC = () => {
                 <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <p className="text-gray-500 text-sm">© 2025 Flowaddis. All rights reserved.</p>
                     <div className="flex gap-6">
-                        <a href="#" className="text-gray-400 hover:text-brand-secondary transition-colors"><Facebook className="w-5 h-5" /></a>
-                        <a href="#" className="text-gray-400 hover:text-brand-secondary transition-colors"><Twitter className="w-5 h-5" /></a>
-                        <a href="#" className="text-gray-400 hover:text-brand-secondary transition-colors"><Instagram className="w-5 h-5" /></a>
-                        <a href="#" className="text-gray-400 hover:text-brand-secondary transition-colors"><Linkedin className="w-5 h-5" /></a>
+                        <a href="https://facebook.com/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Facebook className="w-5 h-5" /></a>
+                        <a href="https://twitter.com/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Twitter className="w-5 h-5" /></a>
+                        <a href="https://instagram.com/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Instagram className="w-5 h-5" /></a>
                     </div>
                 </div>
             </div>

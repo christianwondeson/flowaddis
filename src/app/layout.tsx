@@ -12,8 +12,7 @@ export const metadata: Metadata = {
 };
 
 import { Providers } from "@/components/providers";
-import { Header } from "@/components/shared/header";
-import { Footer } from "@/components/shared/footer";
+import { PublicLayout } from "@/components/layout/public-layout";
 
 export default function RootLayout({
   children,
@@ -26,13 +25,9 @@ export default function RootLayout({
         className={`antialiased bg-brand-white font-sans text-brand-dark`}
       >
         <Providers>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <PublicLayout>
+            {children}
+          </PublicLayout>
         </Providers>
       </body>
     </html>

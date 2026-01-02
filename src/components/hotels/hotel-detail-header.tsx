@@ -26,16 +26,19 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
     ];
 
     return (
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="bg-white border-b border-gray-200">
             <div className="container mx-auto px-4">
                 {/* Top Bar with Back Button */}
                 <div className="flex items-center py-2 border-b border-gray-50">
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            router.back();
+                        }}
                         className="flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-brand-primary transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Back to results
+                        Back
                     </button>
                 </div>
 
@@ -61,7 +64,17 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                 <MapPin className="w-4 h-4 text-brand-primary" />
                                 <span>{hotel.location}</span>
                                 <span className="text-gray-300 mx-1">–</span>
-                                <button className="text-brand-primary font-bold hover:underline">Excellent location – show map</button>
+                                <button
+                                    onClick={() => {
+                                        const params = new URLSearchParams();
+                                        if (hotel.location) params.set('query', hotel.location);
+                                        if (hotel.name) params.set('hotelName', hotel.name);
+                                        router.push(`/hotels/map?${params.toString()}`);
+                                    }}
+                                    className="text-brand-primary font-bold hover:underline"
+                                >
+                                    Excellent location – show map
+                                </button>
                             </div>
                             {(hotel.rating || hotel.reviews) && (
                                 <div className="mt-2 flex items-center gap-2">

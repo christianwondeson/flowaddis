@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { HotelCollectionCard } from './hotel-collection-card';
+import { HotelCard } from './hotel-card';
 import { Hotel } from '@/types';
 
 interface HotelListProps {
@@ -43,10 +43,11 @@ export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 justify-items-stretch">
             {hotels.map((hotel) => (
-                <HotelCollectionCard
+                <HotelCard
                     key={hotel.id}
                     hotel={hotel}
                     onBook={onBook}
+                    variant="vertical"
                 />
             ))}
         </div>

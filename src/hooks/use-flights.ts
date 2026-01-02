@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
+import { apiClient } from '@/lib/api-client';
+import { APP_CONSTANTS } from '@/lib/constants';
 
 interface UseFlightsParams {
     fromCode?: string; // legacy, will be normalized to IATA
@@ -12,7 +14,6 @@ interface UseFlightsParams {
     adults?: number;
     children?: number;
     page?: number;
-    // Optional future filters
     numberOfStops?: 'nonstop_flights' | 'maximum_one_stop' | 'all';
     nonstopFlightsOnly?: boolean;
     priceRange?: string; // "min,max"
@@ -27,31 +28,30 @@ export function useFlights({ fromCode, toCode, departDate, returnDate, flightTyp
     return useQuery({
         queryKey: queryKeys.flights.list({ fromId, toId, departDate, returnDate, adults, children, page, flightType, cabinClass, orderBy, numberOfStops, nonstopFlightsOnly, priceRange, airlines }),
         queryFn: async () => {
-            const params = new URLSearchParams({
-                adults: adults.toString(),
-                children: children.toString(),
-                page: page.toString(),
+            const params: Record<string, any> = {
+                fromId,
+                toId,
+                departureDate: departDate?.toISOString().split('T')[0],
+                returnDate: returnDate?.toISOString().split('T')[0],
+                adults,
+                children,
+                page,
                 flightType: flightType || 'ROUNDTRIP',
                 cabinClass: cabinClass || 'ECONOMY',
                 orderBy: orderBy || 'BEST',
-            });
+                numberOfStops,
+                nonstopFlightsOnly,
+                priceRange,
+                airlines,
+            };
 
-            if (fromId) params.append('fromId', fromId);
-            if (toId) params.append('toId', toId);
-            if (departDate) params.append('departureDate', departDate.toISOString().split('T')[0]);
-            if (returnDate) params.append('returnDate', returnDate.toISOString().split('T')[0]);
-            if (numberOfStops) params.append('numberOfStops', numberOfStops);
-            if (nonstopFlightsOnly != null) params.append('nonstopFlightsOnly', String(nonstopFlightsOnly));
-            if (priceRange) params.append('priceRange', priceRange);
-            if (airlines) params.append('airlines', airlines);
+            const cleanParams = Object.fromEntries(
+                Object.entries(params).filter(([_, v]) => v !== undefined)
+            );
 
-            const response = await fetch(`/api/flights/search?${params.toString()}`);
-            if (!response.ok) throw new Error('Failed to fetch flights');
-
-            const data = await response.json();
+            const data = await apiClient.get<any>(APP_CONSTANTS.API.FLIGHTS, cleanParams);
             return { flights: data.flights || [], searchPath: data.searchPath as string | undefined };
         },
-        // Only run when we have a from/to and required dates
         enabled: Boolean(fromId && toId && departDate && (flightType === 'ONEWAY' || returnDate)),
         refetchOnWindowFocus: false,
         refetchOnMount: false,
@@ -65,9 +65,7 @@ export function useFlightLocations(query: string) {
         queryKey: queryKeys.flights.detail(query),
         queryFn: async () => {
             if (!query || query.length < 3) return [];
-            const response = await fetch(`/api/flights/locations?name=${encodeURIComponent(query)}`);
-            if (!response.ok) throw new Error('Failed to fetch locations');
-            return response.json();
+            return apiClient.get<any[]>('/api/flights/locations', { name: query });
         },
         enabled: query.length >= 3,
     });
@@ -77,13 +75,7 @@ export function useFlightDetail(selectionKey?: string, searchPath?: string) {
     return useQuery({
         queryKey: ['flight-detail', selectionKey, searchPath],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (selectionKey) params.set('selectionKey', selectionKey);
-            if (searchPath) params.set('searchPath', searchPath);
-            const res = await fetch(`/api/flights/detail?${params.toString()}`);
-            if (!res.ok) throw new Error('Failed to fetch flight detail');
-            const data = await res.json();
-            return data.detail;
+            return apiClient.get<any>('/api/flights/detail', { selectionKey, searchPath });
         },
         enabled: Boolean(selectionKey && searchPath),
         refetchOnWindowFocus: false,

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { HotelCollectionCard } from './hotel-collection-card';
+import { HotelCard } from './hotel-card';
 import { Hotel } from '@/types';
 
 interface HotelCollectionProps {
@@ -56,12 +56,13 @@ export const HotelCollection: React.FC<HotelCollectionProps> = ({
                         ))}
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                         {visibleHotels.map((hotel) => (
-                            <HotelCollectionCard
+                            <HotelCard
                                 key={hotel.id}
                                 hotel={hotel}
                                 onBook={onBook}
+                                variant="vertical"
                             />
                         ))}
                     </div>

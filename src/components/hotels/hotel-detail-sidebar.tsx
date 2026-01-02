@@ -3,6 +3,7 @@
 import React from 'react';
 import { Info, MapPin, Maximize, ParkingCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface HotelDetailSidebarProps {
     hotel: any;
@@ -12,6 +13,8 @@ interface HotelDetailSidebarProps {
 }
 
 export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, reviews = [], loading = false, onBook }) => {
+    const router = useRouter();
+
     return (
         <div className="space-y-4">
             {/* Review Score Card */}
@@ -81,7 +84,15 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-                    <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95">
+                    <Button
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (hotel.location) params.set('query', hotel.location);
+                            if (hotel.name) params.set('hotelName', hotel.name);
+                            router.push(`/hotels/map?${params.toString()}`);
+                        }}
+                        className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95"
+                    >
                         Show on map
                     </Button>
                 </div>

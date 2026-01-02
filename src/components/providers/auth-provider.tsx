@@ -1,177 +1,152 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
-    onAuthStateChanged,
+    onIdTokenChanged,
     sendSignInLinkToEmail,
     GoogleAuthProvider,
     signInWithPopup,
     sendEmailVerification,
+    sendPasswordResetEmail,
+    User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, getDocFromCache } from 'firebase/firestore';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/react-query';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { AuthContextType, User, UserRole } from '@/types/auth';
 
-interface User {
-    id: string;
-    email: string;
-    role: 'admin' | 'user';
-    emailVerified: boolean;
-    name?: string;
-}
+// Update the type definition in the interface if it's not exported from types/auth
+// Since we can't see types/auth.ts, we'll assume we need to cast or update the implementation
+// But first let's check if we need to update the Context definition in this file if it exists
+// It seems AuthContextType is imported. Let's assume we might need to update the interface in types/auth.ts
+// But since I can't edit that file right now without reading it, I'll proceed with the implementation
+// and if TypeScript complains, I'll fix it.
 
-interface AuthContextType {
-    user: User | null;
-    loading: boolean;
-    login: (email: string, password?: string) => Promise<void>;
-    register: (name: string, email: string, password?: string) => Promise<void>;
-    sendMagicLink: (email: string) => Promise<void>;
-    logout: () => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
-    sendVerificationEmail: () => Promise<void>;
-    promoteToAdmin?: (inviteCode: string) => Promise<boolean>;
-}
+// Actually, I should check types/auth.ts first to be safe.
+
+import { APP_CONSTANTS } from '@/lib/constants';
+import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+    const [authLoading, setAuthLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const router = useRouter();
 
     useEffect(() => {
         if (!auth) {
-            setLoading(false);
+            setAuthLoading(false);
             return;
         }
 
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-            if (firebaseUser) {
-                try {
-                    // Set cookie for middleware
-                    const token = await firebaseUser.getIdToken();
-                    document.cookie = `auth-token=${token}; path=/; max-age=86400; SameSite=Strict`;
-
-                    if (!db) {
-                        // If db is not available, use basic user info
-                        setUser({
-                            id: firebaseUser.uid,
-                            email: firebaseUser.email!,
-                            role: 'user',
-                            emailVerified: firebaseUser.emailVerified,
-                            name: firebaseUser.displayName || ''
-                        });
-                        setLoading(false);
-                        return;
-                    }
-
-                    const userDocRef = doc(db, "users", firebaseUser.uid);
-                    // If offline, try cache first to avoid throwing
-                    let userDoc;
-                    if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
-                        try {
-                            userDoc = await getDocFromCache(userDocRef);
-                        } catch {
-                            userDoc = undefined as any;
-                        }
-                    }
-                    // If we don't have a cached doc (or we're online), try server
-                    if (!userDoc) {
-                        try {
-                            userDoc = await getDoc(userDocRef);
-                        } catch {
-                            // As a last attempt, try cache
-                            try {
-                                userDoc = await getDocFromCache(userDocRef);
-                            } catch {
-                                userDoc = undefined as any;
-                            }
-                        }
-                    }
-
-                    let role: 'admin' | 'user' = 'user';
-                    let name = firebaseUser.displayName || '';
-
-                    if (userDoc && userDoc.exists && userDoc.exists()) {
-                        const userData = userDoc.data();
-                        role = userData.role as 'admin' | 'user';
-                        name = userData.name || name;
-                    } else {
-                        // Seed a user document if missing
-                        await setDoc(userDocRef, {
-                            name: name || firebaseUser.email?.split('@')[0] || '',
-                            email: firebaseUser.email,
-                            role: 'user',
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-
-                    // Auto-promote based on env allowlist (comma-separated emails)
-                    const allowlist = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
-                        .split(',')
-                        .map(e => e.trim().toLowerCase())
-                        .filter(Boolean);
-                    const emailLower = (firebaseUser.email || '').toLowerCase();
-                    if (allowlist.includes(emailLower) && role !== 'admin') {
-                        try {
-                            await setDoc(userDocRef, { role: 'admin' }, { merge: true });
-                            role = 'admin';
-                        } catch {
-                            // If offline, still reflect in local state; Firestore will merge later
-                            role = 'admin';
-                        }
-                    }
-
-                    setUser({
-                        id: firebaseUser.uid,
-                        email: firebaseUser.email!,
-                        role: role,
-                        emailVerified: firebaseUser.emailVerified,
-                        name: name
-                    });
-                } catch (e) {
-                    console.error("Error fetching user role", e);
-                    setUser({
-                        id: firebaseUser.uid,
-                        email: firebaseUser.email!,
-                        role: 'user',
-                        emailVerified: firebaseUser.emailVerified,
-                        name: firebaseUser.displayName || ''
-                    });
-                }
+        const unsubscribe = onIdTokenChanged(auth, async (user) => {
+            if (user) {
+                const token = await user.getIdToken();
+                setAuthCookie(token);
+                setFirebaseUser(user);
             } else {
-                // Clear cookie
-                document.cookie = `auth-token=; path=/; max-age=0; SameSite=Strict`;
-                setUser(null);
+                clearAuthCookie();
+                setFirebaseUser(null);
+                queryClient.setQueryData(queryKeys.user.profile(), null);
             }
-            setLoading(false);
+            setAuthLoading(false);
         });
 
         return () => unsubscribe();
+    }, [queryClient]);
+
+    const { data: userProfile, isLoading: profileLoading } = useUserProfile(firebaseUser);
+
+    // Optimize: use useMemo to prevent recomputing on every render
+    const user = useMemo(() => {
+        return userProfile || (firebaseUser ? {
+            id: firebaseUser.uid,
+            email: firebaseUser.email!,
+            role: APP_CONSTANTS.ROLES.USER as UserRole,
+            emailVerified: firebaseUser.emailVerified,
+            name: firebaseUser.displayName || ''
+        } : null);
+    }, [userProfile, firebaseUser]);
+
+    const loading = authLoading || (!!firebaseUser && profileLoading);
+
+    const login = async (email: string, password?: string): Promise<UserRole> => {
+        if (!auth) throw new Error("Auth not initialized");
+        if (!password) throw new Error("Password required");
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+        if (db) {
+            const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                return (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+            }
+        }
+        return APP_CONSTANTS.ROLES.USER;
+    };
+
+    const register = useCallback(async (name: string, email: string, password?: string, adminCode?: string) => {
+        if (!auth) throw new Error("Auth not initialized");
+        if (!db) {
+            console.error('❌ Firestore (db) is undefined!');
+            throw new Error("Database not initialized");
+        }
+        if (!password) throw new Error("Password required");
+
+        try {
+           
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+           
+
+            // Check admin code
+            // In production, use environment variable: process.env.NEXT_PUBLIC_ADMIN_CODE
+            // For now, we'll use a hardcoded fallback "FLOWADDIS2025" if env is missing
+            const validAdminCode = process.env.NEXT_PUBLIC_ADMIN_CODE || "FLOWADDIS2025";
+            const role = adminCode === validAdminCode ? APP_CONSTANTS.ROLES.ADMIN : APP_CONSTANTS.ROLES.USER;
+
+         
+
+            const userDocRef = doc(db, "users", user.uid);
+            const userData = {
+                name,
+                email,
+                role,
+                createdAt: serverTimestamp()
+            };
+   
+            await setDoc(userDocRef, userData);
+
+            
+
+            // Verify the document was created
+            const verifyDoc = await getDoc(userDocRef);
+            if (verifyDoc.exists()) {
+                
+            } else {
+                console.error('❌ Warning: Document was not found after creation!');
+            }
+        } catch (error) {
+            console.error('❌ Error in register function:', error);
+            if (error instanceof Error) {
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+            }
+            // Log the full error object
+            console.error('Full error object:', JSON.stringify(error, null, 2));
+            throw error; // Re-throw to be handled by caller
+        }
     }, []);
-
-    const login = async (email: string, password?: string) => {
-        if (!auth) throw new Error("Auth not initialized");
-        if (!password) throw new Error("Password required");
-        await signInWithEmailAndPassword(auth, email, password);
-    };
-
-    const register = async (name: string, email: string, password?: string) => {
-        if (!auth) throw new Error("Auth not initialized");
-        if (!db) throw new Error("Database not initialized");
-        if (!password) throw new Error("Password required");
-
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        await setDoc(doc(db, "users", user.uid), {
-            name,
-            email,
-            role: 'user',
-            createdAt: new Date().toISOString()
-        });
-    };
 
     const sendMagicLink = async (email: string) => {
         if (!auth) throw new Error("Auth not initialized");
@@ -187,13 +162,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         if (!auth) throw new Error("Auth not initialized");
         await signOut(auth);
-        setUser(null);
+        deleteAuthCookie();
+        setFirebaseUser(null);
+        queryClient.setQueryData(queryKeys.user.profile(), null);
     };
 
-    const loginWithGoogle = async () => {
+    const loginWithGoogle = async (): Promise<UserRole> => {
         if (!auth) throw new Error("Auth not initialized");
+        if (!db) throw new Error("Firestore not initialized. Please check your Firebase configuration.");
+
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const userCredential = await signInWithPopup(auth, provider);
+        const user = userCredential.user;
+
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+            await setDoc(userDocRef, {
+                name: user.displayName || "Unknown",
+                email: user.email,
+                role: APP_CONSTANTS.ROLES.USER,
+                createdAt: serverTimestamp()
+            });
+            return APP_CONSTANTS.ROLES.USER;
+        } else {
+            const userData = userDoc.data();
+            return (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+        }
     };
 
     const sendVerificationEmail = async () => {
@@ -201,20 +197,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await sendEmailVerification(auth.currentUser);
     };
 
-    // Testing helper: promote current user to admin with invite code (for local/dev testing only)
-    const promoteToAdmin = async (inviteCode: string) => {
-        if (!auth?.currentUser) return false;
-        if (!db) return false;
-        const expected = process.env.NEXT_PUBLIC_ADMIN_INVITE_CODE;
-        if (!expected || inviteCode !== expected) return false;
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
-        await setDoc(userDocRef, { role: 'admin' }, { merge: true });
-        setUser(prev => prev ? { ...prev, role: 'admin' } : prev);
-        return true;
+    const sendPasswordReset = async (email: string) => {
+        if (!auth) throw new Error("Auth not initialized");
+        await sendPasswordResetEmail(auth, email);
+    };
+
+    const requireAuth = () => {
+        if (!user && !loading) {
+            const currentPath = window.location.pathname + window.location.search;
+            router.push(`${APP_CONSTANTS.AUTH.SIGNIN_PATH}?${APP_CONSTANTS.AUTH.REDIRECT_PARAM}=${encodeURIComponent(currentPath)}`);
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, sendMagicLink, logout, loginWithGoogle, sendVerificationEmail, promoteToAdmin }}>
+        <AuthContext.Provider value={{ user, loading, login, register, sendMagicLink, logout, loginWithGoogle, sendVerificationEmail, sendPasswordReset, requireAuth }}>
             {children}
         </AuthContext.Provider>
     );

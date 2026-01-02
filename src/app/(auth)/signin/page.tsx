@@ -1,53 +1,97 @@
 "use client";
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Logo } from '@/components/shared/logo';
 import { motion } from 'framer-motion';
 import { Mail, ArrowRight, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signInSchema, SignInValues } from '@/lib/validations/auth';
+import { handleAuthError } from '@/lib/utils/error-handling';
 
 function SignInContent() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [magicLinkSent, setMagicLinkSent] = useState(false);
     const [authMethod, setAuthMethod] = useState<'password' | 'magic'>('password');
+    const [shouldRedirect, setShouldRedirect] = useState(false);
 
-    const { login, sendMagicLink, loginWithGoogle } = useAuth();
+    const { user, loading: authLoading, login, sendMagicLink, loginWithGoogle } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
     const from = searchParams.get('redirect') || searchParams.get('from') || '/';
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Handle redirect after successful authentication
+    useEffect(() => {
+        if (user && !authLoading && shouldRedirect) {
+            // Use replace to prevent back button issues
+            router.replace(from);
+            setShouldRedirect(false);
+        }
+    }, [user, authLoading, shouldRedirect, from, router]);
+
+    const form = useForm<SignInValues>({
+        resolver: zodResolver(signInSchema),
+        defaultValues: {
+            email: '',
+            password: '',
+        },
+    });
+
+    const onSubmit = async (data: SignInValues) => {
         setLoading(true);
         try {
             if (authMethod === 'password') {
-                await login(email, password);
-                router.push(from);
+                const role = await login(data.email, data.password);
+                toast.success("Successfully signed in!");
+
+                // Set flag to trigger redirect in useEffect
+                if (role === 'admin') {
+                    router.replace('/admin');
+                } else {
+                    setShouldRedirect(true);
+                }
             } else {
-                await sendMagicLink(email);
-                window.localStorage.setItem('emailForSignIn', email);
+                await sendMagicLink(data.email);
+                window.localStorage.setItem('emailForSignIn', data.email);
                 toast.success("Magic Link Sent! Check your email.");
                 setMagicLinkSent(true);
             }
-        } catch (error: any) {
-            console.error("Error during sign-in or magic link sending:", error);
-            if (authMethod === 'magic') {
-                toast.error(`Failed to send magic link: ${error.message || 'Unknown error'}`);
-            } else {
-                toast.error(`Sign-in failed: ${error.message || 'Unknown error'}`);
-            }
+        } catch (error) {
+            console.error("Error during sign-in:", error);
+            handleAuthError(error);
         } finally {
             setLoading(false);
         }
     };
+
+    const handleMagicLinkSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const email = form.getValues('email');
+        const result = await form.trigger('email');
+
+        if (!result) return;
+
+        setLoading(true);
+        try {
+            await sendMagicLink(email);
+            window.localStorage.setItem('emailForSignIn', email);
+            toast.success("Magic Link Sent! Check your email.");
+            setMagicLinkSent(true);
+        } catch (error: any) {
+            console.error("Error during magic link sending:", error);
+            handleAuthError(error);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-brand-gray p-4">
@@ -71,7 +115,7 @@ function SignInContent() {
                         </div>
                         <h3 className="text-xl font-bold text-brand-dark">Check your email</h3>
                         <p className="text-gray-500">
-                            We sent a magic link to <span className="font-bold text-brand-dark">{email}</span>.
+                            We sent a magic link to <span className="font-bold text-brand-dark">{form.getValues('email')}</span>.
                             <br />Click the link to sign in.
                         </p>
                         <p className="text-xs text-gray-400 mt-4">
@@ -82,12 +126,15 @@ function SignInContent() {
                         </Button>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={authMethod === 'password' ? form.handleSubmit(onSubmit) : handleMagicLinkSubmit} className="space-y-6">
                         {/* Auth Method Toggle */}
                         <div className="flex p-1 bg-gray-100 rounded-xl">
                             <button
                                 type="button"
-                                onClick={() => setAuthMethod('password')}
+                                onClick={() => {
+                                    setAuthMethod('password');
+                                    form.clearErrors();
+                                }}
                                 className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${authMethod === 'password' ? 'bg-white shadow text-brand-primary' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -95,7 +142,10 @@ function SignInContent() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setAuthMethod('magic')}
+                                onClick={() => {
+                                    setAuthMethod('magic');
+                                    form.clearErrors();
+                                }}
                                 className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${authMethod === 'magic' ? 'bg-white shadow text-brand-primary' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
@@ -107,21 +157,28 @@ function SignInContent() {
                             label="Email Address"
                             type="email"
                             placeholder="name@company.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
+                            {...form.register('email')}
+                            error={form.formState.errors.email?.message}
                             icon={<Mail className="w-4 h-4" />}
                         />
 
                         {authMethod === 'password' && (
-                            <Input
-                                label="Password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
+                            <div className="space-y-1">
+                                <PasswordInput
+                                    label="Password"
+                                    placeholder="••••••••"
+                                    {...form.register('password')}
+                                    error={form.formState.errors.password?.message}
+                                />
+                                <div className="flex justify-end">
+                                    <Link
+                                        href="/forgot-password"
+                                        className="text-sm font-medium text-brand-primary hover:underline"
+                                    >
+                                        Forgot Password?
+                                    </Link>
+                                </div>
+                            </div>
                         )}
 
                         <Button type="submit" className="w-full" disabled={loading}>
@@ -144,11 +201,16 @@ function SignInContent() {
                             className="w-full"
                             onClick={async () => {
                                 try {
-                                    await loginWithGoogle();
-                                    router.push(from);
-                                } catch (error: any) {
+                                    const role = await loginWithGoogle();
+                                    toast.success("Successfully signed in with Google!");
+                                    if (role === 'admin') {
+                                        router.replace('/admin');
+                                    } else {
+                                        setShouldRedirect(true);
+                                    }
+                                } catch (error) {
                                     console.error(error);
-                                    toast.error(`Google sign-in failed: ${error.message}`);
+                                    handleAuthError(error);
                                 }
                             }}
                         >
@@ -178,7 +240,7 @@ function SignInContent() {
                 {!magicLinkSent && (
                     <div className="mt-6 text-center text-sm text-gray-500">
                         Don't have an account?{' '}
-                        <Link href="/signup" className="text-brand-primary font-bold hover:underline">
+                        <Link href={`/signup?redirect=${encodeURIComponent(from)}`} className="text-brand-primary font-bold hover:underline">
                             Sign Up
                         </Link>
                     </div>

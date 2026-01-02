@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Hotel, HotelFilters } from '@/types';
 import { queryKeys } from '@/lib/react-query';
+import { apiClient } from '@/lib/api-client';
+import { APP_CONSTANTS } from '@/lib/constants';
 
 interface UseHotelsParams {
     query: string;
@@ -20,40 +22,29 @@ export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0
     return useQuery({
         queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, pageSize, filters, adults, children, rooms }),
         queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, totalCount: number, destId?: string }> => {
-            // Build query params
-            const params = new URLSearchParams({
+            const params: Record<string, any> = {
                 query,
-                page: page.toString(),
-                pageSize: pageSize.toString(),
-                adults: adults.toString(),
-                children: children.toString(),
-                rooms: rooms.toString(),
-            });
+                page,
+                pageSize,
+                adults,
+                children,
+                rooms,
+                ...filters,
+                checkIn: checkIn?.toISOString().split('T')[0],
+                checkOut: checkOut?.toISOString().split('T')[0],
+                destId,
+                destType,
+            };
 
-            if (destId) params.append('destId', destId);
-            if (destType) params.append('destType', destType);
-            if (checkIn) params.append('checkIn', checkIn.toISOString().split('T')[0]);
-            if (checkOut) params.append('checkOut', checkOut.toISOString().split('T')[0]);
-            if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
-            if (filters?.minPrice) params.append('minPrice', filters.minPrice.toString());
-            if (filters?.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
-            if (filters?.minRating) params.append('minRating', filters.minRating.toString());
-            if (filters?.stars && filters.stars.length > 0) {
-                params.append('stars', filters.stars.join(','));
-            }
-            if (filters?.amenities && filters.amenities.length > 0) {
-                params.append('amenities', filters.amenities.join(','));
-            }
-            if (filters?.hotelName) params.append('hotelName', filters.hotelName);
+            // Remove undefined values and handle arrays
+            const cleanParams = Object.fromEntries(
+                Object.entries(params)
+                    .filter(([_, v]) => v !== undefined)
+                    .map(([k, v]) => [k, Array.isArray(v) ? v.join(',') : v])
+            );
 
             try {
-                const response = await fetch(`/api/hotels/search?${params.toString()}`);
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch hotels');
-                }
-
-                const data = await response.json();
+                const data = await apiClient.get<any>(APP_CONSTANTS.API.HOTELS, cleanParams);
 
                 return {
                     hotels: data.hotels || [],
@@ -63,8 +54,6 @@ export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0
                 };
             } catch (error) {
                 console.error('Error in useHotels:', error);
-                // Return empty list on error, let the UI handle empty state
-                // The API route itself handles mock fallback, so this catch is for network errors
                 return { hotels: [], hasNextPage: false, totalCount: 0 };
             }
         },

@@ -31,10 +31,10 @@ export default function HomePage() {
       </section>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-16 md:space-y-24">
-        {/* Offers Section */}
-        <section>
+        {/* Offers Section - COMMENTED OUT (Mock Data) */}
+        {/* <section>
           <OffersSection />
-        </section>
+        </section> */}
 
         {activeTab !== 'flights' && (
           <>
@@ -48,20 +48,20 @@ export default function HomePage() {
               <ExploreEthiopia />
             </section>
 
-            {/* Browse by property type */}
-            <section>
+            {/* Browse by property type - COMMENTED OUT (Mock Data) */}
+            {/* <section>
               <PropertyTypeSection />
-            </section>
+            </section> */}
 
-            {/* Looking for the perfect stay? */}
-            <section>
+            {/* Looking for the perfect stay? - COMMENTED OUT (Mock Data) */}
+            {/* <section>
               <PerfectStaySection />
-            </section>
+            </section> */}
 
-            {/* Homes guests love */}
-            <section>
+            {/* Homes guests love - COMMENTED OUT (Mock Data) */}
+            {/* <section>
               <HomesGuestsLoveSection />
-            </section>
+            </section> */}
 
             {/* Featured Hotels */}
             <section>
