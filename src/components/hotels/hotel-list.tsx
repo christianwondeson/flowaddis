@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { HotelCard } from './hotel-card';
+import { HotelCardSkeleton } from './hotel-card-skeleton';
 import { Hotel } from '@/types';
 
 interface HotelListProps {
@@ -18,7 +19,7 @@ export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, 
         return (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 justify-items-stretch">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="animate-pulse bg-white rounded-xl h-[340px] md:h-[380px] w-full border border-gray-100 shadow-sm"></div>
+                    <HotelCardSkeleton key={i} />
                 ))}
             </div>
         );

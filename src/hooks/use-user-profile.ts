@@ -22,9 +22,9 @@ export function useUserProfile(firebaseUser: any) {
                 role = userData.role as UserRole;
                 name = userData.name || name;
 
-               
+
             } else {
-                
+
                 // Seed a user document if missing
                 try {
                     const newUser = {
@@ -48,8 +48,8 @@ export function useUserProfile(firebaseUser: any) {
             };
         },
         enabled: !!firebaseUser && !!db,
-        staleTime: 0, // Always fetch fresh data
-        refetchOnMount: true, // Refetch when component mounts
-        refetchOnWindowFocus: true, // Refetch when window regains focus
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        refetchOnMount: false, // Don't refetch on mount if data is fresh
+        refetchOnWindowFocus: false, // Don't refetch on window focus
     });
 }

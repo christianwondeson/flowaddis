@@ -9,6 +9,8 @@ import {
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+import { AdminRequests } from '@/components/admin/admin-requests';
+
 export default function AdminDashboard() {
     const [timeRange, setTimeRange] = useState('7days');
 
@@ -124,6 +126,9 @@ export default function AdminDashboard() {
                     <option value="year">This Year</option>
                 </select>
             </div>
+
+            {/* Admin Requests */}
+            <AdminRequests />
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

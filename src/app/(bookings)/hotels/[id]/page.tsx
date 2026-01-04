@@ -11,6 +11,7 @@ import { useHotels } from '@/hooks/use-hotels';
 import axios from 'axios';
 import { BookingModal } from '@/components/booking/booking-modal';
 import { formatDateLocal } from '@/lib/date-utils';
+import { Preloader } from '@/components/ui/preloader';
 
 export default function HotelDetailPage() {
     const { id } = useParams();
@@ -23,16 +24,12 @@ export default function HotelDetailPage() {
         reviews: 0,
         reviewWord: '',
         price: 0,
-        image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
+        image: '/images/hotel-placeholder.jpg',
         images: [
-            'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1540518614846-7eded433c457?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1595576508898-0ad5c879a061?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1591088398332-8a77d399e80c?auto=format&fit=crop&w=1200&q=80',
+            '/images/hotel-placeholder.jpg',
+            '/images/hotel-placeholder.jpg',
+            '/images/hotel-placeholder.jpg',
+            '/images/hotel-placeholder.jpg',
         ]
     });
     const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -143,13 +140,13 @@ export default function HotelDetailPage() {
     if (isLoading && !hotel.name) {
         return (
             <div className="min-h-screen bg-brand-gray flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
+                <Preloader size="lg" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-brand-gray pb-20">
+        <div className="min-h-screen bg-brand-gray pb-20 pt-15">
             <HotelDetailHeader
                 hotel={hotel}
                 activeTab={activeTab}

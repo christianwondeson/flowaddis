@@ -87,13 +87,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                return (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+                const role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+
+                // Pre-populate the query cache to avoid immediate refetch
+                const userProfileData: User = {
+                    id: userCredential.user.uid,
+                    email: userCredential.user.email!,
+                    role: role,
+                    emailVerified: userCredential.user.emailVerified,
+                    name: userData.name || userCredential.user.displayName || ''
+                };
+
+                queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
+
+                return role;
             }
         }
         return APP_CONSTANTS.ROLES.USER;
     };
 
-    const register = useCallback(async (name: string, email: string, password?: string, adminCode?: string) => {
+    const register = useCallback(async (name: string, email: string, password?: string, requestAdmin?: boolean) => {
         if (!auth) throw new Error("Auth not initialized");
         if (!db) {
             console.error('❌ Firestore (db) is undefined!');
@@ -102,37 +115,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!password) throw new Error("Password required");
 
         try {
-           
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-           
-
-            // Check admin code
-            // In production, use environment variable: process.env.NEXT_PUBLIC_ADMIN_CODE
-            // For now, we'll use a hardcoded fallback "FLOWADDIS2025" if env is missing
-            const validAdminCode = process.env.NEXT_PUBLIC_ADMIN_CODE || "FLOWADDIS2025";
-            const role = adminCode === validAdminCode ? APP_CONSTANTS.ROLES.ADMIN : APP_CONSTANTS.ROLES.USER;
-
-         
+            // Default role is user. Admin role is granted only after approval.
+            const role = APP_CONSTANTS.ROLES.USER;
+            const adminStatus = requestAdmin ? 'pending' : 'none';
 
             const userDocRef = doc(db, "users", user.uid);
             const userData = {
                 name,
                 email,
                 role,
+                adminStatus,
                 createdAt: serverTimestamp()
             };
-   
-            await setDoc(userDocRef, userData);
 
-            
+            await setDoc(userDocRef, userData);
 
             // Verify the document was created
             const verifyDoc = await getDoc(userDocRef);
-            if (verifyDoc.exists()) {
-                
-            } else {
+            if (!verifyDoc.exists()) {
                 console.error('❌ Warning: Document was not found after creation!');
             }
         } catch (error) {

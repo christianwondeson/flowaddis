@@ -13,6 +13,7 @@ import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 import { HotelCollection } from '@/components/hotels/hotel-collection';
 import { HotelFAQ } from '@/components/hotels/hotel-faq';
 import { HotelFilterBar } from '@/components/hotels/hotel-filter-bar';
+import { Preloader } from '@/components/ui/preloader';
 
 function HotelsPageContent() {
     // Read initial params from URL synchronously to avoid an extra initial fetch
@@ -232,7 +233,7 @@ function HotelsPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 pb-20 pt-24 md:pt-28">
             {/* Header Section */}
             <div className="bg-brand-primary text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
@@ -365,7 +366,7 @@ function HotelsPageContent() {
                                         ${isLoadingMore ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                 >
                                     {isLoadingMore && (
-                                        <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-brand-primary"></span>
+                                        <Preloader size="sm" className="border-gray-300 border-t-brand-primary" />
                                     )}
                                     {isLoadingMore ? 'Loading…' : 'Load More Results'}
                                 </button>
@@ -429,7 +430,7 @@ function HotelsPageContent() {
 
 export default function HotelsPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading hotels…</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Preloader size="lg" /></div>}>
             <HotelsPageContent />
         </Suspense>
     );

@@ -17,6 +17,8 @@ import { useFlights, useFlightDetail } from '@/hooks/use-flights';
 import { toast } from 'sonner';
 import { FlightRouteSelect } from '@/components/search/flight-route-select';
 import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateEnglish } from '@/lib/date-utils';
+import { Preloader } from '@/components/ui/preloader';
+import { FlightCardSkeleton } from '@/components/flights/flight-card-skeleton';
 
 function FlightsPageContent() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -121,7 +123,7 @@ function FlightsPageContent() {
     const displayFlights = flights && flights.length > 0 ? flights : [];
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 pb-20 pt-24 md:pt-28">
             {/* Header Section */}
             <div className="bg-brand-primary text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
@@ -251,6 +253,14 @@ function FlightsPageContent() {
                     <h2 className="text-xl md:text-2xl font-bold text-brand-dark mb-4 md:mb-6">
                         {isLoading ? 'Searching Flights...' : `Available Flights (${displayFlights.length})`}
                     </h2>
+
+                    {isLoading && (
+                        <div className="space-y-4">
+                            {[1, 2, 3].map((i) => (
+                                <FlightCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    )}
 
                     {error && (
                         <div className="p-4 bg-red-50 text-red-600 rounded-lg">
@@ -386,7 +396,7 @@ function FlightsPageContent() {
 
 export default function FlightsPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading flights…</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Preloader size="lg" /></div>}>
             <FlightsPageContent />
         </Suspense>
     );

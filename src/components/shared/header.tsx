@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
+import { UserMenu } from '@/components/shared/user-menu';
 
 export const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,8 +43,8 @@ export const Header: React.FC = () => {
             className={clsx(
                 'fixed top-0 left-0 right-0 z-[60] transition-all duration-300',
                 isHomePage
-                    ? (scrolled ? 'bg-transparent backdrop-blur-md shadow-sm py-2' : 'bg-transparent py-4')
-                    : 'bg-transparent backdrop-blur-md shadow-sm py-2'
+                    ? (scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-2' : 'bg-black/20 backdrop-blur-sm py-4')
+                    : 'bg-white/90 backdrop-blur-md shadow-sm py-2'
             )}
         >
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -71,7 +72,7 @@ export const Header: React.FC = () => {
                                     isActive(item.path)
                                         ? 'bg-brand-primary text-black shadow-md'
                                         : (isHomePage && !scrolled
-                                            ? 'text-black hover:bg-white/20'
+                                            ? 'text-white hover:bg-white/20'
                                             : 'text-brand-dark hover:bg-white hover:text-brand-primary')
                                 )}
                             >
@@ -81,49 +82,23 @@ export const Header: React.FC = () => {
                         ))}
                     </nav>
 
-                    {/* Auth Buttons */}
+                    {/* Auth Buttons / User Menu */}
                     <div className="hidden md:flex items-center gap-3">
-                        {loading ? (
-                            <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-md"></div>
-                        ) : user ? (
-                            <div className="flex items-center gap-3">
-                                <span className={clsx("text-sm font-medium", isHomePage && !scrolled ? "text-white" : "text-brand-dark")}>
-                                    Hi, {user.name}
-                                </span>
-                                {user.role === 'admin' && (
-                                    <Link href="/admin">
-                                        <Button size="sm" variant="outline" className={clsx(isHomePage && !scrolled ? "border-white text-white hover:bg-white hover:text-brand-dark" : "")}>Dashboard</Button>
-                                    </Link>
-                                )}
-                                <Button size="sm" variant="ghost" onClick={logout} className={clsx(isHomePage && !scrolled ? "text-white hover:bg-white/20" : "")}>Sign Out</Button>
-                            </div>
-                        ) : (
-                            <>
-                                <Link href={`/signin?${redirectQuery}`}>
-                                    <Button variant="ghost" size="sm" className={clsx(
-                                        isHomePage && !scrolled ? "text-white hover:bg-white/20" : "text-brand-dark hover:bg-white/50"
-                                    )}>Sign In</Button>
-                                </Link>
-                                <Link href={`/signup?${redirectQuery}`}>
-                                    <Button size="sm" className={clsx(isHomePage && !scrolled ? "bg-white text-brand-primary hover:bg-gray-100" : "")}>Sign Up</Button>
-                                </Link>
-                            </>
-                        )}
+                        <UserMenu isHomePage={isHomePage} scrolled={scrolled} />
                     </div>
 
                     {/* Mobile Menu Button */}
-                    < button
-                        className={
-                            clsx(
-                                'md:hidden p-2 rounded-full',
-                                isHomePage && !scrolled
-                                    ? 'text-white bg-white/10 hover:bg-white/20'
-                                    : 'text-brand-dark bg-white/70 backdrop-blur-sm'
-                            )}
+                    <button
+                        className={clsx(
+                            'md:hidden p-2 rounded-full transition-colors',
+                            isHomePage && !scrolled
+                                ? 'text-white hover:bg-white/20'
+                                : 'text-brand-dark hover:bg-gray-100'
+                        )}
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                     >
                         {isMenuOpen ? <X /> : <Menu />}
-                    </button >
+                    </button>
                 </div >
             </div >
 

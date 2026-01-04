@@ -8,7 +8,12 @@ import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
 
-export const AdminSidebar: React.FC = () => {
+interface AdminSidebarProps {
+    className?: string;
+    onNavigate?: () => void;
+}
+
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigate }) => {
     const pathname = usePathname();
     const { logout } = useAuth();
 
@@ -26,7 +31,7 @@ export const AdminSidebar: React.FC = () => {
     };
 
     return (
-        <aside className="w-64 bg-brand-dark text-white fixed h-full left-0 top-0 flex flex-col">
+        <aside className={clsx("w-64 bg-brand-dark text-white flex flex-col", className)}>
             <div className="p-6 border-b border-white/10">
                 <Logo className="text-white" />
             </div>
@@ -36,6 +41,7 @@ export const AdminSidebar: React.FC = () => {
                     <Link
                         key={item.name}
                         href={item.path}
+                        onClick={onNavigate}
                         className={clsx(
                             'flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium',
                             isActive(item.path)

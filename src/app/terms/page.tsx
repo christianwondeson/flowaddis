@@ -1,142 +1,65 @@
 import React from 'react';
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-    title: 'Terms of Service | FlowAddis',
-    description: 'Terms and conditions for using FlowAddis services.',
-};
 
 export default function TermsPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-            {/* Hero Section */}
-            <section className="relative bg-brand-dark text-white py-20 md:py-32">
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20"></div>
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <div className="max-w-3xl mx-auto text-center">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-                            Terms of Service
-                        </h1>
-                        <p className="text-xl md:text-2xl text-gray-300">
-                            Last updated: January 2, 2026
-                        </p>
+        <div className="min-h-screen pt-24 pb-12 bg-gray-50">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
+                    <p className="text-gray-500 mb-8">Last updated: January 1, 2025</p>
+
+                    <div className="prose prose-blue max-w-none space-y-8 text-gray-700">
+                        <section>
+                            <h2 className="text-xl font-bold text-gray-900 mb-3">1. Agreement to Terms</h2>
+                            <p>
+                                By accessing our website, you agree to be bound by these Terms of Service and to comply with all applicable laws and regulations.
+                                If you do not agree with these terms, you are prohibited from using or accessing this site.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl font-bold text-gray-900 mb-3">2. Use License</h2>
+                            <p>
+                                Permission is granted to temporarily download one copy of the materials (information or software) on Flowaddis's website for personal,
+                                non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
+                            </p>
+                            <ul className="list-disc pl-5 mt-2 space-y-1">
+                                <li>modify or copy the materials;</li>
+                                <li>use the materials for any commercial purpose, or for any public display (commercial or non-commercial);</li>
+                                <li>attempt to decompile or reverse engineer any software contained on Flowaddis's website;</li>
+                                <li>remove any copyright or other proprietary notations from the materials; or</li>
+                                <li>transfer the materials to another person or "mirror" the materials on any other server.</li>
+                            </ul>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl font-bold text-gray-900 mb-3">3. Disclaimer</h2>
+                            <p>
+                                The materials on Flowaddis's website are provided on an 'as is' basis. Flowaddis makes no warranties, expressed or implied,
+                                and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability,
+                                fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl font-bold text-gray-900 mb-3">4. Limitations</h2>
+                            <p>
+                                In no event shall Flowaddis or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit,
+                                or due to business interruption) arising out of the use or inability to use the materials on Flowaddis's website, even if Flowaddis
+                                or a Flowaddis authorized representative has been notified orally or in writing of the possibility of such damage.
+                            </p>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl font-bold text-gray-900 mb-3">5. Governing Law</h2>
+                            <p>
+                                These terms and conditions are governed by and construed in accordance with the laws of Ethiopia and you irrevocably submit to the
+                                exclusive jurisdiction of the courts in that State or location.
+                            </p>
+                        </section>
                     </div>
                 </div>
-            </section>
-
-            {/* Terms Content */}
-            <section className="py-16 md:py-24">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-4xl mx-auto prose prose-lg">
-                        <div className="bg-white p-8 md:p-12 rounded-2xl shadow-lg space-y-8">
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">1. Acceptance of Terms</h2>
-                                <p className="text-gray-600">
-                                    By accessing and using FlowAddis ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to these Terms of Service, please do not use our services.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">2. Use of Service</h2>
-                                <p className="text-gray-600 mb-3">
-                                    FlowAddis provides a platform for booking flights, hotels, conference venues, and shuttle services in Ethiopia. You agree to:
-                                </p>
-                                <ul className="list-disc pl-6 text-gray-600 space-y-2">
-                                    <li>Provide accurate and complete information when making bookings</li>
-                                    <li>Maintain the security of your account credentials</li>
-                                    <li>Not use the service for any illegal or unauthorized purpose</li>
-                                    <li>Comply with all applicable laws and regulations</li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">3. Booking and Payments</h2>
-                                <p className="text-gray-600 mb-3">
-                                    When you make a booking through FlowAddis:
-                                </p>
-                                <ul className="list-disc pl-6 text-gray-600 space-y-2">
-                                    <li>All prices are displayed in the local currency and include applicable taxes unless stated otherwise</li>
-                                    <li>Payment must be made in full at the time of booking</li>
-                                    <li>You will receive a confirmation email with booking details</li>
-                                    <li>Cancellation and refund policies vary by service provider</li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">4. Cancellations and Refunds</h2>
-                                <p className="text-gray-600">
-                                    Cancellation policies are determined by the individual service providers (hotels, airlines, etc.). Please review the specific cancellation policy for your booking before confirming. FlowAddis acts as an intermediary and follows the policies set by our partners.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">5. User Accounts</h2>
-                                <p className="text-gray-600 mb-3">
-                                    To access certain features, you must create an account. You are responsible for:
-                                </p>
-                                <ul className="list-disc pl-6 text-gray-600 space-y-2">
-                                    <li>Maintaining the confidentiality of your password</li>
-                                    <li>All activities that occur under your account</li>
-                                    <li>Notifying us immediately of any unauthorized use</li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">6. Intellectual Property</h2>
-                                <p className="text-gray-600">
-                                    All content on FlowAddis, including text, graphics, logos, and software, is the property of FlowAddis or its content suppliers and is protected by Ethiopian and international copyright laws. You may not reproduce, distribute, or create derivative works without our express written permission.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">7. Limitation of Liability</h2>
-                                <p className="text-gray-600">
-                                    FlowAddis acts as an intermediary between you and service providers. We are not responsible for the quality, safety, or legality of the services provided by third parties. Our liability is limited to the amount paid for the booking.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">8. Privacy</h2>
-                                <p className="text-gray-600">
-                                    Your use of FlowAddis is also governed by our Privacy Policy. Please review our Privacy Policy to understand our practices regarding the collection and use of your personal information.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">9. Modifications to Terms</h2>
-                                <p className="text-gray-600">
-                                    We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting to the website. Your continued use of the Service after changes are posted constitutes your acceptance of the modified terms.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">10. Governing Law</h2>
-                                <p className="text-gray-600">
-                                    These Terms of Service shall be governed by and construed in accordance with the laws of Ethiopia, without regard to its conflict of law provisions.
-                                </p>
-                            </div>
-
-                            <div>
-                                <h2 className="text-2xl font-bold text-brand-dark mb-4">11. Contact Information</h2>
-                                <p className="text-gray-600">
-                                    If you have any questions about these Terms of Service, please contact us:
-                                </p>
-                                <ul className="list-none pl-0 text-gray-600 space-y-2 mt-3">
-                                    <li><strong>Email:</strong> info@flowaddis.com</li>
-                                    <li><strong>Phone:</strong> +251 911 520 275</li>
-                                    <li><strong>Address:</strong> Addis Ababa, Ethiopia</li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-brand-primary/5 p-6 rounded-xl border border-brand-primary/10">
-                                <p className="text-sm text-gray-600">
-                                    <strong>Note:</strong> By using FlowAddis, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            </div>
         </div>
     );
 }

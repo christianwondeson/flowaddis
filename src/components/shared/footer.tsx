@@ -48,7 +48,7 @@ export const Footer: React.FC = () => {
                             </li>
                             <li className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-brand-primary" />
-                                <span>info@flowaddis.com</span>
+                                <span>flowaddis@gmail.com</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <MessageCircle className="w-4 h-4 text-green-500" />

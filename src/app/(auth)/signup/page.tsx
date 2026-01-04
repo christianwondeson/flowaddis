@@ -35,7 +35,7 @@ function SignUpContent() {
     const onSubmit = async (data: SignUpValues) => {
         setLoading(true);
         try {
-            await register(data.name, data.email, data.password, data.adminCode);
+            await register(data.name, data.email, data.password, data.requestAdmin);
             await sendVerificationEmail();
 
             toast.success(
@@ -90,14 +90,23 @@ function SignUpContent() {
                     />
 
                     <div className="pt-2 border-t border-gray-100">
-                        <Input
-                            label="Admin Access Code (Optional)"
-                            placeholder="Enter code to create admin account"
-                            type="password"
-                            {...form.register('adminCode')}
-                            error={form.formState.errors.adminCode?.message}
-                        />
-                        <p className="text-xs text-gray-400 mt-1">Leave blank for regular user account</p>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="requestAdmin"
+                                className="h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                                {...form.register('requestAdmin')}
+                            />
+                            <label
+                                htmlFor="requestAdmin"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                                Request Admin Access
+                            </label>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1 ml-6">
+                            Check this if you are a staff member requiring admin privileges. Your account will need approval.
+                        </p>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={loading}>

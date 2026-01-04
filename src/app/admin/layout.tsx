@@ -1,8 +1,12 @@
 "use client";
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter, usePathname } from 'next/navigation';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function AdminLayout({
     children,
@@ -12,6 +16,7 @@ export default function AdminLayout({
     const { user, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     useEffect(() => {
         if (loading) return;
@@ -34,11 +39,30 @@ export default function AdminLayout({
 
     return (
         <div className="min-h-screen bg-brand-gray flex">
-            <AdminSidebar />
-            <div className="flex-1 ml-64 flex flex-col h-screen">
+            {/* Desktop Sidebar */}
+            <AdminSidebar className="hidden lg:flex fixed h-full left-0 top-0" />
+
+            {/* Mobile Sidebar (Sheet) */}
+            <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+                <SheetContent side="left" className="p-0 w-64 border-r-0">
+                    <AdminSidebar className="h-full w-full" onNavigate={() => setIsMobileOpen(false)} />
+                </SheetContent>
+            </Sheet>
+
+            <div className="flex-1 lg:ml-64 flex flex-col h-screen w-full">
                 {/* Sticky Admin Topbar */}
-                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8 sticky top-0 z-40">
-                    <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
+                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40">
+                    <div className="flex items-center gap-4">
+                        <Sheet>
+                            <SheetTrigger asChild onClick={() => setIsMobileOpen(true)}>
+                                <Button variant="ghost" size="icon" className="lg:hidden">
+                                    <Menu className="h-5 w-5" />
+                                </Button>
+                            </SheetTrigger>
+                        </Sheet>
+                        <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
+                    </div>
+
                     <div className="flex items-center gap-4">
                         <div className="text-right hidden sm:block">
                             <div className="text-sm font-bold text-gray-900">{user.name || 'Admin User'}</div>
@@ -51,7 +75,7 @@ export default function AdminLayout({
                 </header>
 
                 {/* Scrollable Main Content */}
-                <main className="flex-1 p-8 overflow-y-auto">
+                <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
                     <div className="max-w-7xl mx-auto">
                         {children}
                     </div>
