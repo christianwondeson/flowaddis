@@ -15,10 +15,10 @@ jobs:
         env:
           NEXT_PUBLIC_RAPIDAPI_KEY: ${{ secrets.NEXT_PUBLIC_RAPIDAPI_KEY }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FLOWADDIS_EA8E1 }}
           channelId: live
           projectId: flowaddis-ea8e1
-        env:
-          FIREBASE_CLI_EXPERIMENTS: webframeworks
