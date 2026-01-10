@@ -53,6 +53,7 @@ export function HotelsMapContent() {
 
     const [hotels, setHotels] = useState<Hotel[]>([]);
     const [hoveredId, setHoveredId] = useState<string | undefined>(undefined);
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
     // Reset hotels when filters or query change
     useEffect(() => {
@@ -94,18 +95,22 @@ export function HotelsMapContent() {
         }));
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="container mx-auto px-4 py-4 lg:py-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-2xl font-bold text-brand-dark">Hotels on Map</h1>
-                    <Button onClick={() => router.push('/hotels')} className="rounded-full">Close map</Button>
-                </div>
+        <div className="h-[calc(100vh-64px)] mt-16 overflow-hidden bg-white relative">
+            <div className="flex h-full flex-col lg:flex-row">
+                {/* Left Panel: Filters & List */}
+                <div className={`w-full lg:w-[500px] xl:w-[600px] h-full flex flex-col border-r border-gray-100 shadow-xl z-10 bg-white transition-all duration-300 ${viewMode === 'map' ? 'hidden lg:flex' : 'flex'}`}>
+                    {/* Filter Header */}
+                    <div className="p-6 border-b border-gray-100">
+                        <h1 className="text-xl font-bold text-brand-dark mb-1">Hotels on Map</h1>
+                        <p className="text-sm text-gray-500">
+                            {data?.totalCount || 0} properties found in {filters.query}
+                        </p>
+                    </div>
 
-                {/* Three-column layout: Filters | List | Map */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-                    {/* Filters */}
-                    <aside className="lg:col-span-3">
-                        <div className="sticky top-24">
+                    {/* Scrollable Content (Filters + List) */}
+                    <div className="flex-grow overflow-y-auto custom-scrollbar scrollbar-hide">
+                        {/* Filters Section */}
+                        <div className="border-b border-gray-100">
                             <HotelFilters
                                 showMapPreview={false}
                                 hotels={hotels}
@@ -115,11 +120,9 @@ export function HotelsMapContent() {
                                 checkOut={checkOut}
                             />
                         </div>
-                    </aside>
 
-                    {/* Hotel List */}
-                    <section className="lg:col-span-5">
-                        <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-100 shadow-sm">
+                        {/* Hotel List Section */}
+                        <div className="p-6 bg-gray-50/30">
                             <HotelList
                                 hotels={hotels}
                                 isLoading={isLoading && page === 0}
@@ -128,21 +131,68 @@ export function HotelsMapContent() {
                                 onHoverStart={(id) => setHoveredId(id)}
                                 onHoverEnd={() => setHoveredId(undefined)}
                             />
+
                             {data?.hasNextPage && !isPlaceholderData && (
-                                <div className="flex justify-center mt-4">
-                                    <Button variant="outline" onClick={() => setPage((p) => p + 1)}>Load more</Button>
+                                <div className="flex justify-center mt-8 pb-10">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setPage((p) => p + 1)}
+                                        className="rounded-full px-10 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white transition-all font-bold"
+                                    >
+                                        Load more results
+                                    </Button>
                                 </div>
                             )}
                         </div>
-                    </section>
-
-                    {/* Map */}
-                    <section className="lg:col-span-4">
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-2 sticky top-24">
-                            <LeafletMap center={center} markers={markers} highlightedId={hoveredId} fitToMarkers scrollWheelZoom height="calc(100vh - 140px)" className="rounded-xl" />
-                        </div>
-                    </section>
+                    </div>
                 </div>
+
+                {/* Right Panel: Full-screen Map with Gaps */}
+                <div className={`flex-grow h-full relative bg-gray-50 p-0 lg:p-6 transition-all duration-300 ${viewMode === 'list' ? 'hidden lg:block' : 'block'}`}>
+                    <div className="w-full h-full lg:rounded-2xl overflow-hidden shadow-inner border-0 lg:border border-gray-200 relative">
+                        <LeafletMap
+                            center={center}
+                            markers={markers}
+                            highlightedId={hoveredId}
+                            fitToMarkers
+                            scrollWheelZoom
+                            height="100%"
+                            className="w-full h-full"
+                        />
+
+                        {/* Floating Close Button */}
+                        <button
+                            onClick={() => router.push('/hotels')}
+                            className="absolute top-4 right-4 z-[1000] bg-white text-brand-dark p-2 rounded-full shadow-lg hover:bg-gray-100 transition-all border border-gray-200 group"
+                            title="Close map"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-200">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile View Toggle Button */}
+            <div className="lg:hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-[1001]">
+                <Button
+                    onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+                    className="rounded-full shadow-2xl px-6 py-6 bg-brand-dark text-white hover:bg-brand-dark/90 flex items-center gap-2 border-2 border-white/20 backdrop-blur-sm"
+                >
+                    {viewMode === 'list' ? (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+                            Show Map
+                        </>
+                    ) : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                            Show List
+                        </>
+                    )}
+                </Button>
             </div>
         </div>
     );

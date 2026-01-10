@@ -14,6 +14,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         return <>{children}</>;
     }
 
+    const isMapPage = pathname === '/hotels/map';
+
     return (
         <ErrorBoundary>
             <div className="min-h-screen flex flex-col">
@@ -23,7 +25,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                 <main className="flex-grow">
                     {children}
                 </main>
-                <Footer />
+                {!isMapPage && <Footer />}
             </div>
         </ErrorBoundary>
     );

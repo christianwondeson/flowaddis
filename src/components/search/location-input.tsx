@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Search, Plane } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { LocationSuggestion } from '@/types/api';
 import { LOCATION_PRESETS } from '@/data/location-presets';
 import axios from 'axios';
@@ -16,6 +17,7 @@ interface LocationInputProps {
     placeholder?: string;
     api?: 'flights' | 'hotels';
     icon?: React.ReactNode;
+    className?: string;
 }
 
 export const LocationInput: React.FC<LocationInputProps> = ({
@@ -27,6 +29,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     placeholder = "Where are you going?",
     api = 'flights',
     icon,
+    className,
 }) => {
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -106,7 +109,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     };
 
     return (
-        <div ref={wrapperRef} className="relative w-full">
+        <div ref={wrapperRef} className={cn("relative w-full", className)}>
             <Input
                 label={label}
                 value={value}

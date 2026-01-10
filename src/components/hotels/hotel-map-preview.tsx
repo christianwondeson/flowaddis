@@ -39,7 +39,10 @@ export const HotelMapPreview: React.FC<HotelMapPreviewProps> = ({ hotels = [], l
   return (
     <div className="relative">
       <LeafletMap center={center} markers={markers} height="180px" className="rounded-xl overflow-hidden" />
-      <Link href={`/hotels/map${params.toString() ? `?${params.toString()}` : ''}`} className="absolute inset-0 flex items-center justify-center">
+      <Link
+        href={`/hotels/map${params.toString() ? `?${params.toString()}` : ''}`}
+        className="absolute inset-0 flex items-center justify-center z-[20]"
+      >
         <Button className="bg-brand-primary text-white font-bold rounded-full px-4 py-2 shadow-lg shadow-brand-primary/30">
           Show on map
         </Button>

@@ -48,7 +48,7 @@ export const Footer: React.FC = () => {
                             </li>
                             <li className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-brand-primary" />
-                                <span>flowaddis@gmail.com</span>
+                                <span>bookaddis@gmail.com</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <MessageCircle className="w-4 h-4 text-green-500" />
@@ -78,11 +78,11 @@ export const Footer: React.FC = () => {
                 </div>
 
                 <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <p className="text-gray-500 text-sm">© 2025 Flowaddis. All rights reserved.</p>
+                    <p className="text-gray-500 text-sm">© 2025 BookAddis. All rights reserved.</p>
                     <div className="flex gap-6">
-                        <a href="https://facebook.com/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Facebook className="w-5 h-5" /></a>
-                        <a href="https://twitter.com/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Twitter className="w-5 h-5" /></a>
-                        <a href="https://instagram.com/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Instagram className="w-5 h-5" /></a>
+                        <a href="https://facebook.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Facebook className="w-5 h-5" /></a>
+                        <a href="https://twitter.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Twitter className="w-5 h-5" /></a>
+                        <a href="https://instagram.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-brand-secondary transition-colors"><Instagram className="w-5 h-5" /></a>
                     </div>
                 </div>
             </div>

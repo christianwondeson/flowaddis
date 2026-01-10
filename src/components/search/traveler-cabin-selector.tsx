@@ -38,10 +38,9 @@ export const TravelerCabinSelector: React.FC<TravelerCabinSelectorProps> = ({ va
     <Popover
       trigger={
         <div className="w-full cursor-pointer">
-          <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Travelers & Cabin</label>
-          <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
+          <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
             <Users className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-            <span className="text-gray-900 font-medium truncate">{summary}</span>
+            <span className="text-gray-900 font-semibold text-sm truncate">{summary}</span>
           </div>
         </div>
       }

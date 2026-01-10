@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "FlowAddis",
-  description: "Book flights, hotels, conferences, and shuttles with ease.",
+  title: "BookAddis - Your Gateway to Ethiopia",
+  description: "Book flights, hotels, conferences, and shuttles in Ethiopia with ease. Your premium travel companion.",
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/new-logo.ico",
+    shortcut: "/new-logo.ico",
+    apple: "/new-logo.ico",
   },
 };
 

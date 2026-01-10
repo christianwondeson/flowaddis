@@ -15,7 +15,7 @@ export interface AuthContextType {
     loading: boolean;
     login: (email: string, password?: string) => Promise<UserRole>;
     register: (name: string, email: string, password?: string, requestAdmin?: boolean) => Promise<void>;
-    sendMagicLink: (email: string) => Promise<void>;
+
     logout: () => Promise<void>;
     loginWithGoogle: () => Promise<UserRole>;
     sendVerificationEmail: () => Promise<void>;

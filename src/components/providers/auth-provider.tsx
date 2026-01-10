@@ -8,7 +8,7 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     onIdTokenChanged,
-    sendSignInLinkToEmail,
+
     GoogleAuthProvider,
     signInWithPopup,
     sendEmailVerification,
@@ -151,16 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, []);
 
-    const sendMagicLink = async (email: string) => {
-        if (!auth) throw new Error("Auth not initialized");
 
-        const actionCodeSettings = {
-            url: window.location.origin + '/finishSignUp',
-            handleCodeInApp: true,
-        };
-        await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-        window.localStorage.setItem('emailForSignIn', email);
-    };
 
     const logout = async () => {
         if (!auth) throw new Error("Auth not initialized");
@@ -213,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, sendMagicLink, logout, loginWithGoogle, sendVerificationEmail, sendPasswordReset, requireAuth }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout, loginWithGoogle, sendVerificationEmail, sendPasswordReset, requireAuth }}>
             {children}
         </AuthContext.Provider>
     );
