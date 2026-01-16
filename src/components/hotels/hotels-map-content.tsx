@@ -160,10 +160,10 @@ export function HotelsMapContent() {
                             className="w-full h-full"
                         />
 
-                        {/* Floating Close Button */}
+                        {/* Floating Close Button - Hidden on mobile, visible on desktop */}
                         <button
                             onClick={() => router.push('/hotels')}
-                            className="absolute top-4 right-4 z-[1000] bg-white text-brand-dark p-2 rounded-full shadow-lg hover:bg-gray-100 transition-all border border-gray-200 group"
+                            className="hidden lg:block absolute top-4 right-4 z-[1000] bg-white text-brand-dark p-2 rounded-full shadow-lg hover:bg-gray-100 transition-all border border-gray-200 group"
                             title="Close map"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-200">

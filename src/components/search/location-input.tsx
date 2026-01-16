@@ -136,8 +136,12 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             {/* Suggestions Dropdown - Fixed z-index */}
             {showSuggestions && suggestions.length > 0 && (
                 <div
-                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[400px] overflow-y-auto scrollbar-hide"
-                    style={{ zIndex: 9999 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto scrollbar-hide hover:scrollbar-thin"
+                    style={{
+                        zIndex: 9999,
+                        scrollbarWidth: 'none', /* Firefox */
+                        msOverflowStyle: 'none', /* IE and Edge */
+                    }}
                 >
                     {isLoading ? (
                         <div className="p-4 text-center text-gray-500">

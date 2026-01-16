@@ -303,7 +303,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6 }}
-      className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-1.5 md:p-3 max-w-5xl mx-auto relative z-40 border border-gray-100/50 backdrop-blur-sm"
+      className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-1.5 md:p-3 max-w-5xl mx-auto relative z-[100] border border-gray-100/50 backdrop-blur-sm"
     >
       <div className="bg-white rounded-xl md:rounded-[2rem] p-4 md:p-8">
         {/* Tabs */}

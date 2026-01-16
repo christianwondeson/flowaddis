@@ -16,12 +16,13 @@ export function useUserProfile(firebaseUser: any) {
 
             let role: UserRole = APP_CONSTANTS.ROLES.USER;
             let name = firebaseUser.displayName || '';
+            let adminStatus: 'pending' | 'approved' | 'rejected' | 'none' = 'none';
 
             if (userDoc.exists()) {
                 const userData = userDoc.data();
                 role = userData.role as UserRole;
                 name = userData.name || name;
-
+                adminStatus = userData.adminStatus || 'none';
 
             } else {
 
@@ -31,6 +32,7 @@ export function useUserProfile(firebaseUser: any) {
                         name: name || firebaseUser.email?.split('@')[0] || 'Unknown',
                         email: firebaseUser.email,
                         role: APP_CONSTANTS.ROLES.USER,
+                        adminStatus: 'none',
                         createdAt: serverTimestamp()
                     };
                     await setDoc(userDocRef, newUser);
@@ -44,7 +46,8 @@ export function useUserProfile(firebaseUser: any) {
                 email: firebaseUser.email!,
                 role: role,
                 emailVerified: firebaseUser.emailVerified,
-                name: name
+                name: name,
+                adminStatus: adminStatus
             };
         },
         enabled: !!firebaseUser && !!db,
