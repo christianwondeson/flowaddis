@@ -222,6 +222,8 @@ export async function GET(request: Request) {
             hasNextPage = true;
         }
 
+        console.log(`[API] Search: query=${query}, page=${pageIndex}, pageSize=${pageSize}, totalCount=${totalCount}, returned=${limitedHotels.length}, hasNext=${hasNextPage}`);
+
         return NextResponse.json({
             hotels: limitedHotels,
             total: totalCount,

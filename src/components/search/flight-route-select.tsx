@@ -39,6 +39,7 @@ export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, 
             placeholder="e.g. Addis Ababa (ADD)"
             value={fromCode}
             onChange={onChangeFrom}
+            dropdownAlign="left"
           />
         </div>
         <div className="flex md:col-span-1 items-center justify-center md:justify-start">
@@ -52,6 +53,7 @@ export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, 
             placeholder="e.g. New York (JFK)"
             value={toCode}
             onChange={onChangeTo}
+            dropdownAlign="right"
           />
         </div>
       </div>

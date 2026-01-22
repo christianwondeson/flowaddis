@@ -82,6 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!auth) throw new Error("Auth not initialized");
         if (!password) throw new Error("Password required");
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const token = await userCredential.user.getIdToken();
+        setAuthCookie(token);
 
         if (db) {
             const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
@@ -168,6 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const provider = new GoogleAuthProvider();
         const userCredential = await signInWithPopup(auth, provider);
         const user = userCredential.user;
+        const token = await user.getIdToken();
+        setAuthCookie(token);
 
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);

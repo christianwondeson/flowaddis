@@ -41,8 +41,10 @@ function SignInContent() {
         try {
             const role = await login(email, password)
             if (role === 'admin' && from === '/') {
+                router.refresh();
                 router.push('/admin')
             } else {
+                router.refresh();
                 router.push(from)
             }
         } catch (error: any) {
@@ -58,8 +60,10 @@ function SignInContent() {
         try {
             const role = await loginWithGoogle()
             if (role === 'admin' && from === '/') {
+                router.refresh();
                 router.push('/admin')
             } else {
+                router.refresh();
                 router.push(from)
             }
         } catch (error: any) {

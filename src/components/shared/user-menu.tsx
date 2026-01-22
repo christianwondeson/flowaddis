@@ -66,7 +66,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     </div>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-gray-100 p-2">
+            <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border-gray-100 p-2 bg-white">
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">{user.name}</p>

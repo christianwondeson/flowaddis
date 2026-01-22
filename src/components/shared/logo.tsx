@@ -7,7 +7,6 @@ interface LogoProps {
     size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-import Image from 'next/image';
 
 export const Logo: React.FC<LogoProps> = ({ className, size = 'md' }) => {
     const sizes = {
@@ -21,17 +20,8 @@ export const Logo: React.FC<LogoProps> = ({ className, size = 'md' }) => {
 
     return (
         <div className={clsx('font-extrabold tracking-tight flex items-center gap-2', text, className)}>
-            <div className="relative overflow-hidden rounded-lg">
-                <Image
-                    src="/images/logo.png"
-                    alt="BookAddis Logo"
-                    width={width}
-                    height={height}
-                    className="object-contain"
-                />
-            </div>
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-secondary">
-                flowaddis
+                FlowAddis
             </span>
         </div>
     );

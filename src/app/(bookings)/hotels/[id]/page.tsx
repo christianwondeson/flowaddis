@@ -56,8 +56,8 @@ export default function HotelDetailPage() {
             const price = usp.get('price');
             const image = usp.get('image');
             const location = usp.get('location');
-            const ci = usp.get('checkin') || usp.get('checkInDate') || formatDateLocal(new Date(Date.now() + 86400000));
-            const co = usp.get('checkout') || usp.get('checkOutDate') || formatDateLocal(new Date(Date.now() + 172800000));
+            const ci = usp.get('checkIn') || usp.get('checkin') || usp.get('checkInDate') || formatDateLocal(new Date(Date.now() + 86400000));
+            const co = usp.get('checkOut') || usp.get('checkout') || usp.get('checkOutDate') || formatDateLocal(new Date(Date.now() + 172800000));
             const ad = Number(usp.get('adults')) || 2;
             const ch = Number(usp.get('children')) || 0;
             const rm = Number(usp.get('rooms')) || 1;

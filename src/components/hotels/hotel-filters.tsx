@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronDown, X } from "lucide-react"
 import { HotelFilters as FilterType } from "@/types"
 import { Input } from "@/components/ui/input"
@@ -36,6 +36,51 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
         score: false,
         price: false,
     })
+
+    // Local state for debounced inputs
+    const [localQuery, setLocalQuery] = useState(filters.query || "")
+    const [localHotelName, setLocalHotelName] = useState(filters.hotelName || "")
+
+    // Sync local state with props when props change
+    useEffect(() => {
+        // If prop is empty (cleared), always sync
+        if (!filters.query) {
+            setLocalQuery("")
+        } else if (filters.query !== localQuery) {
+            // Only sync if different (avoids cursor jumps if parent echoes back same value)
+            setLocalQuery(filters.query)
+        }
+    }, [filters.query])
+
+    useEffect(() => {
+        // If prop is empty (cleared), always sync
+        if (!filters.hotelName) {
+            setLocalHotelName("")
+        } else if (filters.hotelName !== localHotelName) {
+            // Only sync if different
+            setLocalHotelName(filters.hotelName)
+        }
+    }, [filters.hotelName])
+
+    // Debounce Query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localQuery !== (filters.query || "")) {
+                onFilterChange({ ...filters, query: localQuery })
+            }
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [localQuery])
+
+    // Debounce Hotel Name
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localHotelName !== (filters.hotelName || "")) {
+                onFilterChange({ ...filters, hotelName: localHotelName })
+            }
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [localHotelName])
 
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
@@ -105,8 +150,8 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                     <Input
                         type="text"
                         placeholder="City, region, landmark..."
-                        value={filters.query || ""}
-                        onChange={(e) => onFilterChange({ ...filters, query: e.target.value })}
+                        value={localQuery}
+                        onChange={(e) => setLocalQuery(e.target.value)}
                         className="h-10 text-sm border-brand-primary/20 focus:border-brand-primary"
                     />
                 </FilterSection>
@@ -121,8 +166,8 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                     <Input
                         type="text"
                         placeholder="e.g. Hilton, Hyatt, Skylight..."
-                        value={filters.hotelName || ""}
-                        onChange={(e) => onFilterChange({ ...filters, hotelName: e.target.value })}
+                        value={localHotelName}
+                        onChange={(e) => setLocalHotelName(e.target.value)}
                         className="h-10 text-sm border-brand-primary/20 focus:border-brand-primary"
                     />
                 </FilterSection>
@@ -180,8 +225,8 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                                     key={score.value}
                                     onClick={() => onFilterChange({ ...filters, minRating: isSelected ? undefined : score.value })}
                                     className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${isSelected
-                                            ? `${score.color} border-current text-gray-900`
-                                            : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                                        ? `${score.color} border-current text-gray-900`
+                                        : "border-gray-200 text-gray-700 hover:bg-gray-50"
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">

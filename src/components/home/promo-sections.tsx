@@ -196,46 +196,8 @@ const MANUAL_CITIES = [
 ];
 
 export function ExploreEthiopia() {
-    const [cities, setCities] = React.useState<any[]>([]);
-    const [loading, setLoading] = React.useState(true);
-
-    React.useEffect(() => {
-        const fetchNearby = async () => {
-            try {
-                // Addis Ababa coordinates
-                const response = await fetch('/api/hotels/nearby-cities?latitude=9.0108&longitude=38.7613');
-                const data = await response.json();
-
-                // Merge API data with manual data, prioritizing manual data
-                const apiCities = (data || []) as any[];
-                const merged = [...MANUAL_CITIES];
-
-                apiCities.forEach((apiCity: any) => {
-                    const exists = merged.some(c => c.name.toLowerCase() === apiCity.name.toLowerCase());
-                    if (!exists) {
-                        merged.push({
-                            ...apiCity,
-                            image: imageForCity(apiCity.name, apiCity.image),
-                        });
-                    }
-                });
-
-                // Normalize images for all merged entries
-                const normalized = merged.map(c => ({
-                    ...c,
-                    image: imageForCity(c.name, c.image),
-                }));
-
-                setCities(normalized.slice(0, 6));
-            } catch (error) {
-                console.error('Error fetching nearby cities:', error);
-                setCities(MANUAL_CITIES.slice(0, 6));
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchNearby();
-    }, []);
+    const [cities, setCities] = React.useState<any[]>(MANUAL_CITIES);
+    const [loading, setLoading] = React.useState(false);
 
     const defaultParams = new URLSearchParams({
         checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],

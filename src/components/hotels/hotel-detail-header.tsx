@@ -5,6 +5,8 @@ import { Star, MapPin, Share2, Heart, ChevronRight, ArrowLeft } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useTripStore } from '@/store/trip-store';
+import { Popover } from '@/components/ui/popover';
+import Link from 'next/link';
 
 interface HotelDetailHeaderProps {
     hotel: any;
@@ -15,8 +17,28 @@ interface HotelDetailHeaderProps {
 
 export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook }) => {
     const router = useRouter();
-    const { addToTrip, currentTrip } = useTripStore();
-    const inTrip = useMemo(() => currentTrip.some((i) => i.type === 'hotel' && i.details?.serviceName === hotel?.name), [currentTrip, hotel?.name]);
+    const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
+    const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
+
+    const inTrip = useMemo(() => currentTrip.some((i) => i.type === 'hotel' && (i.details?.id === hotel?.id || i.details?.serviceName === hotel?.name)), [currentTrip, hotel?.id, hotel?.name]);
+
+    const handleHeartClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (inTrip) {
+            const tripItem = currentTrip.find(item => item.type === 'hotel' && (item.details?.id === hotel.id || item.details?.serviceName === hotel.name));
+            if (tripItem) removeFromTrip(tripItem.id);
+            setSavedHotelId(null);
+        } else {
+            addToTrip({
+                type: 'hotel',
+                price: hotel.price || 0,
+                details: hotel,
+            });
+            setSavedHotelId(hotel.id || 'current');
+            setTimeout(() => setSavedHotelId(null), 3000);
+        }
+    };
+
     const tabs = [
         { id: 'overview', label: 'Overview' },
         { id: 'pricing', label: 'Pricing' },
@@ -90,24 +112,25 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                    if (!inTrip) {
-                                        addToTrip({
-                                            type: 'hotel',
-                                            price: hotel.price || 0,
-                                            details: { serviceName: hotel.name, location: hotel.location },
-                                        });
-                                    }
-                                }}
-                                className={`rounded-full ${inTrip ? 'text-red-500 hover:bg-red-50' : 'text-brand-primary hover:bg-brand-primary/10'}`}
-                                aria-label={inTrip ? 'Added to Trip' : 'Add to Trip'}
-                                title={inTrip ? 'Added to Trip' : 'Add to Trip'}
-                            >
-                                <Heart className={`w-5 h-5 ${inTrip ? 'fill-current' : ''}`} />
-                            </Button>
+                            <Popover
+                                isOpen={!!savedHotelId}
+                                onOpenChange={(open) => !open && setSavedHotelId(null)}
+                                trigger={
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={handleHeartClick}
+                                        className={`rounded-full ${inTrip ? 'text-red-500 hover:bg-red-50' : 'text-brand-primary hover:bg-brand-primary/10'}`}
+                                        aria-label={inTrip ? 'Remove from Trip' : 'Add to Trip'}
+                                        title={inTrip ? 'Remove from Trip' : 'Add to Trip'}
+                                    >
+                                        <Heart className={`w-5 h-5 ${inTrip ? 'fill-current' : ''}`} />
+                                    </Button>
+                                }
+                                content={<SavedToTripPopover hotel={hotel} isOpen={!!savedHotelId} onClose={() => setSavedHotelId(null)} />}
+                                placement="bottom"
+                                align="right"
+                            />
                             <Button variant="ghost" size="icon" className="text-brand-primary hover:bg-brand-primary/10 rounded-full">
                                 <Share2 className="w-5 h-5" />
                             </Button>
@@ -137,3 +160,27 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
         </div>
     );
 };
+
+function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: boolean, onClose: () => void }) {
+    return (
+        <div className="p-4 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[240px] animate-in fade-in zoom-in duration-200 relative z-[10010]">
+            <div className="flex flex-col gap-4">
+                <div>
+                    <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                        Saved to:
+                        <Link href="/trips" className="text-brand-primary font-bold hover:underline">
+                            My next trip
+                        </Link>
+                    </p>
+                </div>
+                <div className="h-px bg-gray-100" />
+                <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="w-5 h-5 rounded-full border-2 border-brand-primary flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-900">My next trip</span>
+                </label>
+            </div>
+        </div>
+    );
+}

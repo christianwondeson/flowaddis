@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "BookAddis - Your Gateway to Ethiopia",
+  title: "FlowAddis - Your Gateway to Ethiopia",
   description: "Book flights, hotels, conferences, and shuttles in Ethiopia with ease. Your premium travel companion.",
   icons: {
     icon: "/new-logo.ico",

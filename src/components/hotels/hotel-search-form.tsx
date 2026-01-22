@@ -14,10 +14,12 @@ interface HotelSearchFormProps {
     destination: string;
     checkIn: string;
     checkOut: string;
+    guests: { adults: number; children: number; rooms: number };
     isLoading: boolean;
     onDestinationChange: (value: string) => void;
     onCheckInChange: (value: string) => void;
     onCheckOutChange: (value: string) => void;
+    onGuestsChange: (value: { adults: number; children: number; rooms: number }) => void;
     onSearch: () => void;
     /** When true on mobile, shows the detailed panel by default */
     initialOpen?: boolean;
@@ -27,14 +29,15 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     destination,
     checkIn,
     checkOut,
+    guests,
     isLoading,
     onDestinationChange,
     onCheckInChange,
     onCheckOutChange,
+    onGuestsChange,
     onSearch,
     initialOpen = false,
 }) => {
-    const [guests, setGuests] = React.useState({ adults: 2, children: 0, rooms: 1 });
     const [mobileOpen, setMobileOpen] = React.useState<boolean>(initialOpen);
     const [showCI, setShowCI] = React.useState(false);
     const [showCO, setShowCO] = React.useState(false);
@@ -115,7 +118,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
 
                             <div className="grid grid-cols-2 gap-1 mb-2">
                                 <div className="w-full relative" ref={ciRef}>
-                                    <button type="button" onClick={() => { setShowCI((s)=>!s); setShowCO(false); }} className="w-full text-left">
+                                    <button type="button" onClick={() => { setShowCI((s) => !s); setShowCO(false); }} className="w-full text-left">
                                         <div className="text-[11px] font-bold text-gray-800 mb-1">Check-in date</div>
                                         <div className="flex items-center gap-2 w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
                                             <CalendarIcon className="w-4 h-4 text-gray-400" />
@@ -139,7 +142,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                     )}
                                 </div>
                                 <div className="w-full relative" ref={coRef}>
-                                    <button type="button" onClick={() => { setShowCO((s)=>!s); setShowCI(false); }} className="w-full text-left">
+                                    <button type="button" onClick={() => { setShowCO((s) => !s); setShowCI(false); }} className="w-full text-left">
                                         <div className="text-[11px] font-bold text-gray-800 mb-1">Check-out date</div>
                                         <div className="flex items-center gap-2 w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
                                             <CalendarIcon className="w-4 h-4 text-gray-400" />
@@ -168,7 +171,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                     adults={guests.adults}
                                     children={guests.children}
                                     rooms={guests.rooms}
-                                    onChange={(a, c, r) => setGuests({ adults: a, children: c, rooms: r })}
+                                    onChange={(a, c, r) => onGuestsChange({ adults: a, children: c, rooms: r })}
                                 />
                             </div>
 
@@ -244,7 +247,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                         adults={guests.adults}
                         children={guests.children}
                         rooms={guests.rooms}
-                        onChange={(a, c, r) => setGuests({ adults: a, children: c, rooms: r })}
+                        onChange={(a, c, r) => onGuestsChange({ adults: a, children: c, rooms: r })}
                     />
                 </div>
                 <div className="md:col-span-2">

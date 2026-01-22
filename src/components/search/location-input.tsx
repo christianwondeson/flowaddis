@@ -18,6 +18,7 @@ interface LocationInputProps {
     api?: 'flights' | 'hotels';
     icon?: React.ReactNode;
     className?: string;
+    dropdownAlign?: 'left' | 'right';
 }
 
 export const LocationInput: React.FC<LocationInputProps> = ({
@@ -30,6 +31,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     api = 'flights',
     icon,
     className,
+    dropdownAlign = 'left',
 }) => {
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -136,7 +138,14 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             {/* Suggestions Dropdown - Fixed z-index */}
             {showSuggestions && suggestions.length > 0 && (
                 <div
-                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto scrollbar-hide hover:scrollbar-thin"
+                    className={cn(
+                        "absolute top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto scrollbar-hide hover:scrollbar-thin",
+                        // Mobile: full width relative to container
+                        "left-0 right-0 w-full",
+                        // Desktop: fixed min-width and alignment
+                        "md:w-auto md:min-w-[350px]",
+                        dropdownAlign === 'left' ? "md:left-0 md:right-auto" : "md:right-0 md:left-auto"
+                    )}
                     style={{
                         zIndex: 9999,
                         scrollbarWidth: 'none', /* Firefox */

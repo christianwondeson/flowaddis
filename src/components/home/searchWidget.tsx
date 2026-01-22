@@ -37,7 +37,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
     children: 0,
     cabinClass: 'ECONOMY' as CabinClass
   });
-  const [flightType, setFlightType] = useState<'ROUNDTRIP' | 'ONEWAY'>('ROUNDTRIP');
+  const [flightType, setFlightType] = useState<'ROUNDTRIP' | 'ONEWAY' | 'MULTICITY'>('ROUNDTRIP');
   const [orderBy, setOrderBy] = useState<'BEST' | 'CHEAPEST' | 'FASTEST'>('BEST');
 
   // Hotel State
@@ -82,31 +82,21 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       case 'flights':
         return (
           <div className="col-span-full space-y-4">
-            <div className="flex items-center gap-4">
-              <Popover
-                trigger={
-                  <button className="flex items-center gap-1 text-sm font-bold text-gray-700 hover:text-brand-primary transition-colors">
-                    {flightType === 'ROUNDTRIP' ? 'Round-trip' : 'One-way'}
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="inline-flex rounded-xl bg-gray-100 p-1">
+                {['ROUNDTRIP', 'ONEWAY', 'MULTICITY'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFlightType(type as any)}
+                    className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all ${flightType === type
+                      ? 'bg-white text-brand-primary shadow-sm'
+                      : 'text-gray-500 hover:text-brand-primary'
+                      }`}
+                  >
+                    {type === 'ROUNDTRIP' ? 'Round trip' : type === 'ONEWAY' ? 'One way' : 'Multi-city'}
                   </button>
-                }
-                content={
-                  <div className="py-1 w-40">
-                    <button
-                      onClick={() => setFlightType('ROUNDTRIP')}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${flightType === 'ROUNDTRIP' ? 'text-brand-primary font-bold' : 'text-gray-700'}`}
-                    >
-                      Round-trip
-                    </button>
-                    <button
-                      onClick={() => setFlightType('ONEWAY')}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${flightType === 'ONEWAY' ? 'text-brand-primary font-bold' : 'text-gray-700'}`}
-                    >
-                      One-way
-                    </button>
-                  </div>
-                }
-              />
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-white rounded-xl relative z-50">
@@ -307,7 +297,8 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
     >
       <div className="bg-white rounded-xl md:rounded-[2rem] p-4 md:p-8">
         {/* Tabs */}
-        <div className="flex items-center gap-2 md:gap-4 mb-6 md:mb-10 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2 md:mx-0 md:px-0">
+        {/* Tabs */}
+        <div className="flex items-center gap-6 md:gap-8 mb-6 md:mb-8 border-b border-gray-100 px-2 md:px-0 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           {[
             { id: 'flights', icon: Plane, label: 'Flights' },
             { id: 'hotels', icon: Hotel, label: 'Booking' },
@@ -317,13 +308,21 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id as TabType)}
-              className={`flex items-center gap-2.5 px-5 md:px-8 py-2.5 md:py-3.5 rounded-full text-xs md:text-sm font-bold transition-all duration-300 whitespace-nowrap ${activeTab === tab.id
-                ? 'bg-brand-primary text-white shadow-[0_8px_20px_rgba(0,102,255,0.25)] scale-105'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-brand-primary'
+              className={`flex items-center gap-2 pb-3 md:pb-4 text-sm md:text-base font-bold transition-all duration-300 relative whitespace-nowrap ${activeTab === tab.id
+                ? 'text-brand-primary'
+                : 'text-gray-500 hover:text-brand-primary/70'
                 }`}
             >
-              <tab.icon className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === tab.id ? 'text-white' : 'text-gray-400'}`} />
+              <tab.icon className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === tab.id ? 'text-brand-primary' : 'text-gray-400'}`} />
               <span>{tab.label}</span>
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-full"
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
             </button>
           ))}
         </div>

@@ -40,6 +40,10 @@ function HotelsPageContent() {
         .split(',')
         .filter(Boolean);
     const initialHotelName = search.get('hotelName') || '';
+    const initialAdults = Number(search.get('adults')) || 2;
+    const initialChildren = Number(search.get('children')) || 0;
+    const initialRooms = Number(search.get('rooms')) || 1;
+
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedHotel, setSelectedHotel] = useState<any>(null);
 
@@ -47,6 +51,8 @@ function HotelsPageContent() {
     const [destination, setDestination] = useState(initialQuery);
     const [checkIn, setCheckIn] = useState(initialCheckInStr);
     const [checkOut, setCheckOut] = useState(initialCheckOutStr);
+    const [guests, setGuests] = useState({ adults: initialAdults, children: initialChildren, rooms: initialRooms });
+
     // Controls whether mobile search renders expanded initially (collapse if URL has params)
     const [hasSearched, setHasSearched] = useState(Boolean(search?.toString()))
 
@@ -69,21 +75,67 @@ function HotelsPageContent() {
         destType?: string;
         checkIn?: Date;
         checkOut?: Date;
+        adults: number;
+        children: number;
+        rooms: number;
     }>({
         query: initialQuery,
         destId: initialDestId,
         destType: initialDestType,
         checkIn: defaultCheckin,
         checkOut: defaultCheckout,
+        adults: initialAdults,
+        children: initialChildren,
+        rooms: initialRooms,
     });
 
-    // Keep hasSearched in sync once on mount (in case of SSR hydration differences)
+    // Keep state in sync with URL (handles back/forward navigation)
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const urlParams = new URLSearchParams(window.location.search);
-            setHasSearched(Boolean(urlParams.size));
+        if (typeof window === 'undefined') return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasParams = urlParams.size > 0;
+        setHasSearched(hasParams);
+
+        if (hasParams) {
+            const q = urlParams.get('query') || 'Addis Ababa';
+            const ci = urlParams.get('checkIn');
+            const co = urlParams.get('checkOut');
+            const ad = Number(urlParams.get('adults')) || 2;
+            const ch = Number(urlParams.get('children')) || 0;
+            const rm = Number(urlParams.get('rooms')) || 1;
+
+            setDestination(q);
+            if (ci) setCheckIn(ci);
+            if (co) setCheckOut(co);
+            setGuests({ adults: ad, children: ch, rooms: rm });
+
+            const ciDate = ci ? parseDateLocal(ci) : new Date(Date.now() + 86400000);
+            const coDate = co ? parseDateLocal(co) : new Date(ciDate.getTime() + 86400000);
+
+            setSearchParams({
+                query: q,
+                destId: urlParams.get('destId') || undefined,
+                destType: urlParams.get('destType') || undefined,
+                checkIn: ciDate,
+                checkOut: coDate,
+                adults: ad,
+                children: ch,
+                rooms: rm,
+            });
+
+            // Update filters from URL
+            setFilters({
+                sortOrder: (urlParams.get('sortOrder') as any) || 'popularity',
+                stars: (urlParams.get('stars') || '').split(',').map(Number).filter(Boolean),
+                minPrice: urlParams.get('minPrice') ? Number(urlParams.get('minPrice')) : undefined,
+                maxPrice: urlParams.get('maxPrice') ? Number(urlParams.get('maxPrice')) : undefined,
+                minRating: urlParams.get('minRating') ? Number(urlParams.get('minRating')) : undefined,
+                amenities: (urlParams.get('amenities') || '').split(',').filter(Boolean),
+                hotelName: urlParams.get('hotelName') || '',
+            });
         }
-    }, []);
+    }, [search]);
 
     const { data, isLoading, error, isPlaceholderData } = useHotels({
         query: searchParams.query,
@@ -91,6 +143,9 @@ function HotelsPageContent() {
         destType: searchParams.destType,
         checkIn: searchParams.checkIn,
         checkOut: searchParams.checkOut,
+        adults: searchParams.adults,
+        children: searchParams.children,
+        rooms: searchParams.rooms,
         page,
         pageSize: 10,
         filters,
@@ -102,22 +157,70 @@ function HotelsPageContent() {
 
     // Accumulate hotels for "Load More"
     const [allHotels, setAllHotels] = useState<any[]>([]);
+    // Stabilize total count
+    const [initialTotalCount, setInitialTotalCount] = useState<number | null>(null);
+
+    // Session Storage Persistence
+    const STORAGE_KEY = 'hotel_search_state';
+
+    // Save state to session storage whenever relevant data changes
+    useEffect(() => {
+        if (allHotels.length > 0) {
+            const stateToSave = {
+                allHotels,
+                page,
+                searchParams,
+                filters,
+                totalCount: initialTotalCount,
+                timestamp: Date.now()
+            };
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        }
+    }, [allHotels, page, searchParams, filters]);
+
+    // Restore state on mount
+    useEffect(() => {
+        const savedState = sessionStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                // Only restore if less than 30 minutes old and matches current query context
+                const isFresh = Date.now() - parsed.timestamp < 30 * 60 * 1000;
+
+                // Check if URL params match the saved state to decide whether to restore
+                const urlParams = new URLSearchParams(window.location.search);
+                const currentQuery = urlParams.get('query') || 'Addis Ababa';
+
+                if (isFresh && parsed.searchParams.query === currentQuery) {
+                    setAllHotels(parsed.allHotels);
+                    setPage(parsed.page);
+                    if (parsed.totalCount) setInitialTotalCount(parsed.totalCount);
+                    // We don't overwrite filters/searchParams here as they are driven by URL
+                    // But we ensure the list matches what was previously seen
+                }
+            } catch (e) {
+                console.error('Failed to parse saved hotel state', e);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         if (isLoading) return;
 
-        if (page === 0) {
-
-            setAllHotels(hotels);
+        if (page === 0 && !sessionStorage.getItem(STORAGE_KEY)) {
+            // Only overwrite if we didn't just restore from session
+            if (hotels.length > 0) {
+                setAllHotels(hotels);
+                // Set initial total count on first load of new search
+                if (data?.totalCount !== undefined) setInitialTotalCount(data.totalCount);
+            }
         } else if (hotels.length > 0 && !isPlaceholderData) {
-
             setAllHotels((prev) => {
                 // Avoid duplicates by ID
                 const existingIds = new Set(prev.map(h => h.id));
                 const newHotels = hotels.filter((h: any) => !existingIds.has(h.id));
 
                 if (newHotels.length === 0) {
-
                     return prev;
                 }
                 return [...prev, ...newHotels];
@@ -153,6 +256,10 @@ function HotelsPageContent() {
         if (destination) params.set('query', destination);
         if (checkIn) params.set('checkIn', checkIn);
         if (checkOut) params.set('checkOut', checkOut);
+        if (guests.adults) params.set('adults', String(guests.adults));
+        if (guests.children !== undefined) params.set('children', String(guests.children));
+        if (guests.rooms) params.set('rooms', String(guests.rooms));
+
         // persist destination identifiers from current searchParams if available
         if (searchParams.destId) params.set('destId', searchParams.destId);
         if (searchParams.destType) params.set('destType', searchParams.destType);
@@ -164,8 +271,13 @@ function HotelsPageContent() {
         if (filters.amenities && filters.amenities.length > 0) params.set('amenities', filters.amenities.join(','));
         if (filters.hotelName) params.set('hotelName', filters.hotelName);
         // merge extras
+        // merge extras
         Object.entries(extra).forEach(([k, v]) => {
-            if (v === undefined || v === null || v === '') return;
+            if (v === undefined || v === null) return;
+            if (v === '') {
+                params.delete(k);
+                return;
+            }
             params.set(k, String(v));
         });
         return `?${params.toString()}`;
@@ -178,17 +290,22 @@ function HotelsPageContent() {
         if (hotel.image) params.set('image', hotel.image);
         if (hotel.location) params.set('location', hotel.location);
         // Preserve current search context for the detail page and back navigation
-        if (checkIn) params.set('checkin', checkIn);
-        if (checkOut) params.set('checkout', checkOut);
-        // You can also pass guest counts if you track them here (defaulting for now)
-        params.set('adults', '2');
-        params.set('children', '0');
-        params.set('rooms', '1');
+        // Preserve current search context for the detail page and back navigation
+        if (checkIn) params.set('checkIn', checkIn);
+        if (checkOut) params.set('checkOut', checkOut);
+        if (guests.adults) params.set('adults', String(guests.adults));
+        if (guests.children !== undefined) params.set('children', String(guests.children));
+        if (guests.rooms) params.set('rooms', String(guests.rooms));
         router.push(`/hotels/${hotel.id}?${params.toString()}`);
     };
 
     const handleSearch = () => {
         if (destination.trim()) {
+            // Clear saved state on new search
+            sessionStorage.removeItem(STORAGE_KEY);
+            setAllHotels([]); // Clear current list
+            setInitialTotalCount(null); // Reset total count
+
             setPage(0); // Reset page on new search
             const ci = checkIn ? parseDateLocal(checkIn) : searchParams.checkIn;
             const co = checkOut ? parseDateLocal(checkOut) : searchParams.checkOut;
@@ -198,6 +315,9 @@ function HotelsPageContent() {
                 destType: undefined,
                 checkIn: ci,
                 checkOut: co,
+                adults: guests.adults,
+                children: guests.children,
+                rooms: guests.rooms,
             });
             setHasSearched(true); // Collapse mobile detail after searching
             // Sync URL for persistence across navigation
@@ -206,6 +326,8 @@ function HotelsPageContent() {
     };
 
     const handleFilterChange = (newFilters: FilterType) => {
+        sessionStorage.removeItem(STORAGE_KEY); // Clear state on filter change
+        setAllHotels([]);
         setPage(0); // Reset page on filter change
         setFilters(newFilters);
 
@@ -249,10 +371,12 @@ function HotelsPageContent() {
                     destination={destination}
                     checkIn={checkIn}
                     checkOut={checkOut}
+                    guests={guests}
                     isLoading={isLoading && page === 0}
                     onDestinationChange={setDestination}
                     onCheckInChange={setCheckIn}
                     onCheckOutChange={setCheckOut}
+                    onGuestsChange={setGuests}
                     onSearch={handleSearch}
                     initialOpen={!hasSearched}
                 />
@@ -317,7 +441,7 @@ function HotelsPageContent() {
                         {/* Results Header */}
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                             <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                                {searchParams.query || 'Ethiopia'} – {data?.totalCount || 0} hotels and places to stay
+                                {searchParams.query || 'Ethiopia'} – {initialTotalCount ?? (data?.totalCount || 0)} hotels and places to stay
                             </h1>
 
                             {/* Sorting Tabs */}
