@@ -47,7 +47,7 @@ function FlightsPageContent() {
     });
     const [flightType, setFlightType] = useState<'ROUNDTRIP' | 'ONEWAY'>(qpFlightType);
     const [flightReturnDate, setFlightReturnDate] = useState<string>(qpReturn);
-    const [hasSearched, setHasSearched] = useState<boolean>(Boolean(search?.toString()));
+    const [hasSearched, setHasSearched] = useState<boolean>(true);
 
     // Query Params State (only update on search click)
     const [searchParams, setSearchParams] = useState({
@@ -123,7 +123,7 @@ function FlightsPageContent() {
     const displayFlights = flights && flights.length > 0 ? flights : [];
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 pt-24 md:pt-15">
+        <div className="min-h-screen bg-gray-50 pb-20 pt-10 md:pt-15">
             {/* Header Section */}
             <div className="bg-brand-primary text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
@@ -134,9 +134,9 @@ function FlightsPageContent() {
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 -mt-8 md:-mt-10">
+            <div className="container mx-auto px-4 -mt-10 md:-mt-12">
                 {/* Search Widget */}
-                <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 overflow-visible relative z-50">
+                <Card className="p-4 md:p-6 shadow-xl mb-4 md:mb-6 overflow-visible relative z-50">
                     {!hasSearched ? (
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
@@ -249,7 +249,7 @@ function FlightsPageContent() {
                 </Card>
 
                 {/* Flight Results */}
-                <div className="space-y-4 md:space-y-6">
+                <div className="space-y-4 md:space-y-6 mt-4">
                     <h2 className="text-xl md:text-2xl font-bold text-brand-dark mb-4 md:mb-6">
                         {isLoading ? 'Searching Flights...' : `Available Flights (${displayFlights.length})`}
                     </h2>

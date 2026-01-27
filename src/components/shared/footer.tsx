@@ -48,11 +48,11 @@ export const Footer: React.FC = () => {
                             </li>
                             <li className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-brand-primary" />
-                                <span>bookaddis@gmail.com</span>
+                                <span>flowaddis@gmail.com</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <MessageCircle className="w-4 h-4 text-green-500" />
-                                <a href="https://wa.me/251911520275" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">
+                                <a href="https://wa.me/251921929159" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">
                                     WhatsApp
                                 </a>
                             </li>

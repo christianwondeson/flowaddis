@@ -74,7 +74,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     }, [showCI, showCO]);
 
     return (
-        <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 bg-white rounded-2xl border-0 overflow-visible relative z-50">
+        <Card className="p-4 md:p-6 shadow-xl mb-4 md:mb-6 bg-white rounded-2xl border-0 overflow-visible relative z-50">
             {/* Mobile compact bar */}
             <div className="md:hidden">
                 {!mobileOpen && (

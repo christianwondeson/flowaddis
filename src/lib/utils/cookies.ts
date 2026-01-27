@@ -1,7 +1,8 @@
 import { APP_CONSTANTS } from "../constants";
 
 export const setAuthCookie = (token: string) => {
-    document.cookie = `${APP_CONSTANTS.AUTH.COOKIE_NAME}=${token}; path=/; max-age=${APP_CONSTANTS.AUTH.COOKIE_MAX_AGE}; SameSite=Strict`;
+    const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    document.cookie = `${APP_CONSTANTS.AUTH.COOKIE_NAME}=${token}; path=/; max-age=${APP_CONSTANTS.AUTH.COOKIE_MAX_AGE}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
 };
 
 export const clearAuthCookie = () => {

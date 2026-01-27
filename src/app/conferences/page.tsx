@@ -51,7 +51,7 @@ export default function ConferencesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 pt-24 md:pt-15">
+        <div className="min-h-screen bg-gray-50 pb-20 pt-10 md:pt-15">
             {/* Header Section */}
             <div className="bg-brand-primary text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">

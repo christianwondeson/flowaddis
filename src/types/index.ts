@@ -54,3 +54,35 @@ export interface PriceMarker {
     lng: number;
     image?: string;
 }
+
+export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
+
+export interface Booking {
+    id: string;
+    userId: string;
+    serviceId: string;
+    serviceType: 'flight' | 'hotel' | 'shuttle' | 'conference';
+    serviceName: string;
+    customerInfo: {
+        name: string;
+        email: string;
+        phone: string;
+    };
+    bookingDetails: {
+        checkIn?: string;
+        checkOut?: string;
+        guests?: number;
+        rooms?: number;
+        [key: string]: any;
+    };
+    payment: {
+        amount: number;
+        currency: string;
+        method: 'stripe' | 'paypal' | 'revolut' | 'telebirr' | 'cbebirr';
+        status: PaymentStatus;
+        transactionId?: string;
+    };
+    status: 'pending' | 'confirmed' | 'cancelled';
+    createdAt: string;
+    updatedAt: string;
+}

@@ -41,11 +41,9 @@ function SignInContent() {
         try {
             const role = await login(email, password)
             if (role === 'admin' && from === '/') {
-                router.refresh();
-                router.push('/admin')
+                window.location.href = '/admin'
             } else {
-                router.refresh();
-                router.push(from)
+                window.location.href = from
             }
         } catch (error: any) {
             console.error("Error during sign-in:", error)
@@ -60,11 +58,9 @@ function SignInContent() {
         try {
             const role = await loginWithGoogle()
             if (role === 'admin' && from === '/') {
-                router.refresh();
-                router.push('/admin')
+                window.location.href = '/admin'
             } else {
-                router.refresh();
-                router.push(from)
+                window.location.href = from
             }
         } catch (error: any) {
             console.error(error)

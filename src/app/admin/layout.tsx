@@ -20,40 +20,34 @@ export default function AdminLayout({
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     useEffect(() => {
-        // Wait for auth to load
-        if (loading) return;
+        // The middleware handles redirecting unauthenticated users to /signin
+        // This component just needs to show appropriate loading/error states
+        // No client-side redirects to avoid race conditions with cookie setting
+    }, [user, loading]);
 
-        // Not authenticated - redirect to signin
-        if (!user) {
-            router.replace(`/signin?redirect=${encodeURIComponent(pathname)}`);
-            return;
-        }
+    // Show loading state while auth is being verified
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-brand-gray">
+                <div className="text-center space-y-4 max-w-md px-4">
+                    <div className="text-sm text-gray-500">
+                        Checking admin access…
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
-        // Not admin role - redirect to home
-        if (!isAdminRole(user)) {
-            router.replace('/');
-            return;
-        }
-
-        // Admin but blocked (pending or rejected) - redirect to home
-        if (isAdminBlocked(user)) {
-            router.replace('/');
-            return;
-        }
-
-        // Admin access granted
-    }, [user, loading, router, pathname]);
-
-    // Show loading state or access denied message
-    if (loading || !user || !canAccessAdmin(user)) {
+    // Show access denied if user is not admin (after loading completes)
+    if (!user || !canAccessAdmin(user)) {
         const statusMessage = getAdminStatusMessage(user);
-        const showStatusDetails = !loading && user && isAdminRole(user) && isAdminBlocked(user);
+        const showStatusDetails = user && isAdminRole(user) && isAdminBlocked(user);
 
         return (
             <div className="min-h-screen flex items-center justify-center bg-brand-gray">
                 <div className="text-center space-y-4 max-w-md px-4">
                     <div className="text-sm text-gray-500">
-                        {loading ? 'Checking admin access…' : 'Verifying permissions…'}
+                        Verifying permissions…
                     </div>
                     {showStatusDetails && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">

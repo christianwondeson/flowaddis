@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { persist } from 'zustand/middleware';
 
+import { db } from '@/lib/firebase';
+import { doc, setDoc, collection } from 'firebase/firestore';
+
 export interface TripItem {
     id: string;
     type: 'flight' | 'hotel' | 'shuttle' | 'conference';
@@ -54,10 +57,16 @@ export const useTripStore = create<TripState>()(
                     date: new Date().toISOString(),
                 };
 
-                // In a real app, save to Firestore here
-                // await setDoc(doc(db, 'trips', tripId), newTrip);
+                // Save to Firestore
+                if (db) {
+                    try {
+                        await setDoc(doc(db, 'trips', tripId), newTrip);
+                    } catch (error) {
+                        console.error('Error saving trip to Firestore:', error);
+                    }
+                }
 
-                // For now, save to localStorage to simulate persistence
+                // For now, also save to localStorage to simulate persistence
                 const existingTrips = JSON.parse(localStorage.getItem('flowaddis_trips') || '[]');
                 localStorage.setItem('flowaddis_trips', JSON.stringify([...existingTrips, newTrip]));
 

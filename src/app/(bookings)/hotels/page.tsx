@@ -53,8 +53,8 @@ function HotelsPageContent() {
     const [checkOut, setCheckOut] = useState(initialCheckOutStr);
     const [guests, setGuests] = useState({ adults: initialAdults, children: initialChildren, rooms: initialRooms });
 
-    // Controls whether mobile search renders expanded initially (collapse if URL has params)
-    const [hasSearched, setHasSearched] = useState(Boolean(search?.toString()))
+    // Controls whether mobile search renders expanded initially (collapse by default since we search on load)
+    const [hasSearched, setHasSearched] = useState(true);
 
     // Pagination & Filters
     const [page, setPage] = useState(0);
@@ -355,7 +355,7 @@ function HotelsPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 pt-24 md:pt-15">
+        <div className="min-h-screen bg-gray-50 pb-20 pt-10 md:pt-15">
             {/* Header Section */}
             <div className="bg-brand-primary text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
@@ -366,7 +366,7 @@ function HotelsPageContent() {
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 -mt-8 md:-mt-10">
+            <div className="container mx-auto px-4 -mt-10 md:-mt-12">
                 <HotelSearchForm
                     destination={destination}
                     checkIn={checkIn}
@@ -408,7 +408,7 @@ function HotelsPageContent() {
                     />
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-8 mt-8">
+                <div className="flex flex-col lg:flex-row gap-8 mt-4">
                     {/* Filters Sidebar (visible on lg and above) */}
                     <div className="hidden lg:block lg:w-1/4">
                         <HotelFilters

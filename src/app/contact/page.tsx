@@ -46,7 +46,7 @@ export default function ContactPage() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-brand-dark mb-1">Phone</h3>
-                                            <p className="text-gray-600">+251 911 520 275</p>
+                                            <p className="text-gray-600">+251 921 929 159</p>
                                             <p className="text-sm text-gray-500">Mon-Fri 9am-6pm EAT</p>
                                         </div>
                                     </div>
@@ -57,7 +57,7 @@ export default function ContactPage() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-brand-dark mb-1">Email</h3>
-                                            <p className="text-gray-600">info@flowaddis.com</p>
+                                            <p className="text-gray-600">flowaddis@gmail.com</p>
                                             <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
                                         </div>
                                     </div>
