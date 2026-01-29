@@ -7,10 +7,9 @@ import { useAuth } from "@/components/providers/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
-import { User, Mail, Lock, ShieldCheck } from "lucide-react"
 import { toast } from "sonner"
-import Link from "next/link"
-import { Logo } from "@/components/shared/logo"
+import { AuthLayout } from "@/components/layout/auth-layout"
+import { FormField } from "@/components/auth/form-field"
 
 export default function SignUpPage() {
     const [name, setName] = useState("")
@@ -65,113 +64,105 @@ export default function SignUpPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="flex justify-center mb-6">
-                    <Logo size="lg" />
-                </div>
-                <h2 className="text-center text-3xl font-extrabold text-gray-900">
-                    Create Account
-                </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Join BookAddis today
-                </p>
-            </div>
+        <AuthLayout
+            title="Create Account"
+            subtitle="Join FlowAddis today"
+            footerLink={{
+                text: "Already have an account?",
+                href: "/signin",
+                linkText: "Sign In",
+            }}
+        >
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                {/* Name Field */}
+                <FormField label="Full Name" error={errors.name}>
+                    <Input
+                        type="text"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={(e) => {
+                            setName(e.target.value)
+                            setErrors({ ...errors, name: "" })
+                        }}
+                        className="w-full"
+                    />
+                </FormField>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <Input
-                            label="Full Name"
-                            placeholder="Name"
-                            value={name}
-                            onChange={(e) => {
-                                setName(e.target.value)
-                                setErrors({ ...errors, name: "" })
-                            }}
-                            icon={<User className="w-5 h-5" />}
-                            error={errors.name}
-                        />
+                {/* Email Field */}
+                <FormField label="Email Address" error={errors.email}>
+                    <Input
+                        type="email"
+                        placeholder="name@company.com"
+                        value={email}
+                        onChange={(e) => {
+                            setEmail(e.target.value)
+                            setErrors({ ...errors, email: "" })
+                        }}
+                        className="w-full"
+                    />
+                </FormField>
 
-                        <Input
-                            label="Email Address"
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => {
-                                setEmail(e.target.value)
-                                setErrors({ ...errors, email: "" })
-                            }}
-                            icon={<Mail className="w-5 h-5" />}
-                            error={errors.email}
-                        />
+                {/* Password Field */}
+                <FormField label="Password" error={errors.password}>
+                    <PasswordInput
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => {
+                            setPassword(e.target.value)
+                            setErrors({ ...errors, password: "" })
+                        }}
+                        className="w-full"
+                    />
+                </FormField>
 
-                        <PasswordInput
-                            label="Password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => {
-                                setPassword(e.target.value)
-                                setErrors({ ...errors, password: "" })
-                            }}
-                            icon={<Lock className="w-5 h-5" />}
-                            error={errors.password}
-                        />
+                {/* Confirm Password Field */}
+                <FormField label="Confirm Password" error={errors.confirmPassword}>
+                    <PasswordInput
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                            setConfirmPassword(e.target.value)
+                            setErrors({ ...errors, confirmPassword: "" })
+                        }}
+                        className="w-full"
+                    />
+                </FormField>
 
-                        <PasswordInput
-                            label="Confirm Password"
-                            placeholder="••••••••"
-                            value={confirmPassword}
-                            onChange={(e) => {
-                                setConfirmPassword(e.target.value)
-                                setErrors({ ...errors, confirmPassword: "" })
-                            }}
-                            icon={<Lock className="w-5 h-5" />}
-                            error={errors.confirmPassword}
-                        />
-
-                        <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
-                            <input
-                                type="checkbox"
-                                id="admin-account"
-                                checked={isAdminAccount}
-                                onChange={(e) => setIsAdminAccount(e.target.checked)}
-                                className="w-5 h-5 mt-0.5 rounded border-gray-300 cursor-pointer accent-brand-primary"
-                            />
-                            <label htmlFor="admin-account" className="flex-1 cursor-pointer">
-                                <div className="flex items-center gap-2">
-                                    <ShieldCheck className="w-5 h-5 text-brand-primary" />
-                                    <span className="font-semibold text-gray-800">Request Admin Account</span>
-                                </div>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    Check this box if you're a business partner or admin. Your account will require approval.
-                                </p>
-                            </label>
-                        </div>
-
-                        <Button
-                            type="submit"
-                            className="w-full bg-brand-primary hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
-                            disabled={loading}
-                        >
-                            {loading ? "Creating Account..." : "Sign Up"}
-                        </Button>
-                    </form>
-
-                    <div className="mt-6">
-                        <div className="relative">
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white text-gray-500">
-                                    Already have an account?{' '}
-                                    <Link href="/signin" className="font-medium text-brand-primary hover:text-brand-dark">
-                                        Sign In
-                                    </Link>
-                                </span>
-                            </div>
-                        </div>
+                {/* Admin Account Checkbox */}
+                <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input
+                        type="checkbox"
+                        checked={isAdminAccount}
+                        onChange={(e) => setIsAdminAccount(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                    />
+                    <div>
+                        <p className="text-sm font-medium text-gray-900">Request Admin Access</p>
+                        <p className="text-xs text-gray-500">Register as a business partner (requires approval)</p>
                     </div>
-                </div>
-            </div>
-        </div>
+                </label>
+
+                {/* Sign Up Button */}
+                <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-brand-primary hover:bg-blue-700 text-white font-semibold py-2.5 sm:py-3 rounded-lg transition-colors mt-6"
+                >
+                    {loading ? "Creating account..." : "Create Account"}
+                </Button>
+
+                {/* Terms & Privacy */}
+                <p className="text-xs text-center text-gray-500">
+                    By signing up, you agree to our{" "}
+                    <a href="/terms" className="text-brand-primary hover:underline">
+                        Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a href="/privacy" className="text-brand-primary hover:underline">
+                        Privacy Policy
+                    </a>
+                </p>
+            </form>
+        </AuthLayout>
     )
 }

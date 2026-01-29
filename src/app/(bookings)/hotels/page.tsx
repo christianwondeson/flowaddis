@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { BookingModal } from '@/components/booking/booking-modal';
 import { HotelSearchForm } from '@/components/hotels/hotel-search-form';
 import { HotelList } from '@/components/hotels/hotel-list';
@@ -53,6 +53,24 @@ function HotelsPageContent() {
     const [checkOut, setCheckOut] = useState(initialCheckOutStr);
     const [guests, setGuests] = useState({ adults: initialAdults, children: initialChildren, rooms: initialRooms });
 
+    // Track pending location selection from the form
+    const [pendingLocation, setPendingLocation] = useState<{ destId?: string; destType?: string; latitude?: number; longitude?: number }>({});
+
+    const handleLocationSelect = (location: any) => {
+        setPendingLocation({
+            destId: location.dest_id,
+            destType: location.dest_type,
+            latitude: location.latitude,
+            longitude: location.longitude
+        });
+    };
+
+    const handleDestinationChange = (value: string) => {
+        setDestination(value);
+        // Clear pending location if user types manually
+        setPendingLocation({});
+    };
+
     // Controls whether mobile search renders expanded initially (collapse by default since we search on load)
     const [hasSearched, setHasSearched] = useState(true);
 
@@ -73,6 +91,8 @@ function HotelsPageContent() {
         query: string;
         destId?: string;
         destType?: string;
+        latitude?: number;
+        longitude?: number;
         checkIn?: Date;
         checkOut?: Date;
         adults: number;
@@ -82,6 +102,8 @@ function HotelsPageContent() {
         query: initialQuery,
         destId: initialDestId,
         destType: initialDestType,
+        latitude: search.get('latitude') ? Number(search.get('latitude')) : undefined,
+        longitude: search.get('longitude') ? Number(search.get('longitude')) : undefined,
         checkIn: defaultCheckin,
         checkOut: defaultCheckout,
         adults: initialAdults,
@@ -117,6 +139,8 @@ function HotelsPageContent() {
                 query: q,
                 destId: urlParams.get('destId') || undefined,
                 destType: urlParams.get('destType') || undefined,
+                latitude: urlParams.get('latitude') ? Number(urlParams.get('latitude')) : undefined,
+                longitude: urlParams.get('longitude') ? Number(urlParams.get('longitude')) : undefined,
                 checkIn: ciDate,
                 checkOut: coDate,
                 adults: ad,
@@ -141,6 +165,8 @@ function HotelsPageContent() {
         query: searchParams.query,
         destId: searchParams.destId,
         destType: searchParams.destType,
+        latitude: searchParams.latitude,
+        longitude: searchParams.longitude,
         checkIn: searchParams.checkIn,
         checkOut: searchParams.checkOut,
         adults: searchParams.adults,
@@ -207,12 +233,18 @@ function HotelsPageContent() {
     useEffect(() => {
         if (isLoading) return;
 
+        // Always update total count when on page 0 (fresh search/filter)
+        // This ensures the count stays in sync with the actual API response
+        if (data?.totalCount !== undefined && page === 0) {
+            if (initialTotalCount !== data.totalCount) {
+                setInitialTotalCount(data.totalCount);
+            }
+        }
+
         if (page === 0 && !sessionStorage.getItem(STORAGE_KEY)) {
             // Only overwrite if we didn't just restore from session
             if (hotels.length > 0) {
                 setAllHotels(hotels);
-                // Set initial total count on first load of new search
-                if (data?.totalCount !== undefined) setInitialTotalCount(data.totalCount);
             }
         } else if (hotels.length > 0 && !isPlaceholderData) {
             setAllHotels((prev) => {
@@ -226,27 +258,41 @@ function HotelsPageContent() {
                 return [...prev, ...newHotels];
             });
         }
-    }, [hotels, page, isPlaceholderData, isLoading]);
+    }, [hotels, page, isPlaceholderData, isLoading, data?.totalCount, initialTotalCount]);
 
-    // Mock collections for demonstration
-    const airportShuttleHotels = allHotels
-        .filter(h => h.badges?.some((b: string) => b.toLowerCase().includes('shuttle')))
-        .slice(0, 6);
-    const breakfastHotels = allHotels
-        .filter(h => h.amenities?.some((a: string) => a.toLowerCase().includes('breakfast')))
-        .slice(0, 6);
-    const budgetHotels = [...allHotels]
-        .sort((a, b) => a.price - b.price)
-        .slice(0, 6);
-    // Hotels located in the center, sorted by best rating
-    const centerHotels = [...allHotels]
-        .filter(h => h.distance?.toLowerCase().includes('centre') || h.distance?.toLowerCase().includes('center'))
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 6);
-    // Most booked: approximate by highest number of reviews
-    const mostBookedHotels = [...allHotels]
-        .sort((a, b) => (b.reviews || 0) - (a.reviews || 0))
-        .slice(0, 6);
+    // Memoize collections to prevent unnecessary recalculations and ensure stable displays
+    const collections = useMemo(() => {
+        const airportShuttle = allHotels
+            .filter(h => h.badges?.some((b: string) => b.toLowerCase().includes('shuttle')))
+            .slice(0, 6);
+
+        const breakfast = allHotels
+            .filter(h => h.amenities?.some((a: string) => a.toLowerCase().includes('breakfast')))
+            .slice(0, 6);
+
+        const budget = [...allHotels]
+            .sort((a, b) => a.price - b.price)
+            .slice(0, 6);
+
+        // Hotels located in the center, sorted by best rating
+        const center = [...allHotels]
+            .filter(h => h.distance?.toLowerCase().includes('centre') || h.distance?.toLowerCase().includes('center'))
+            .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+            .slice(0, 6);
+
+        // Most booked: approximate by highest number of reviews
+        const mostBooked = [...allHotels]
+            .sort((a, b) => (b.reviews || 0) - (a.reviews || 0))
+            .slice(0, 6);
+
+        return {
+            airportShuttle,
+            breakfast,
+            budget,
+            center,
+            mostBooked
+        };
+    }, [allHotels]);
 
     const { user } = useAuth();
     const router = useRouter();
@@ -263,6 +309,8 @@ function HotelsPageContent() {
         // persist destination identifiers from current searchParams if available
         if (searchParams.destId) params.set('destId', searchParams.destId);
         if (searchParams.destType) params.set('destType', searchParams.destType);
+        if (searchParams.latitude) params.set('latitude', String(searchParams.latitude));
+        if (searchParams.longitude) params.set('longitude', String(searchParams.longitude));
         if (filters.sortOrder) params.set('sortOrder', String(filters.sortOrder));
         if (filters.stars && filters.stars.length > 0) params.set('stars', filters.stars.join(','));
         if (filters.minPrice != null) params.set('minPrice', String(filters.minPrice));
@@ -303,16 +351,25 @@ function HotelsPageContent() {
         if (destination.trim()) {
             // Clear saved state on new search
             sessionStorage.removeItem(STORAGE_KEY);
-            setAllHotels([]); // Clear current list
+            // Don't clear allHotels here - let it update naturally to prevent flickering
             setInitialTotalCount(null); // Reset total count
 
             setPage(0); // Reset page on new search
             const ci = checkIn ? parseDateLocal(checkIn) : searchParams.checkIn;
             const co = checkOut ? parseDateLocal(checkOut) : searchParams.checkOut;
+
+            // Use pending location if available, otherwise preserve existing if query hasn't changed
+            const newDestId = pendingLocation.destId ?? (destination === searchParams.query ? searchParams.destId : undefined);
+            const newDestType = pendingLocation.destType ?? (destination === searchParams.query ? searchParams.destType : undefined);
+            const newLat = pendingLocation.latitude ?? (destination === searchParams.query ? searchParams.latitude : undefined);
+            const newLng = pendingLocation.longitude ?? (destination === searchParams.query ? searchParams.longitude : undefined);
+
             setSearchParams({
                 query: destination,
-                destId: undefined,
-                destType: undefined,
+                destId: newDestId,
+                destType: newDestType,
+                latitude: newLat,
+                longitude: newLng,
                 checkIn: ci,
                 checkOut: co,
                 adults: guests.adults,
@@ -321,13 +378,13 @@ function HotelsPageContent() {
             });
             setHasSearched(true); // Collapse mobile detail after searching
             // Sync URL for persistence across navigation
-            router.push(buildUrlWithState());
+            router.push(buildUrlWithState({ destId: newDestId, destType: newDestType, latitude: newLat, longitude: newLng }));
         }
     };
 
     const handleFilterChange = (newFilters: FilterType) => {
         sessionStorage.removeItem(STORAGE_KEY); // Clear state on filter change
-        setAllHotels([]);
+        // Don't clear allHotels here - prevent flickering during filter changes
         setPage(0); // Reset page on filter change
         setFilters(newFilters);
 
@@ -373,7 +430,8 @@ function HotelsPageContent() {
                     checkOut={checkOut}
                     guests={guests}
                     isLoading={isLoading && page === 0}
-                    onDestinationChange={setDestination}
+                    onDestinationChange={handleDestinationChange}
+                    onLocationSelect={handleLocationSelect}
                     onCheckInChange={setCheckIn}
                     onCheckOutChange={setCheckOut}
                     onGuestsChange={setGuests}
@@ -441,7 +499,7 @@ function HotelsPageContent() {
                         {/* Results Header */}
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                             <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                                {searchParams.query || 'Ethiopia'} – {initialTotalCount ?? (data?.totalCount || 0)} hotels and places to stay
+                                {searchParams.query || 'Ethiopia'} – {initialTotalCount || 0} hotels and places to stay
                             </h1>
 
                             {/* Sorting Tabs */}
@@ -479,20 +537,22 @@ function HotelsPageContent() {
 
                         {/* Infinite scroll sentinel removed */}
 
-                        {/* Load More Button with loading indicator */}
+                        {/* Load More Button with enhanced loading indicator */}
                         {hasNextPage && (
-                            <div className="flex justify-center mt-4">
+                            <div className="flex justify-center mt-6">
                                 <button
                                     onClick={() => !isLoadingMore && setPage(p => p + 1)}
                                     disabled={isLoadingMore}
                                     aria-busy={isLoadingMore}
-                                    className={`px-4 py-2 rounded-lg transition-colors text-sm font-bold flex items-center gap-2 
-                                        ${isLoadingMore ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                    className={`px-6 py-3 rounded-xl transition-all text-sm font-bold flex items-center gap-3 shadow-sm ${isLoadingMore
+                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        : 'bg-brand-primary text-white hover:bg-brand-primary/90 hover:shadow-md'
+                                        }`}
                                 >
                                     {isLoadingMore && (
-                                        <Preloader size="sm" className="border-gray-300 border-t-brand-primary" />
+                                        <Preloader size="sm" className="border-2 border-white/30 border-t-white" />
                                     )}
-                                    {isLoadingMore ? 'Loading…' : 'Load More Results'}
+                                    {isLoadingMore ? 'Loading more hotels...' : 'Load More Results'}
                                 </button>
                             </div>
                         )}
@@ -501,35 +561,36 @@ function HotelsPageContent() {
                         <div className="pt-12 space-y-4">
                             <HotelCollection
                                 title={`Hotels with airport shuttles in ${searchParams.query || 'Addis Ababa'}`}
-                                hotels={airportShuttleHotels}
+                                hotels={collections.airportShuttle}
                                 onBook={handleBook}
                                 onSeeAll={() => { }}
                             />
 
                             <HotelCollection
                                 title={`Most booked hotels in ${searchParams.query || 'Addis Ababa'} and surrounding area`}
-                                hotels={allHotels.slice(0, 6)}
+                                hotels={collections.mostBooked}
                                 onBook={handleBook}
                                 onSeeAll={() => { }}
                             />
 
                             <HotelCollection
                                 title={`Best hotels with breakfast in ${searchParams.query || 'Addis Ababa'} and nearby`}
-                                hotels={breakfastHotels}
+                                hotels={collections.breakfast}
                                 onBook={handleBook}
                                 onSeeAll={() => { }}
                             />
 
                             <HotelCollection
                                 title={`Hotels located in the center of ${searchParams.query || 'Addis Ababa'}`}
-                                hotels={centerHotels}
+                                hotels={collections.center}
                                 onBook={handleBook}
                                 onSeeAll={() => { }}
                             />
 
+
                             <HotelCollection
                                 title={`Budget hotels in ${searchParams.query || 'Addis Ababa'} and nearby`}
-                                hotels={budgetHotels}
+                                hotels={collections.budget}
                                 onBook={handleBook}
                                 onSeeAll={() => { }}
                             />

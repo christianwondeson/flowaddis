@@ -1,20 +1,13 @@
 import { NextResponse } from 'next/server';
-import { API_CONFIG } from '@/lib/api-config';
+import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
 import axios from 'axios';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
 
     // Accept both our app's params and RapidAPI spec. Prefer RapidAPI names if present.
-    const rawFrom = searchParams.get('fromId') || searchParams.get('fromCode') || 'ADD';
-    const rawTo = searchParams.get('toId') || searchParams.get('toCode') || 'DXB';
-    // Normalize inputs like "ADD.AIRPORT" to IATA code
-    const normIata = (v: string) => {
-        const base = v.includes('.') ? v.split('.')[0] : v;
-        return base.trim().toUpperCase().slice(0, 3);
-    };
-    const fromId = normIata(rawFrom);
-    const toId = normIata(rawTo);
+    const fromId = searchParams.get('fromId') || searchParams.get('fromCode') || 'ADD.AIRPORT';
+    const toId = searchParams.get('toId') || searchParams.get('toCode') || 'DXB.AIRPORT';
 
     const departureDate = searchParams.get('departureDate') || searchParams.get('departDate') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const returnDate = searchParams.get('returnDate') || searchParams.get('return_date') || undefined;
@@ -47,33 +40,46 @@ export async function GET(request: Request) {
     const timeGo = searchParams.get('timeGo') || undefined; // e.g., "departure,02:00,15:30"
     const timeReturn = searchParams.get('timeReturn') || undefined;
     const travelTime = searchParams.get('travelTime') || undefined; // e.g., "min,max" minutes
+    const rawSegments = searchParams.get('segments') || undefined;
+    const segments = rawSegments ? JSON.parse(rawSegments) : undefined;
 
     try {
-        // Choose RapidAPI endpoint (Flights service has a different host/base)
         const FLIGHTS_HOST = API_CONFIG.FLIGHTS_HOST;
-        const FLIGHTS_BASE = API_CONFIG.FLIGHTS_BASE_URL; // e.g., https://booking-com18.p.rapidapi.com/flights
+        const FLIGHTS_BASE = API_CONFIG.FLIGHTS_BASE_URL;
         const isRoundTrip = flightType === 'ROUNDTRIP' && !!departureDate && !!returnDate;
-        const url = `${FLIGHTS_BASE}/${isRoundTrip ? 'search-return' : 'search-oneway'}`;
+        const isMultiStop = flightType === 'MULTISTOP' && Array.isArray(segments) && segments.length > 0;
 
-        // Build params per RapidAPI spec
-        const params: Record<string, string | undefined> = {
-            fromId,
-            toId,
-            departureDate,
-            returnDate: isRoundTrip ? returnDate : undefined,
-            page,
+        // The new API uses /searchFlights for both one-way and round-trip, and /searchFlightsMultiStops for multi-stop
+        const endpoint = isMultiStop ? API_ENDPOINTS.FLIGHTS.SEARCH_MULTI_STOP : API_ENDPOINTS.FLIGHTS.SEARCH;
+        const url = `${FLIGHTS_BASE}${endpoint}`;
+
+        // Build params per new API spec
+        let params: Record<string, string | undefined> = {
+            pageNo: Math.max(1, Number(page)).toString(),
             cabinClass,
             adults,
             children: childrenAges,
-            infants: infantsAges,
-            nonstopFlightsOnly,
-            numberOfStops,
-            priceRange,
-            airlines,
-            timeGo,
-            timeReturn,
-            travelTime,
+            sort: orderBy,
+            currency_code: currency,
         };
+
+        if (isMultiStop) {
+            // Multi-stop requires 'legs' parameter
+            const legs = segments.map((seg: any) => ({
+                fromId: seg.from,
+                toId: seg.to,
+                date: seg.date
+            }));
+            params.legs = JSON.stringify(legs);
+        } else {
+            params.fromId = fromId;
+            params.toId = toId;
+            params.departDate = departureDate;
+            if (isRoundTrip) {
+                params.returnDate = returnDate;
+            }
+            params.stops = nonstopFlightsOnly ? 'none' : (numberOfStops === 'nonstop_flights' ? 'none' : (numberOfStops === 'maximum_one_stop' ? '1' : undefined));
+        }
 
         // Remove undefined entries
         Object.keys(params).forEach((k) => (params[k] === undefined ? delete params[k] : null));
@@ -82,26 +88,21 @@ export async function GET(request: Request) {
             method: 'GET',
             url,
             params,
-            headers: {
-                'x-rapidapi-key': API_CONFIG.RAPIDAPI_KEY,
-                'x-rapidapi-host': FLIGHTS_HOST,
-                'Content-Type': 'application/json',
-            },
+            headers: getApiHeaders(FLIGHTS_HOST),
         } as const;
 
-
+        console.log('Searching flights:', params, 'URL:', url);
         const response = await axios.request(options);
+        console.log('Flights API Response status:', response.status, 'Full Data:', JSON.stringify(response.data).slice(0, 1000));
 
-        // Normalize RapidAPI response to the frontend schema: { flights: [...] }
-        const data = response.data as any;
-        // Try multiple shapes based on RapidAPI response
-        const offers = Array.isArray(data?.flightOffers) ? data.flightOffers : (Array.isArray(data?.data) ? data.data : []);
+        // Normalize new API response: { status: true, message: "Success", data: { flightOffers: [...] } }
+        const data = response.data?.data || {};
+        const offers = Array.isArray(data?.flightOffers) ? data.flightOffers : [];
 
         const toTime = (iso?: string) => {
             if (!iso) return '';
             try {
                 const d = new Date(iso);
-                // Format as HH:MM in local time
                 return d.toISOString().slice(11, 16);
             } catch {
                 return iso;
@@ -116,6 +117,7 @@ export async function GET(request: Request) {
         };
 
         const flights = offers.map((offer: any, idx: number) => {
+            // Use the first segment for basic info
             const seg = offer?.segments?.[0];
             const legs = Array.isArray(seg?.legs) ? seg.legs : [];
             const firstLeg = legs[0] || {};
@@ -139,7 +141,7 @@ export async function GET(request: Request) {
             const cabinClass = (firstLeg?.cabinClass || offer?.brandedFareInfo?.cabinClass || 'ECONOMY') as string;
 
             return {
-                id: offer?.unifiedPriceBreakdown?.id || offer?.offerKeyToHighlight || String(idx + 1),
+                id: offer?.token || offer?.offerKeyToHighlight || String(idx + 1),
                 airline,
                 airlineLogo,
                 flightNumber,
@@ -149,7 +151,7 @@ export async function GET(request: Request) {
                 stops,
                 price: { amount: Number(priceUnits) || 0, currency },
                 cabinClass,
-                selectionKey: offer?.selectionKey,
+                selectionKey: offer?.token || offer?.selectionKey,
             };
         });
 
@@ -160,7 +162,7 @@ export async function GET(request: Request) {
         const pageSize = flights.length || 0;
         const hasNextPage = pageSize > 0 ? (pageSize * (pageIndex + 1) < totalCount) : false;
         const searchPath = (data?.searchPath || data?.resultSetMetaData?.searchPath) as string | undefined;
-        return NextResponse.json({ flights, total: totalCount, hasNextPage, searchPath, mock: false });
+        return NextResponse.json({ flights, total: totalCount, hasNextPage, searchPath, mock: false, rawData: response.data });
     } catch (error: any) {
         const status = error?.response?.status;
         const data = error?.response?.data;

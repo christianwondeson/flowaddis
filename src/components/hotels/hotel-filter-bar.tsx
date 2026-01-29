@@ -80,11 +80,10 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
                       onFilterChange({ ...filters, sortOrder: opt.value });
                       setIsSortOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-bold transition-all ${
-                      active
+                    className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-bold transition-all ${active
                         ? 'border-blue-600 bg-blue-50 text-blue-600'
                         : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     {opt.label}
                   </button>

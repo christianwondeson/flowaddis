@@ -43,15 +43,17 @@ export function HotelsMapContent() {
     const checkInDate = useMemo(() => checkIn ? new Date(checkIn) : undefined, [checkIn]);
     const checkOutDate = useMemo(() => checkOut ? new Date(checkOut) : undefined, [checkOut]);
 
+    // Fetch paginated hotels for both list and map view
     const { data, isLoading, error, isPlaceholderData } = useHotels({
         query: filters.query,
         checkIn: checkInDate,
         checkOut: checkOutDate,
         page,
         filters,
+        pageSize: 20, // Use reasonable page size (API max is around 20-25)
     });
 
-    const [hotels, setHotels] = useState<Hotel[]>([]);
+    const [hotels, setHotels] = useState<Hotel[]>([]); // Accumulated hotels for both list and map
     const [hoveredId, setHoveredId] = useState<string | undefined>(undefined);
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
@@ -61,7 +63,7 @@ export function HotelsMapContent() {
         setPage(0);
     }, [checkIn, checkOut, filters]);
 
-    // Accumulate hotels when data changes
+    // Accumulate hotels for both list view and map
     useEffect(() => {
         if (data?.hotels) {
             if (page === 0) {
@@ -81,18 +83,25 @@ export function HotelsMapContent() {
         if (hotels.length > 0 && hotels[0].coordinates) {
             return [hotels[0].coordinates.lat, hotels[0].coordinates.lng];
         }
-        return [9.0108, 38.7613];
+        return [9.0108, 38.7613]; // Default to Addis Ababa
     }, [hotels]);
-    const markers: PriceMarker[] = hotels
-        .filter((h) => h.coordinates)
-        .map((h) => ({
-            id: h.id,
-            name: h.name,
-            price: h.price,
-            lat: h.coordinates!.lat,
-            lng: h.coordinates!.lng,
-            image: h.image,
-        }));
+
+    // Create markers from accumulated hotels (grows as user clicks "Load More")
+    const markers: PriceMarker[] = useMemo(() => {
+        const result = hotels
+            .filter((h) => h.coordinates)
+            .map((h) => ({
+                id: h.id,
+                name: h.name,
+                price: h.price,
+                lat: h.coordinates!.lat,
+                lng: h.coordinates!.lng,
+                image: h.image,
+            }));
+
+        // Debug: Log to verify marker creation
+        return result;
+    }, [hotels]);
 
     return (
         <div className="h-[calc(100vh-64px)] mt-16 overflow-hidden bg-white relative">
@@ -103,7 +112,7 @@ export function HotelsMapContent() {
                     <div className="p-6 border-b border-gray-100">
                         <h1 className="text-xl font-bold text-brand-dark mb-1">Hotels on Map</h1>
                         <p className="text-sm text-gray-500">
-                            {data?.totalCount || 0} properties found in {filters.query}
+                            Showing {markers.length} of {data?.totalCount || 0} hotels • Click "Load more" to add more to map
                         </p>
                     </div>
 

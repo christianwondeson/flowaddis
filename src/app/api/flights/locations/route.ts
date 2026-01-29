@@ -37,17 +37,18 @@ export async function GET(request: Request) {
     try {
         const options = {
             method: 'GET',
-            url: `${API_CONFIG.BASE_URL}${API_ENDPOINTS.FLIGHTS.LOCATIONS}`,
+            url: `${API_CONFIG.FLIGHTS_BASE_URL}${API_ENDPOINTS.FLIGHTS.LOCATIONS}`,
             params: {
-                name: name,
-                locale: 'en-gb'
+                query: name,
             },
-            headers: getApiHeaders(),
+            headers: getApiHeaders(API_CONFIG.FLIGHTS_HOST),
         } as const;
 
+        console.log('Fetching locations for:', name, 'URL:', options.url);
         const response = await axios.request(options);
-        // Keep original structure but also map to simplified items the UI can use.
-        const items = Array.isArray(response.data) ? response.data : [];
+        console.log('Locations API Response status:', response.status, 'Data length:', response.data?.data?.length);
+        // The new API returns { status: true, message: "Success", data: [...] }
+        const items = Array.isArray(response.data?.data) ? response.data.data : [];
         cache.set(key, { data: items, ts: now });
         return NextResponse.json(items);
     } catch (error: any) {
@@ -65,9 +66,9 @@ export async function GET(request: Request) {
         }
         const fallback = FALLBACK_PRESETS.filter(
             (i) => i.name.toLowerCase().includes(q)
-               || i.short_code.toLowerCase().includes(q)
-               || i.cityName.toLowerCase().includes(q)
-               || i.code?.toLowerCase().includes(q)
+                || i.short_code.toLowerCase().includes(q)
+                || i.cityName.toLowerCase().includes(q)
+                || i.code?.toLowerCase().includes(q)
         );
         if (fallback.length > 0) {
             return NextResponse.json(fallback);

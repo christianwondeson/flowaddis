@@ -16,11 +16,13 @@ interface UseHotelsParams {
     adults?: number;
     children?: number;
     rooms?: number;
+    latitude?: number;
+    longitude?: number;
 }
 
-export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1, }: UseHotelsParams, options?: { enabled?: boolean }) {
+export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1, latitude, longitude }: UseHotelsParams, options?: { enabled?: boolean }) {
     return useQuery({
-        queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, pageSize, filters, adults, children, rooms }),
+        queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, pageSize, filters, adults, children, rooms, latitude, longitude }),
         queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, totalCount: number, destId?: string }> => {
             const params: Record<string, any> = {
                 query,
@@ -34,6 +36,8 @@ export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0
                 checkOut: checkOut?.toISOString().split('T')[0],
                 destId,
                 destType,
+                latitude,
+                longitude,
             };
 
             // Remove undefined values and handle arrays

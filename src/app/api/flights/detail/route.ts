@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { API_CONFIG } from '@/lib/api-config';
+import { API_CONFIG, getApiHeaders } from '@/lib/api-config';
 import axios from 'axios';
 
 export async function GET(request: Request) {
@@ -12,14 +12,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const url = `${API_CONFIG.FLIGHTS_BASE_URL}/detail`;
+    const url = `${API_CONFIG.FLIGHTS_BASE_URL}/getFlightDetails`;
     const response = await axios.get(url, {
       params: { selectionKey, searchPath },
-      headers: {
-        'x-rapidapi-key': API_CONFIG.RAPIDAPI_KEY,
-        'x-rapidapi-host': API_CONFIG.FLIGHTS_HOST,
-        'Content-Type': 'application/json',
-      },
+      headers: getApiHeaders(API_CONFIG.FLIGHTS_HOST),
     });
 
     // Pass-through response, but ensure consistent shape

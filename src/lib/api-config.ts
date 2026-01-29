@@ -6,8 +6,8 @@ export const API_CONFIG = {
     RAPIDAPI_HOST: 'booking-com.p.rapidapi.com',
     BASE_URL: 'https://booking-com.p.rapidapi.com/v1',
     // Flights config per user: https://booking-com18.p.rapidapi.com/flights
-    FLIGHTS_HOST: 'booking-com18.p.rapidapi.com',
-    FLIGHTS_BASE_URL: 'https://booking-com18.p.rapidapi.com/flights',
+    FLIGHTS_HOST: 'booking-com15.p.rapidapi.com',
+    FLIGHTS_BASE_URL: 'https://booking-com15.p.rapidapi.com/api/v1/flights',
 } as const;
 
 // API Headers (optionally override host)
@@ -38,11 +38,10 @@ export const API_ENDPOINTS = {
         ROOM_LIST: '/v1/hotels/room-list',
     },
     FLIGHTS: {
-        // Note: when using FLIGHTS_BASE_URL above, these are relative to that base
-        SEARCH_RETURN: '/search-return',
-        SEARCH_ONEWAY: '/search-oneway',
-        LOCATIONS: '/auto-complete',
-        OFFER_DETAILS: '/offer-details',
+        SEARCH: '/searchFlights',
+        SEARCH_MULTI_STOP: '/searchFlightsMultiStops',
+        LOCATIONS: '/searchDestination',
+        SEAT_MAP: '/getSeatMap',
     },
     CARS: {
         SEARCH: '/cars/searchCarRentals',

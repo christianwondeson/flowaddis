@@ -64,11 +64,45 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ center, zoom = 12, marke
     L.divIcon({
       className: 'price-marker',
       html: `
-        <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
-          <div style="background: ${highlighted ? '#003580' : '#003580'}; color: #fff; border-radius: 4px; padding: 4px 8px; font-weight: 700; font-size: 14px; white-space: nowrap; border: 1px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+        <style>
+          .price-marker-tag {
+            background: ${highlighted ? '#e63946' : '#003580'};
+            color: #fff;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-weight: 700;
+            font-size: 13px;
+            white-space: nowrap;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+          }
+          .price-marker-tag:hover {
+            transform: scale(1.15) translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            background: ${highlighted ? '#d62839' : '#0056b3'};
+            z-index: 1000 !important;
+          }
+          .price-marker-arrow {
+            width: 0;
+            height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 7px solid ${highlighted ? '#e63946' : '#003580'};
+            margin-top: -2px;
+            transition: border-top-color 0.2s ease-in-out;
+          }
+          .price-marker-container:hover .price-marker-arrow {
+            border-top-color: ${highlighted ? '#d62839' : '#0056b3'};
+          }
+        </style>
+        <div class="price-marker-container" style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
+          <div class="price-marker-tag">
             US$${Math.round(price)}
           </div>
-          <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #003580; margin-top: -1px;"></div>
+          <div class="price-marker-arrow"></div>
         </div>
       `,
       iconSize: [0, 0],

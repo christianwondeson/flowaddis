@@ -6,17 +6,21 @@ import axios from 'axios';
 const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 5; // 5 minutes
 
-// Minimal curated fallback with reliable dest_ids for common cities
+// Enhanced curated fallback with reliable dest_ids for common cities
 // Note: Booking.com's dest_ids can change; maintain these carefully if you expand.
 const FALLBACK_PRESETS = [
-    { name: 'Addis Ababa', dest_id: '-553173', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Addis Ababa', countryName: 'Ethiopia' },
-    { name: 'Bishoftu', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Bishoftu', countryName: 'Ethiopia' },
-    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Hawassa', countryName: 'Ethiopia' },
-    { name: 'Bahir Dar', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', cityName: 'Bahir Dar', countryName: 'Ethiopia' },
-    { name: 'Dubai', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'ae', cityName: 'Dubai', countryName: 'United Arab Emirates' },
-    { name: 'London', dest_id: '-2601889', dest_type: 'city', search_type: 'city', cc1: 'gb', cityName: 'London', countryName: 'United Kingdom' },
-    { name: 'Istanbul', dest_id: '-755070', dest_type: 'city', search_type: 'city', cc1: 'tr', cityName: 'Istanbul', countryName: 'Turkey' },
-    { name: 'New York', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'us', cityName: 'New York', countryName: 'United States' },
+    // Ethiopian cities
+    { name: 'Addis Ababa', dest_id: '-553173', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Addis Ababa', country: 'Ethiopia', label: 'Addis Ababa, Ethiopia' },
+    { name: 'Bishoftu', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Bishoftu', country: 'Ethiopia', label: 'Bishoftu, Ethiopia' },
+    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Hawassa', country: 'Ethiopia', label: 'Hawassa, Ethiopia' },
+    { name: 'Bahir Dar', dest_id: '-603098', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Bahir Dar', country: 'Ethiopia', label: 'Bahir Dar, Ethiopia' },
+    { name: 'Gondar', dest_id: '-603099', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Gondar', country: 'Ethiopia', label: 'Gondar, Ethiopia' },
+    { name: 'Dire Dawa', dest_id: '-603100', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Dire Dawa', country: 'Ethiopia', label: 'Dire Dawa, Ethiopia' },
+    // International cities
+    { name: 'Dubai', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'ae', city_name: 'Dubai', country: 'United Arab Emirates', label: 'Dubai, United Arab Emirates' },
+    { name: 'London', dest_id: '-2601889', dest_type: 'city', search_type: 'city', cc1: 'gb', city_name: 'London', country: 'United Kingdom', label: 'London, United Kingdom' },
+    { name: 'Istanbul', dest_id: '-755070', dest_type: 'city', search_type: 'city', cc1: 'tr', city_name: 'Istanbul', country: 'Turkey', label: 'Istanbul, Turkey' },
+    { name: 'New York', dest_id: '20088325', dest_type: 'city', search_type: 'city', cc1: 'us', city_name: 'New York', country: 'United States', label: 'New York, United States' },
 ];
 
 export async function GET(request: Request) {
@@ -35,24 +39,34 @@ export async function GET(request: Request) {
             return NextResponse.json(cached.data);
         }
 
-        // Smarter location query: only append Ethiopia if it's not clearly international
-        const internationalCities = ['dubai', 'london', 'istanbul', 'new york', 'paris', 'nairobi', 'johannesburg', 'frankfurt', 'toronto', 'doha'];
-        const isInternational = internationalCities.some(city => key.includes(city));
-        const searchQuery = (isInternational || key.includes('ethiopia')) ? name : `${name}, Ethiopia`;
-
+        // Send query as-is to the API without modification
+        // This allows partial searches like "Lon", "Bah", etc. to work correctly
         const options = {
             method: 'GET',
             url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
             params: {
-                name: searchQuery,
+                name: name,
                 locale: 'en-gb'
             },
             headers: getApiHeaders(),
         };
 
         const response = await axios.request(options);
-        cache.set(key, { data: response.data, ts: now });
-        return NextResponse.json(response.data);
+
+        // Sort results to prioritize Ethiopian destinations
+        const results = Array.isArray(response.data) ? response.data : [];
+        const sortedResults = results.sort((a: any, b: any) => {
+            // Ethiopian destinations (cc1 === 'et') come first
+            const aIsEthiopian = a.cc1 === 'et';
+            const bIsEthiopian = b.cc1 === 'et';
+            if (aIsEthiopian && !bIsEthiopian) return -1;
+            if (!aIsEthiopian && bIsEthiopian) return 1;
+            // Within same priority, maintain original order
+            return 0;
+        });
+
+        cache.set(key, { data: sortedResults, ts: now });
+        return NextResponse.json(sortedResults);
     } catch (error: any) {
         console.error('Error fetching locations:', error.message);
         if (error.response) {

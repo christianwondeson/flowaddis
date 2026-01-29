@@ -121,30 +121,61 @@ export async function GET(request: Request) {
         }
 
         // 3. Search Hotels
-        const searchOptions = {
-            method: 'GET',
-            url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH}`,
-            params: {
-                dest_id: destId,
-                search_type: searchType || 'city',
-                dest_type: destType || 'city',
-                checkin_date: checkIn,
-                checkout_date: checkOut,
-                page_number: page,
-                order_by: sortOrder,
-                adults_number: adults,
-                ...(Number(children) > 0 && { children_number: children }),
-                room_number: rooms,
-                units: 'metric',
-                locale: 'en-gb',
-                filter_by_currency: currency,
-                include_adjacency: 'true',
-                ...(categoriesFilterIds.length > 0 && { categories_filter_ids: categoriesFilterIds.join(',') }),
-                ...(minPrice && { price_min: minPrice }),
-                ...(maxPrice && { price_max: maxPrice }),
-            },
-            headers: getApiHeaders(),
-        };
+        let searchOptions;
+        const latitude = searchParams.get('latitude');
+        const longitude = searchParams.get('longitude');
+
+        if (latitude && longitude) {
+            // Search by coordinates
+            searchOptions = {
+                method: 'GET',
+                url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH_BY_COORDINATES}`,
+                params: {
+                    latitude,
+                    longitude,
+                    checkin_date: checkIn,
+                    checkout_date: checkOut,
+                    page_number: page,
+                    order_by: sortOrder,
+                    adults_number: adults,
+                    ...(Number(children) > 0 && { children_number: children }),
+                    room_number: rooms,
+                    units: 'metric',
+                    locale: 'en-gb',
+                    filter_by_currency: currency,
+                    ...(categoriesFilterIds.length > 0 && { categories_filter_ids: categoriesFilterIds.join(',') }),
+                    ...(minPrice && { price_min: minPrice }),
+                    ...(maxPrice && { price_max: maxPrice }),
+                },
+                headers: getApiHeaders(),
+            };
+        } else {
+            // Standard search by dest_id
+            searchOptions = {
+                method: 'GET',
+                url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH}`,
+                params: {
+                    dest_id: destId,
+                    search_type: searchType || 'city',
+                    dest_type: destType || 'city',
+                    checkin_date: checkIn,
+                    checkout_date: checkOut,
+                    page_number: page,
+                    order_by: sortOrder,
+                    adults_number: adults,
+                    ...(Number(children) > 0 && { children_number: children }),
+                    room_number: rooms,
+                    units: 'metric',
+                    locale: 'en-gb',
+                    filter_by_currency: currency,
+                    include_adjacency: 'true',
+                    ...(categoriesFilterIds.length > 0 && { categories_filter_ids: categoriesFilterIds.join(',') }),
+                    ...(minPrice && { price_min: minPrice }),
+                    ...(maxPrice && { price_max: maxPrice }),
+                },
+                headers: getApiHeaders(),
+            };
+        }
 
 
         const response = await axios.request(searchOptions);
@@ -208,24 +239,22 @@ export async function GET(request: Request) {
             hotels = hotels.filter((h: any) => h.name.toLowerCase().includes(nameLc));
         }
 
-        // Pagination limiting on our side to ensure consistent page size
+        // The external API already handles pagination via page_number parameter
+        // So hotels array should already contain just the hotels for this page
         const pageIndex = Number(page) || 0;
-        const start = 0;
-        const limitedHotels = hotels.slice(start, pageSize);
 
         // Compute hasNextPage using totalCount and pageSize
+        // Check if there are more results beyond the current page
         let hasNextPage = false;
         if (totalCount && totalCount > (pageIndex + 1) * pageSize) {
             hasNextPage = true;
-        } else if (hotels.length > pageSize) {
-            // If API returned more than our pageSize, assume there are more
+        } else if (hotels.length >= pageSize) {
+            // If API returned a full page, there might be more
             hasNextPage = true;
         }
 
-        console.log(`[API] Search: query=${query}, page=${pageIndex}, pageSize=${pageSize}, totalCount=${totalCount}, returned=${limitedHotels.length}, hasNext=${hasNextPage}`);
-
         return NextResponse.json({
-            hotels: limitedHotels,
+            hotels: hotels,
             total: totalCount,
             hasNextPage,
             destId,

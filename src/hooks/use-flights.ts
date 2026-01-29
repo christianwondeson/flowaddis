@@ -8,7 +8,7 @@ interface UseFlightsParams {
     toCode?: string;   // legacy, will be normalized to IATA
     departDate?: Date;
     returnDate?: Date;
-    flightType?: 'ROUNDTRIP' | 'ONEWAY';
+    flightType?: 'ROUNDTRIP' | 'ONEWAY' | 'MULTISTOP';
     cabinClass?: string;
     orderBy?: string;
     adults?: number;
@@ -18,15 +18,16 @@ interface UseFlightsParams {
     nonstopFlightsOnly?: boolean;
     priceRange?: string; // "min,max"
     airlines?: string;   // "LH,NK"
+    segments?: { from: string; to: string; date: string }[];
+    currency?: string;
 }
 
-export function useFlights({ fromCode, toCode, departDate, returnDate, flightType = 'ROUNDTRIP', cabinClass, orderBy, adults = 1, children = 0, page = 0, numberOfStops, nonstopFlightsOnly, priceRange, airlines }: UseFlightsParams) {
-    const iata = (code?: string) => code ? (code.includes('.') ? code.split('.')[0] : code).toUpperCase().slice(0, 3) : undefined;
-    const fromId = iata(fromCode);
-    const toId = iata(toCode);
+export function useFlights({ fromCode, toCode, departDate, returnDate, flightType = 'ROUNDTRIP', cabinClass, orderBy, adults = 1, children = 0, page = 0, numberOfStops, nonstopFlightsOnly, priceRange, airlines, segments, currency = 'USD' }: UseFlightsParams) {
+    const fromId = fromCode;
+    const toId = toCode;
 
     return useQuery({
-        queryKey: queryKeys.flights.list({ fromId, toId, departDate, returnDate, adults, children, page, flightType, cabinClass, orderBy, numberOfStops, nonstopFlightsOnly, priceRange, airlines }),
+        queryKey: queryKeys.flights.list({ fromId, toId, departDate, returnDate, adults, children, page, flightType, cabinClass, orderBy, numberOfStops, nonstopFlightsOnly, priceRange, airlines, segments }),
         queryFn: async () => {
             const params: Record<string, any> = {
                 fromId,
@@ -43,6 +44,8 @@ export function useFlights({ fromCode, toCode, departDate, returnDate, flightTyp
                 nonstopFlightsOnly,
                 priceRange,
                 airlines,
+                segments: segments ? JSON.stringify(segments) : undefined,
+                currency,
             };
 
             const cleanParams = Object.fromEntries(
@@ -52,7 +55,7 @@ export function useFlights({ fromCode, toCode, departDate, returnDate, flightTyp
             const data = await apiClient.get<any>(APP_CONSTANTS.API.FLIGHTS, cleanParams);
             return { flights: data.flights || [], searchPath: data.searchPath as string | undefined };
         },
-        enabled: Boolean(fromId && toId && departDate && (flightType === 'ONEWAY' || returnDate)),
+        enabled: Boolean((fromId && toId && departDate && (flightType === 'ONEWAY' || returnDate)) || (flightType === 'MULTISTOP' && segments && segments.length > 0)),
         refetchOnWindowFocus: false,
         refetchOnMount: false,
         refetchOnReconnect: false,
@@ -78,6 +81,17 @@ export function useFlightDetail(selectionKey?: string, searchPath?: string) {
             return apiClient.get<any>('/api/flights/detail', { selectionKey, searchPath });
         },
         enabled: Boolean(selectionKey && searchPath),
+        refetchOnWindowFocus: false,
+        staleTime: 60_000,
+    });
+}
+export function useFlightSeatMap(offerToken?: string, currencyCode: string = 'USD') {
+    return useQuery({
+        queryKey: ['flight-seatmap', offerToken, currencyCode],
+        queryFn: async () => {
+            return apiClient.get<any>('/api/flights/seatmap', { offerToken, currency_code: currencyCode });
+        },
+        enabled: Boolean(offerToken),
         refetchOnWindowFocus: false,
         staleTime: 60_000,
     });

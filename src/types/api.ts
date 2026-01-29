@@ -10,7 +10,7 @@
 // ============================================================================
 
 export interface LocationSuggestion {
-    // Common fields
+    id?: string;
     name: string;
     label?: string;
     type?: 'CITY' | 'AIRPORT' | 'REGION';
@@ -24,6 +24,8 @@ export interface LocationSuggestion {
     countryName?: string;
     nr_hotels?: number;
     cc1?: string; // Country code
+    latitude?: number;
+    longitude?: number;
 
     // Flight-specific fields
     code?: string;
@@ -32,6 +34,7 @@ export interface LocationSuggestion {
 
     // UI fields
     image_url?: string;
+    photoUri?: string;
 }
 
 // ============================================================================

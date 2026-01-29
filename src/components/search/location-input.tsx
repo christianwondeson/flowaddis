@@ -36,6 +36,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [notFound, setNotFound] = useState(false);
     const [hasInteracted, setHasInteracted] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +54,9 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     useEffect(() => {
         const fetchSuggestions = async () => {
             const trimmedValue = value.trim();
-            const codeLike = /^(?:[A-Za-z]{3}\.(?:AIRPORT|CITY))$/.test(trimmedValue) || trimmedValue.includes('.AIRPORT') || trimmedValue.includes('.CITY');
+
+            // Reset not found when user types
+            setNotFound(false);
 
             // If user hasn't interacted yet, keep dropdown hidden
             if (!hasInteracted) {
@@ -61,32 +64,34 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                 return;
             }
 
+            // Show nothing for very short queries
             if (trimmedValue.length < 2) {
-                setSuggestions(LOCATION_PRESETS);
-                setShowSuggestions(true);
-                return;
-            }
-
-            if (codeLike) {
-                const q = trimmedValue.toLowerCase();
-                const filtered = LOCATION_PRESETS.filter(
-                    (i: any) => (i.code && i.code.toLowerCase().includes(q)) || (i.short_code && i.short_code.toLowerCase().includes(q))
-                );
-                setSuggestions(filtered.length ? filtered : LOCATION_PRESETS);
-                setShowSuggestions(true);
+                setSuggestions([]);
+                setShowSuggestions(false);
                 return;
             }
 
             setIsLoading(true);
             try {
                 const endpoint = api === 'hotels' ? '/api/hotels/locations' : '/api/flights/locations';
-                const response = await axios.get(`${endpoint}?name=${encodeURIComponent(value)}`);
-                if (Array.isArray(response.data)) {
+                const response = await axios.get(`${endpoint}?name=${encodeURIComponent(trimmedValue)}`);
+
+                if (Array.isArray(response.data) && response.data.length > 0) {
                     setSuggestions(response.data);
+                    setShowSuggestions(true);
+                    setNotFound(false);
+                } else {
+                    // API returned empty array - location not found
+                    setSuggestions([]);
+                    setNotFound(true);
                     setShowSuggestions(true);
                 }
             } catch (error) {
                 console.error('Error fetching suggestions:', error);
+                // On error, also show not found
+                setSuggestions([]);
+                setNotFound(true);
+                setShowSuggestions(true);
             } finally {
                 setIsLoading(false);
             }
@@ -94,11 +99,11 @@ export const LocationInput: React.FC<LocationInputProps> = ({
 
         const debounce = setTimeout(fetchSuggestions, 300);
         return () => clearTimeout(debounce);
-    }, [value, api]);
+    }, [value, api, hasInteracted]);
 
     const handleSelect = (suggestion: LocationSuggestion) => {
         const name = suggestion.name ?? '';
-        const code = suggestion.code ?? suggestion.dest_id ?? suggestion.short_code ?? suggestion.iata_code ?? '';
+        const code = suggestion.id ?? suggestion.code ?? suggestion.dest_id ?? suggestion.short_code ?? suggestion.iata_code ?? '';
 
         onChange(name);
         if (onSelect) {
@@ -157,6 +162,14 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-primary mx-auto"></div>
                             <p className="mt-2 text-sm">Searching...</p>
                         </div>
+                    ) : notFound ? (
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                                <Search className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <p className="text-sm font-semibold text-gray-700">Location not found</p>
+                            <p className="text-xs text-gray-500 mt-1">Please try a different search term</p>
+                        </div>
                     ) : (
                         <div className="py-2">
                             {suggestions.map((item: LocationSuggestion, idx) => (
@@ -166,8 +179,8 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0 group"
                                 >
                                     <div className="flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center group-hover:bg-white transition-colors">
-                                        {item.image_url ? (
-                                            <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                                        {item.photoUri || item.image_url ? (
+                                            <img src={item.photoUri || item.image_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
                                                 {api === 'flights' ? (

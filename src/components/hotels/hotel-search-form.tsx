@@ -23,6 +23,7 @@ interface HotelSearchFormProps {
     onSearch: () => void;
     /** When true on mobile, shows the detailed panel by default */
     initialOpen?: boolean;
+    onLocationSelect?: (location: any) => void;
 }
 
 export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
@@ -32,6 +33,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     guests,
     isLoading,
     onDestinationChange,
+    onLocationSelect,
     onCheckInChange,
     onCheckOutChange,
     onGuestsChange,
@@ -111,6 +113,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                         placeholder="Destination"
                                         value={destination}
                                         onChange={onDestinationChange}
+                                        onSelectLocation={onLocationSelect}
                                         api="hotels"
                                     />
                                 </div>
@@ -195,6 +198,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                         placeholder="Where are you going?"
                         value={destination}
                         onChange={onDestinationChange}
+                        onSelectLocation={onLocationSelect}
                         api="hotels"
                     />
                 </div>
