@@ -105,7 +105,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
         filters.minRating ? 1 : 0,
         filters.minPrice ? 1 : 0,
         filters.maxPrice ? 1 : 0,
-        filters.query ? 1 : 0,
+        // filters.query ? 1 : 0, // Don't count query as a filter to be cleared
         filters.hotelName ? 1 : 0,
     ].reduce((a, b) => a + b, 0)
 
@@ -119,11 +119,12 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                         <button
                             onClick={() =>
                                 onFilterChange({
+                                    ...filters, // Preserve query and sortOrder
                                     stars: [],
                                     minRating: undefined,
                                     minPrice: undefined,
                                     maxPrice: undefined,
-                                    query: "",
+                                    // query: "", // Don't clear query
                                     hotelName: "",
                                 })
                             }

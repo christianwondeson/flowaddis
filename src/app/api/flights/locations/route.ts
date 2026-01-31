@@ -44,9 +44,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(API_CONFIG.FLIGHTS_HOST),
         } as const;
 
-        console.log('Fetching locations for:', name, 'URL:', options.url);
         const response = await axios.request(options);
-        console.log('Locations API Response status:', response.status, 'Data length:', response.data?.data?.length);
         // The new API returns { status: true, message: "Success", data: [...] }
         const items = Array.isArray(response.data?.data) ? response.data.data : [];
         cache.set(key, { data: items, ts: now });

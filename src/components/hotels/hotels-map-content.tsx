@@ -171,7 +171,10 @@ export function HotelsMapContent() {
 
                         {/* Floating Close Button - Hidden on mobile, visible on desktop */}
                         <button
-                            onClick={() => router.push('/hotels')}
+                            onClick={() => {
+                                const newParams = new URLSearchParams(params.toString());
+                                router.push(`/hotels?${newParams.toString()}`);
+                            }}
                             className="hidden lg:block absolute top-4 right-4 z-[1000] bg-white text-brand-dark p-2 rounded-full shadow-lg hover:bg-gray-100 transition-all border border-gray-200 group"
                             title="Close map"
                         >

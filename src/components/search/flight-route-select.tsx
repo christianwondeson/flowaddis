@@ -10,6 +10,8 @@ interface FlightRouteSelectProps {
   toCode: string;
   onChangeFrom: (code: string) => void;
   onChangeTo: (code: string) => void;
+  onSelectFrom?: (location: any) => void;
+  onSelectTo?: (location: any) => void;
   className?: string;
 }
 
@@ -24,10 +26,13 @@ const PRESETS = [
   { label: 'ADD ⇄ CDG', from: 'ADD.AIRPORT', to: 'CDG.AIRPORT' },
 ];
 
-export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, className }: FlightRouteSelectProps) {
+export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, onSelectFrom, onSelectTo, className }: FlightRouteSelectProps) {
   const swap = () => {
     onChangeFrom(toCode);
     onChangeTo(fromCode);
+    // Note: We can't easily swap IDs here without tracking them internally or passing them in.
+    // Ideally the parent handles the swap if it tracks IDs.
+    // For now, this just swaps the text which is the historical behavior.
   };
 
   return (
@@ -39,6 +44,7 @@ export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, 
             placeholder="e.g. Addis Ababa (ADD)"
             value={fromCode}
             onChange={onChangeFrom}
+            onSelectLocation={onSelectFrom}
             dropdownAlign="left"
           />
         </div>
@@ -53,6 +59,7 @@ export function FlightRouteSelect({ fromCode, toCode, onChangeFrom, onChangeTo, 
             placeholder="e.g. New York (JFK)"
             value={toCode}
             onChange={onChangeTo}
+            onSelectLocation={onSelectTo}
             dropdownAlign="right"
           />
         </div>

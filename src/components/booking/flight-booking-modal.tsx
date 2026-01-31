@@ -1,32 +1,27 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, ShoppingBag, Calendar as CalendarIcon } from 'lucide-react';
+import { X, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Receipt } from './receipt';
 import { PaymentForm } from './payment-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/currency';
-import { formatDateEnglishStr } from '@/lib/date-utils';
 import { useTripStore } from '@/store/trip-store';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Popover } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface BookingModalProps {
+interface FlightBookingModalProps {
     isOpen: boolean;
     onClose: () => void;
     serviceName?: string;
     price?: number;
-    type?: 'flight' | 'hotel' | 'shuttle' | 'conference';
-    initialCheckIn?: string;
-    initialCheckOut?: string;
+    flightData?: any;
     isLocal?: boolean;
 }
 
@@ -49,33 +44,23 @@ const COUNTRIES: Country[] = [
     { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳', min: 10, max: 10 },
     { code: 'CN', name: 'China', dial: '+86', flag: '🇨🇳', min: 11, max: 11 },
 ];
-const bookingSchema = z.object({
+
+const flightBookingSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
     phone: z.string()
         .transform(normalizePhone)
         .refine((v) => /^\+?[1-9]\d{7,14}$/.test(v), 'Enter a valid international phone number (e.g. +14155552671)'),
-    checkIn: z.string().min(1, 'Check-in is required'),
-    checkOut: z.string().min(1, 'Check-out is required'),
-}).refine((data) => {
-    const ci = new Date(data.checkIn);
-    const co = new Date(data.checkOut);
-    return co.getTime() > ci.getTime();
-}, {
-    message: 'Check-out must be after check-in',
-    path: ['checkOut']
 });
 
-type BookingFormData = z.infer<typeof bookingSchema>;
+type FlightBookingFormData = z.infer<typeof flightBookingSchema>;
 
-export const BookingModal: React.FC<BookingModalProps> = ({
+export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
     isOpen,
     onClose,
-    serviceName = 'Service',
+    serviceName = 'Flight Booking',
     price = 0,
-    type = 'hotel',
-    initialCheckIn = '',
-    initialCheckOut = '',
+    flightData,
     isLocal = true,
 }) => {
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
@@ -89,27 +74,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         formState: { errors },
         reset,
         setValue,
-        watch,
         setError,
-    } = useForm<BookingFormData>({
-        resolver: zodResolver(bookingSchema),
+    } = useForm<FlightBookingFormData>({
+        resolver: zodResolver(flightBookingSchema),
         defaultValues: {
             name: '',
             email: '',
             phone: '',
-            checkIn: initialCheckIn,
-            checkOut: initialCheckOut,
         },
     });
-    const selectedCheckIn = watch('checkIn');
-    const selectedCheckOut = watch('checkOut');
-
-    // Keep form dates in sync with props when modal opens or dates change
-    useEffect(() => {
-        if (!isOpen) return;
-        if (initialCheckIn) setValue('checkIn', initialCheckIn, { shouldValidate: true });
-        if (initialCheckOut) setValue('checkOut', initialCheckOut, { shouldValidate: true });
-    }, [isOpen, initialCheckIn, initialCheckOut, setValue]);
 
     // Country and national number UI state
     const [countryCode, setCountryCode] = useState<string>('ET');
@@ -122,21 +95,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setValue('phone', e164, { shouldValidate: true });
     };
 
-    const handleAddToTrip = (data: BookingFormData) => {
+    const handleAddToTrip = (data: FlightBookingFormData) => {
         if (!user) {
             requireAuth();
             return;
         }
         addToTrip({
-            type,
+            type: 'flight',
             price,
             details: {
                 serviceName,
                 customerName: data.name,
                 email: data.email,
                 phone: data.phone,
-                checkIn: data.checkIn,
-                checkOut: data.checkOut,
+                flightDetails: flightData,
             },
         });
         onClose();
@@ -144,7 +116,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         toast.success('Added to Trip! You can continue booking other services.');
     };
 
-    const handleFormSubmit = (data: BookingFormData) => {
+    const handleFormSubmit = (data: FlightBookingFormData) => {
         if (!user) {
             requireAuth();
             return;
@@ -166,15 +138,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         if (currentTrip.length === 0) {
             addToTrip({
-                type,
+                type: 'flight',
                 price,
                 details: {
                     serviceName,
                     customerName: formData.name,
                     email: formData.email,
                     phone: formData.phone,
-                    checkIn: formData.checkIn,
-                    checkOut: formData.checkOut,
+                    flightDetails: flightData,
                 },
             });
         }
@@ -187,8 +158,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             clientName: formData.name,
             email: formData.email,
             service: serviceName,
-            checkIn: formData.checkIn,
-            checkOut: formData.checkOut,
+            date: new Date().toLocaleDateString(),
             amount: price,
             status: 'Confirmed' as const,
         };
@@ -199,9 +169,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const handleClose = () => {
         onClose();
-        setStep('form');
-        reset();
-        setBookingData(null);
+        setTimeout(() => {
+            setStep('form');
+            reset();
+            setBookingData(null);
+            setNationalNumber('');
+        }, 500);
     };
 
     if (!isOpen) return null;
@@ -218,7 +191,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="flex justify-between items-center p-6 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-brand-dark">
                             {step === 'form'
-                                ? 'Complete Your Booking'
+                                ? 'Complete Your Flight Booking'
                                 : step === 'payment'
                                     ? 'Secure Payment'
                                     : 'Booking Confirmed'}
@@ -237,14 +210,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 <div className="bg-brand-gray p-5 rounded-2xl border border-gray-100">
                                     <h3 className="font-bold text-brand-dark text-lg mb-1">{serviceName}</h3>
                                     <p className="text-brand-primary font-extrabold text-2xl">
-                                        {formatCurrency(price)}{' '}
-                                        <span className="text-gray-500 font-medium text-sm">/ unit</span>
+                                        {formatCurrency(price)}
                                     </p>
+                                    {flightData && (
+                                        <div className="mt-2 text-xs text-gray-500">
+                                            {flightData.departureTime} • {flightData.airline}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <Input
                                     id="name"
-                                    label="Full Name"
+                                    label="Passenger Full Name"
                                     {...register('name')}
                                     error={errors.name?.message}
                                 />
@@ -255,7 +232,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     {...register('email')}
                                     error={errors.email?.message}
                                 />
-                                {/* Country selector + phone input */}
+
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Phone Number</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -299,51 +276,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             />
                                         </div>
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <Popover
-                                        trigger={
-                                            <div className="w-full cursor-pointer">
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
-                                                <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                                    <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckIn) || 'Select date'}</span>
-                                                </div>
-                                            </div>
-                                        }
-                                        content={
-                                            <Calendar
-                                                selected={selectedCheckIn ? new Date(selectedCheckIn) : undefined}
-                                                onSelect={(date) => setValue('checkIn', date.toISOString().split('T')[0], { shouldValidate: true })}
-                                                minDate={new Date()}
-                                            />
-                                        }
-                                    />
-                                    {errors.checkIn?.message && (
-                                        <p className="text-red-500 text-xs mt-1 ml-1 sm:col-span-2">{errors.checkIn.message}</p>
-                                    )}
-
-                                    <Popover
-                                        trigger={
-                                            <div className="w-full cursor-pointer">
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
-                                                <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                                    <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckOut) || 'Select date'}</span>
-                                                </div>
-                                            </div>
-                                        }
-                                        content={
-                                            <Calendar
-                                                selected={selectedCheckOut ? new Date(selectedCheckOut) : undefined}
-                                                onSelect={(date) => setValue('checkOut', date.toISOString().split('T')[0], { shouldValidate: true })}
-                                                minDate={selectedCheckIn ? new Date(new Date(selectedCheckIn).getTime() + 86400000) : new Date()}
-                                            />
-                                        }
-                                    />
-                                    {errors.checkOut?.message && (
-                                        <p className="text-red-500 text-xs mt-1 ml-1 sm:col-span-2">{errors.checkOut.message}</p>
-                                    )}
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row gap-3 pt-4">

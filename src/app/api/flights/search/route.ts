@@ -91,9 +91,7 @@ export async function GET(request: Request) {
             headers: getApiHeaders(FLIGHTS_HOST),
         } as const;
 
-        console.log('Searching flights:', params, 'URL:', url);
         const response = await axios.request(options);
-        console.log('Flights API Response status:', response.status, 'Full Data:', JSON.stringify(response.data).slice(0, 1000));
 
         // Normalize new API response: { status: true, message: "Success", data: { flightOffers: [...] } }
         const data = response.data?.data || {};
@@ -161,8 +159,7 @@ export async function GET(request: Request) {
         const pageIndex = Number(page) || 0;
         const pageSize = flights.length || 0;
         const hasNextPage = pageSize > 0 ? (pageSize * (pageIndex + 1) < totalCount) : false;
-        const searchPath = (data?.searchPath || data?.resultSetMetaData?.searchPath) as string | undefined;
-        return NextResponse.json({ flights, total: totalCount, hasNextPage, searchPath, mock: false, rawData: response.data });
+        return NextResponse.json({ flights, total: totalCount, hasNextPage, mock: false, rawData: response.data });
     } catch (error: any) {
         const status = error?.response?.status;
         const data = error?.response?.data;

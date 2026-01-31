@@ -5,16 +5,19 @@ import axios from 'axios';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const selectionKey = searchParams.get('selectionKey');
-  const searchPath = searchParams.get('searchPath');
+  const currencyCode = searchParams.get('currency_code') || 'USD';
 
-  if (!selectionKey || !searchPath) {
-    return NextResponse.json({ error: 'selectionKey and searchPath are required' }, { status: 400 });
+  if (!selectionKey) {
+    return NextResponse.json({ error: 'selectionKey is required' }, { status: 400 });
   }
 
   try {
     const url = `${API_CONFIG.FLIGHTS_BASE_URL}/getFlightDetails`;
     const response = await axios.get(url, {
-      params: { selectionKey, searchPath },
+      params: {
+        token: selectionKey,
+        currency_code: currencyCode
+      },
       headers: getApiHeaders(API_CONFIG.FLIGHTS_HOST),
     });
 

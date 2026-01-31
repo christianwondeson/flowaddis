@@ -53,7 +53,11 @@ export function useFlights({ fromCode, toCode, departDate, returnDate, flightTyp
             );
 
             const data = await apiClient.get<any>(APP_CONSTANTS.API.FLIGHTS, cleanParams);
-            return { flights: data.flights || [], searchPath: data.searchPath as string | undefined };
+            return {
+                flights: data.flights || [],
+                searchPath: data.searchPath as string | undefined,
+                aggregation: data.aggregation || data.resultSetMetaData || null
+            };
         },
         enabled: Boolean((fromId && toId && departDate && (flightType === 'ONEWAY' || returnDate)) || (flightType === 'MULTISTOP' && segments && segments.length > 0)),
         refetchOnWindowFocus: false,
@@ -74,13 +78,13 @@ export function useFlightLocations(query: string) {
     });
 }
 
-export function useFlightDetail(selectionKey?: string, searchPath?: string) {
+export function useFlightDetail(selectionKey?: string) {
     return useQuery({
-        queryKey: ['flight-detail', selectionKey, searchPath],
+        queryKey: ['flight-detail', selectionKey],
         queryFn: async () => {
-            return apiClient.get<any>('/api/flights/detail', { selectionKey, searchPath });
+            return apiClient.get<any>('/api/flights/detail', { selectionKey, currency_code: 'USD' });
         },
-        enabled: Boolean(selectionKey && searchPath),
+        enabled: Boolean(selectionKey),
         refetchOnWindowFocus: false,
         staleTime: 60_000,
     });

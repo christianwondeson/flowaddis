@@ -22,9 +22,9 @@ export default function HomePage() {
   return (
     <div className="space-y-12 md:space-y-16 lg:space-y-24 pb-16 md:pb-20 overflow-x-hidden">
       {/* Hero Section with Slider */}
-      <section className="relative min-h-[550px] md:h-[560px] lg:h-[640px] xl:h-[700px] flex items-center justify-center -mt-6 md:-mt-12 lg:-mt-16 xl:-mt-20 no-scrollbar">
+      <section className="relative min-h-[500px] md:h-[500px] lg:h-[580px] xl:h-[650px] flex items-center justify-center -mt-4 md:-mt-8 lg:-mt-12 xl:-mt-16 no-scrollbar">
         <HeroSlider>
-          <div className="w-full py-12 md:py-0">
+          <div className="w-full">
             <SearchWidget onTabChange={(tab) => setActiveTab(tab)} />
           </div>
         </HeroSlider>

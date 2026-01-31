@@ -122,7 +122,9 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                 value={value}
                 onChange={(e) => {
                     onChange(e.target.value);
-                    setHasInteracted(true);
+                    if (!hasInteracted) {
+                        setHasInteracted(true);
+                    }
                 }}
                 placeholder={placeholder}
                 icon={icon || <MapPin className="w-4 h-4" />}

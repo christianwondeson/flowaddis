@@ -45,7 +45,20 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
           <Filter className="w-4 h-4" /> Filter
         </button>
         <Link
-          href="/hotels/map"
+          href={{
+            pathname: '/hotels/map',
+            query: {
+              ...linkParams,
+              // Ensure filters are passed
+              sortOrder: filters.sortOrder,
+              minPrice: filters.minPrice,
+              maxPrice: filters.maxPrice,
+              minRating: filters.minRating,
+              stars: filters.stars?.join(','),
+              amenities: filters.amenities?.join(','),
+              hotelName: filters.hotelName,
+            }
+          }}
           className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-full text-sm font-bold shadow-sm"
         >
           <MapIcon className="w-4 h-4" /> Map
@@ -81,8 +94,8 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
                       setIsSortOpen(false);
                     }}
                     className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-bold transition-all ${active
-                        ? 'border-blue-600 bg-blue-50 text-blue-600'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-600 bg-blue-50 text-blue-600'
+                      : 'border-gray-200 text-gray-700 hover:border-gray-300'
                       }`}
                   >
                     {opt.label}
