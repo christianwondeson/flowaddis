@@ -26,6 +26,10 @@ let db: Firestore | undefined;
 
 if (typeof window !== "undefined") {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    // Debug: log project configuration once on client
+    try {
+        console.info('[Firebase] Project:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+    } catch {}
     auth = getAuth(app);
 
     // Explicitly set persistence to local (default but good to be explicit)
@@ -33,26 +37,31 @@ if (typeof window !== "undefined") {
         if (auth) setPersistence(auth, browserLocalPersistence);
     });
 
-    // IMPORTANT: Connect to the named database 'flowaddis-db' instead of default
-    // If you have a database named 'flowaddis-db', specify it here
-    // Otherwise, it will use the default (default) database
+    // Initialize Firestore using either a named database (if provided) or the default database
     try {
-        db = initializeFirestore(app, {
+        const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
+        if (databaseId) {
+            console.info('[Firebase] Firestore databaseId configured:', databaseId);
+        } else {
+            console.info('[Firebase] Firestore databaseId not set, using default');
+        }
+        const settings = {
             localCache: persistentLocalCache({
                 tabManager: persistentMultipleTabManager(),
             }),
-        }, 'flowaddis-db'); // Specify your database name here
+        } as const;
 
-       
+        if (databaseId && databaseId !== '(default)') {
+            // Use the explicitly provided database ID (e.g., 'flowaddis_db')
+            db = initializeFirestore(app, settings, databaseId as any);
+        } else {
+            // Use the default database
+            db = initializeFirestore(app, settings);
+        }
     } catch (error) {
         console.error('❌ Error initializing Firestore:', error);
-        // Fallback to default database if named database fails
-       
-        db = initializeFirestore(app, {
-            localCache: persistentLocalCache({
-                tabManager: persistentMultipleTabManager(),
-            }),
-        });
+        // As a last resort, attempt to get a basic Firestore instance
+        db = getFirestore(app);
     }
 }
 

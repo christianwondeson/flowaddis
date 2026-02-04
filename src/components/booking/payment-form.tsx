@@ -11,12 +11,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { auth } from '@/lib/firebase';
+import { getStripe } from '@/lib/stripe';
 
 interface PaymentFormProps {
     amount: number;
     onSuccess: () => void;
     onCancel: () => void;
     isLocal?: boolean; // New prop to determine if local methods (Telebirr/CBE) should be shown
+    // Optional metadata for Stripe backend spec
+    bookingType?: 'flight' | 'hotel' | 'event' | 'car';
+    source?: string; // e.g., 'amadeus', 'duffel', 'local'
+    externalItemId?: string; // ID from provider/search result
+    currencyCode?: string; // default USD
+    externalSnapshot?: Record<string, any>;
 }
 
 type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe';
@@ -36,7 +44,7 @@ const stripeSchema = z.object({
     cvc: z.string().regex(/^\d{3,4}$/, 'CVC must be 3-4 digits'),
 });
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true, bookingType = 'flight', source = 'local', externalItemId = 'N/A', currencyCode = 'USD', externalSnapshot = {} }) => {
     // Default to stripe if not local, otherwise telebirr
     const [method, setMethod] = useState<PaymentMethod>(isLocal ? 'telebirr' : 'stripe');
     const [loading, setLoading] = useState(false);
@@ -61,19 +69,55 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
         if (method === 'stripe') {
             try {
+                // Ensure user is logged in
+                if (!auth?.currentUser) {
+                    toast.error('Please sign in to continue to payment.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Force-refresh Firebase ID token to avoid invalid/expired tokens
+                const token = await auth.currentUser.getIdToken(true);
+
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    // Match backend API spec
                     body: JSON.stringify({
-                        amount,
-                        currency: 'usd',
-                        payment_method_types: ['card'],
+                        bookingType,
+                        source,
+                        externalItemId,
+                        displayedPrice: amount,
+                        currency: currencyCode || 'USD',
+                        external_snapshot: externalSnapshot,
                     }),
                 });
 
-                const { url, error } = await response.json();
+                // Handle response
+                if (response.status === 401) {
+                    toast.error('Authentication failed. Please sign out and sign in again.');
+                }
+                const payload = await response.json();
+                const { url, error, sessionId } = payload || {};
+
                 if (url) {
                     window.location.href = url;
+                    return;
+                }
+                if (sessionId) {
+                    const stripe = await getStripe();
+                    if (!stripe) {
+                        toast.error('Stripe failed to load.');
+                    } else {
+                        const { error: stripeError } = await (stripe as any).redirectToCheckout({ sessionId });
+                        if (stripeError) {
+                            console.error('Stripe redirect error:', stripeError);
+                            toast.error(stripeError.message || 'Unable to redirect to Stripe.');
+                        }
+                    }
                     return;
                 }
                 if (error) {
@@ -100,64 +144,56 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     };
 
     return (
-        <div className="space-y-6">
-            <div className="text-center">
-                <h3 className="text-lg font-bold text-brand-dark">Select Payment Method</h3>
-                <p className="text-gray-500 text-sm">
+        <div className="space-y-8">
+            <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold text-brand-dark">Choose Payment Method</h3>
+                <p className="text-gray-600 text-base">
                     Total Amount:{' '}
-                    <span className="text-brand-primary font-bold text-xl">
+                    <span className="text-brand-primary font-bold text-2xl">
                         {formatCurrency(displayAmount, currency)}
                     </span>
                 </p>
             </div>
 
-            <div className={`grid gap-3 ${isLocal ? 'grid-cols-3' : 'grid-cols-1'}`}>
+            <div className={`grid gap-6 ${isLocal ? 'grid-cols-3' : 'grid-cols-1'}`}>
                 {isLocal && (
                     <>
                         <button
                             type="button"
                             onClick={() => setMethod('telebirr')}
-                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${method === 'telebirr'
-                                ? 'border-[#5C2D91] bg-purple-50 text-[#5C2D91]'
-                                : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                            className={`p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-4 transition-all duration-300 min-h-[160px] ${method === 'telebirr'
+                                ? 'border-[#5C2D91] bg-[#5C2D91]/10 shadow-lg ring-2 ring-[#5C2D91]/20'
+                                : 'border-gray-200 hover:border-[#5C2D91]/40 hover:shadow-md bg-white'
                                 }`}
                         >
-                            <div className="w-8 h-8 relative">
+                            <div className="w-20 h-20 relative">
                                 <Image
-                                    src="/assets/telebirr-logo.png"
+                                    src="/assets/images/telebirr.png"
                                     alt="Telebirr"
                                     fill
-                                    className="object-contain"
-                                    onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                    }}
+                                    className={`object-contain transition-all duration-300 ${method === 'telebirr' ? 'scale-110' : 'opacity-80'}`}
                                 />
-                                {method !== 'telebirr' && <Smartphone className="w-6 h-6" />}
                             </div>
-                            <span className="text-xs font-bold">Telebirr</span>
+                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'telebirr' ? 'text-[#5C2D91]' : 'text-gray-600'}`}>Telebirr</span>
                         </button>
 
                         <button
                             type="button"
                             onClick={() => setMethod('cbebirr')}
-                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${method === 'cbebirr'
-                                ? 'border-[#006838] bg-green-50 text-[#006838]'
-                                : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                            className={`p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-4 transition-all duration-300 min-h-[160px] ${method === 'cbebirr'
+                                ? 'border-[#006838] bg-[#006838]/10 shadow-lg ring-2 ring-[#006838]/20'
+                                : 'border-gray-200 hover:border-[#006838]/40 hover:shadow-md bg-white'
                                 }`}
                         >
-                            <div className="w-8 h-8 relative">
+                            <div className="w-20 h-20 relative">
                                 <Image
-                                    src="/assets/cbe-logo.png"
+                                    src="/assets/images/branch.png"
                                     alt="CBE Birr"
                                     fill
-                                    className="object-contain"
-                                    onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                    }}
+                                    className={`object-contain transition-all duration-300 ${method === 'cbebirr' ? 'scale-110' : 'opacity-80'}`}
                                 />
-                                {method !== 'cbebirr' && <Building2 className="w-6 h-6" />}
                             </div>
-                            <span className="text-xs font-bold">CBE Birr</span>
+                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'cbebirr' ? 'text-[#006838]' : 'text-gray-600'}`}>Bank Transfer</span>
                         </button>
                     </>
                 )}
@@ -165,13 +201,20 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 <button
                     type="button"
                     onClick={() => setMethod('stripe')}
-                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${method === 'stripe'
-                        ? 'border-brand-primary bg-blue-50 text-brand-primary'
-                        : 'border-gray-100 hover:border-gray-200 text-gray-500'
+                    className={`p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-4 transition-all duration-300 min-h-[160px] ${method === 'stripe'
+                        ? 'border-[#635BFF] bg-[#635BFF]/10 shadow-lg ring-2 ring-[#635BFF]/20'
+                        : 'border-gray-200 hover:border-[#635BFF]/40 hover:shadow-md bg-white'
                         } ${!isLocal ? 'w-full' : ''}`}
                 >
-                    <CreditCard className="w-6 h-6" />
-                    <span className="text-xs font-bold">International Card</span>
+                    <div className="w-20 h-20 relative">
+                        <Image
+                            src="/assets/images/stripe.png"
+                            alt="Stripe"
+                            fill
+                            className={`object-contain transition-all duration-300 ${method === 'stripe' ? 'scale-110' : 'opacity-80'}`}
+                        />
+                    </div>
+                    <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'stripe' ? 'text-[#635BFF]' : 'text-gray-600'}`}>Credit Card</span>
                 </button>
             </div>
 
@@ -244,14 +287,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                 Cancel
                             </Button>
                             <Button
-                                className="flex-1 bg-[#635BFF] hover:bg-[#5851E0] text-white"
+                                className="flex-1"
                                 disabled={loading}
                                 onClick={() => handlePayment({})}
                             >
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    `Pay with Card`
+                                    `Pay ${formatCurrency(displayAmount, currency)}`
                                 )}
                             </Button>
                         </div>

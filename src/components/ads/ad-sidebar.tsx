@@ -24,7 +24,6 @@ export function AdSidebar({ ads, position }: AdSidebarProps) {
 
     const handleAdClick = () => {
         // Track ad click (can be extended with analytics)
-        console.log('Ad clicked:', currentAd.id);
     };
 
     const adContent = (

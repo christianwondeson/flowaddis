@@ -30,7 +30,7 @@ import { AuthContextType, User, UserRole } from '@/types/auth';
 // Actually, I should check types/auth.ts first to be safe.
 
 import { APP_CONSTANTS } from '@/lib/constants';
-import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies';
+// import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies'; // Deprecated in favor of HttpOnly cookies
 import { useUserProfile } from '@/hooks/use-user-profile';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,10 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
             if (user) {
                 const token = await user.getIdToken();
-                setAuthCookie(token);
+                // setAuthCookie(token);
+                // Securely set session on server
+                await fetch('/api/auth/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token }),
+                });
                 setFirebaseUser(user);
             } else {
-                clearAuthCookie();
+                // clearAuthCookie();
+                await fetch('/api/auth/session', { method: 'DELETE' });
                 setFirebaseUser(null);
                 queryClient.setQueryData(queryKeys.user.profile(), null);
             }
@@ -83,7 +90,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!password) throw new Error("Password required");
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const token = await userCredential.user.getIdToken();
-        setAuthCookie(token);
+        // setAuthCookie(token);
+        await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
 
         if (db) {
             const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
@@ -142,14 +154,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error) {
             console.error('❌ Error in register function:', error);
-            if (error instanceof Error) {
-                console.error('Error name:', error.name);
-                console.error('Error message:', error.message);
-                console.error('Error stack:', error.stack);
+            const err = error as any;
+            const code: string | undefined = err?.code;
+            // Provide friendlier error messages
+            if (code === 'auth/email-already-in-use') {
+                throw new Error('An account with this email already exists. Try signing in or use Forgot Password.');
             }
-            // Log the full error object
-            console.error('Full error object:', JSON.stringify(error, null, 2));
-            throw error; // Re-throw to be handled by caller
+            if (code === 'auth/weak-password') {
+                throw new Error('Your password is too weak. Please use at least 8 characters.');
+            }
+            if (code === 'auth/invalid-email') {
+                throw new Error('The email address is invalid.');
+            }
+            // Default fallback
+            throw new Error(err?.message || 'Registration failed. Please try again.');
         }
     }, []);
 
@@ -158,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async () => {
         if (!auth) throw new Error("Auth not initialized");
         await signOut(auth);
-        deleteAuthCookie();
+        // deleteAuthCookie();
+        await fetch('/api/auth/session', { method: 'DELETE' });
         setFirebaseUser(null);
         queryClient.setQueryData(queryKeys.user.profile(), null);
     };
@@ -171,7 +190,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userCredential = await signInWithPopup(auth, provider);
         const user = userCredential.user;
         const token = await user.getIdToken();
-        setAuthCookie(token);
+        // setAuthCookie(token);
+        await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+        });
 
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
