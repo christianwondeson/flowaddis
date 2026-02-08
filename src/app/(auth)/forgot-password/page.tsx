@@ -51,8 +51,8 @@ function ForgotPasswordContent() {
             setEmailSent(true);
             toast.success("Password reset email sent!");
         } catch (error: any) {
-            console.error(error);
-            toast.error(error.message || "Failed to send reset email");
+            // console.error(error);
+            toast.error(error.message || "Failed to send reset email. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -74,11 +74,6 @@ function ForgotPasswordContent() {
                             We sent a password reset link to <span className="font-semibold text-brand-dark">{sentEmail}</span>. Check your email to continue.
                         </p>
                     </div>
-                    <Link href="/signin" className="block">
-                        <Button className="w-full bg-brand-primary hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors">
-                            Back to Sign In
-                        </Button>
-                    </Link>
                 </div>
             </AuthLayout>
         );
@@ -115,15 +110,6 @@ function ForgotPasswordContent() {
                 >
                     {loading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
-
-                <div className="text-center">
-                    <Link
-                        href="/signin"
-                        className="text-xs sm:text-sm font-medium text-gray-600 hover:text-brand-primary transition-colors"
-                    >
-                        ← Back to Sign In
-                    </Link>
-                </div>
             </form>
         </AuthLayout>
     );

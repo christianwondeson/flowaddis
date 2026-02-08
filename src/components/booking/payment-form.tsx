@@ -155,18 +155,18 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 </p>
             </div>
 
-            <div className={`grid gap-6 ${isLocal ? 'grid-cols-3' : 'grid-cols-1'}`}>
+            <div className={`grid gap-4 md:gap-6 ${isLocal ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1'}`}>
                 {isLocal && (
                     <>
                         <button
                             type="button"
                             onClick={() => setMethod('telebirr')}
-                            className={`p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-4 transition-all duration-300 min-h-[160px] ${method === 'telebirr'
+                            className={`p-4 md:p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'telebirr'
                                 ? 'border-[#5C2D91] bg-[#5C2D91]/10 shadow-lg ring-2 ring-[#5C2D91]/20'
                                 : 'border-gray-200 hover:border-[#5C2D91]/40 hover:shadow-md bg-white'
                                 }`}
                         >
-                            <div className="w-20 h-20 relative">
+                            <div className="w-12 h-12 md:w-20 md:h-20 relative">
                                 <Image
                                     src="/assets/images/telebirr.png"
                                     alt="Telebirr"
@@ -180,12 +180,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         <button
                             type="button"
                             onClick={() => setMethod('cbebirr')}
-                            className={`p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-4 transition-all duration-300 min-h-[160px] ${method === 'cbebirr'
+                            className={`p-4 md:p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'cbebirr'
                                 ? 'border-[#006838] bg-[#006838]/10 shadow-lg ring-2 ring-[#006838]/20'
                                 : 'border-gray-200 hover:border-[#006838]/40 hover:shadow-md bg-white'
                                 }`}
                         >
-                            <div className="w-20 h-20 relative">
+                            <div className="w-12 h-12 md:w-20 md:h-20 relative">
                                 <Image
                                     src="/assets/images/branch.png"
                                     alt="CBE Birr"
@@ -201,20 +201,32 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 <button
                     type="button"
                     onClick={() => setMethod('stripe')}
-                    className={`p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-4 transition-all duration-300 min-h-[160px] ${method === 'stripe'
+                    className={`p-4 md:p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'stripe'
                         ? 'border-[#635BFF] bg-[#635BFF]/10 shadow-lg ring-2 ring-[#635BFF]/20'
                         : 'border-gray-200 hover:border-[#635BFF]/40 hover:shadow-md bg-white'
                         } ${!isLocal ? 'w-full' : ''}`}
                 >
-                    <div className="w-20 h-20 relative">
-                        <Image
-                            src="/assets/images/stripe.png"
-                            alt="Stripe"
-                            fill
-                            className={`object-contain transition-all duration-300 ${method === 'stripe' ? 'scale-110' : 'opacity-80'}`}
-                        />
+                    <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 overflow-hidden relative ${method === 'stripe' ? 'scale-110 shadow-lg' : 'opacity-80'}`}>
+                        {/* Colorful Gradient Card Background */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#0061ff] via-[#6033ff] to-[#ff00c6] animate-gradient-xy"></div>
+                        {/* Decorative elements to make it look like a card */}
+                        <div className="absolute top-2 left-2 w-6 h-4 bg-white/20 rounded-sm blur-[1px]"></div>
+                        <div className="absolute bottom-2 right-2 flex gap-1">
+                            <div className="w-4 h-4 rounded-full bg-red-500/80"></div>
+                            <div className="w-4 h-4 rounded-full bg-yellow-500/80 -ml-2"></div>
+                        </div>
+                        <CreditCard className="w-6 h-6 md:w-10 md:h-10 text-white relative z-10" />
                     </div>
-                    <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'stripe' ? 'text-[#635BFF]' : 'text-gray-600'}`}>Credit Card</span>
+                    <div className="text-center">
+                        <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'stripe' ? 'text-[#635BFF]' : 'text-gray-600'}`}>International Cards</span>
+                        <div className="flex items-center justify-center gap-1 mt-1">
+                            <span className="text-[10px] text-gray-500 font-medium">Visa</span>
+                            <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                            <span className="text-[10px] text-gray-500 font-medium">Mastercard</span>
+                            <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                            <span className="text-[10px] text-gray-500 font-medium">Amex</span>
+                        </div>
+                    </div>
                 </button>
             </div>
 

@@ -391,11 +391,11 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.6 }}
-      className="bg-white rounded-2xl md:rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-1 md:p-1.5 max-w-4xl mx-auto relative z-[100] border border-gray-100/50 backdrop-blur-sm"
+      className="bg-white/80 md:bg-white rounded-2xl md:rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-0.5 md:p-1.5 max-w-4xl mx-auto relative z-[100] border border-white/50 backdrop-blur-md md:backdrop-blur-sm mb-8 md:mb-12"
     >
-      <div className="bg-white rounded-xl md:rounded-[1.75rem] p-3 md:p-6">
+      <div className="bg-white/90 md:bg-white rounded-xl md:rounded-[1.75rem] p-5 md:p-6">
         {/* Tabs */}
-        <div className="flex items-center gap-6 md:gap-7 mb-5 md:mb-6 border-b border-gray-100 px-4 md:px-0 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-6 md:gap-7 mb-1 md:mb-6 border-b border-gray-100 px-4 md:px-0 overflow-x-auto no-scrollbar">
           {[
             { id: 'flights', icon: Plane, label: 'Flights' },
             { id: 'hotels', icon: Hotel, label: 'Booking' },
@@ -425,9 +425,9 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
         </div>
 
         {/* Search Form Content */}
-        <div className="flex flex-col md:grid md:grid-cols-12 gap-2.5 md:gap-4 items-stretch md:items-end">
+        <div className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 items-stretch md:items-end pt-2 md:pt-0">
           <div className="flex-1 md:col-span-10">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-10 gap-2.5 md:gap-3 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-10 gap-3 md:gap-3 items-end">
               {renderSearchFields()}
             </div>
           </div>

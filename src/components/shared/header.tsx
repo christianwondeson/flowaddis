@@ -36,14 +36,14 @@ export const Header: React.FC = () => {
     ];
 
     const isActive = (path: string) => pathname === path;
-    const isHomePage = pathname === '/';
+    const isTransparentPage = pathname === '/' || ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
 
     return (
         <header
             className={clsx(
                 'fixed top-0 left-0 right-0 z-[60] transition-all duration-300',
-                isHomePage
-                    ? (scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-2' : 'bg-black/20 backdrop-blur-sm py-4')
+                isTransparentPage
+                    ? (scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-2' : 'bg-transparent py-4 md:bg-black/20 md:backdrop-blur-sm')
                     : 'bg-white/90 backdrop-blur-md shadow-sm py-2'
             )}
         >
@@ -58,7 +58,7 @@ export const Header: React.FC = () => {
                     <nav
                         className={clsx(
                             'hidden md:flex items-center gap-1 px-2 py-1 rounded-full',
-                            isHomePage && !scrolled
+                            isTransparentPage && !scrolled
                                 ? 'bg-transparent border-transparent'
                                 : 'bg-white/50 backdrop-blur-sm border border-white/20'
                         )}
@@ -71,7 +71,7 @@ export const Header: React.FC = () => {
                                     'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer',
                                     isActive(item.path)
                                         ? 'bg-brand-primary text-black shadow-md'
-                                        : (isHomePage && !scrolled
+                                        : (isTransparentPage && !scrolled
                                             ? 'text-white hover:bg-white/20'
                                             : 'text-brand-dark hover:bg-white hover:text-brand-primary')
                                 )}
@@ -84,14 +84,14 @@ export const Header: React.FC = () => {
 
                     {/* Auth Buttons / User Menu */}
                     <div className="hidden md:flex items-center gap-3">
-                        <UserMenu isHomePage={isHomePage} scrolled={scrolled} />
+                        <UserMenu isHomePage={isTransparentPage} scrolled={scrolled} />
                     </div>
 
                     {/* Mobile Menu Button */}
                     <button
                         className={clsx(
                             'md:hidden p-2 rounded-full transition-colors',
-                            isHomePage && !scrolled
+                            isTransparentPage && !scrolled
                                 ? 'text-white hover:bg-white/20'
                                 : 'text-brand-dark hover:bg-gray-100'
                         )}

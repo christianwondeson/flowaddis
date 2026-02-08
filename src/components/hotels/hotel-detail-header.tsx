@@ -12,7 +12,7 @@ interface HotelDetailHeaderProps {
     hotel: any;
     activeTab: string;
     onTabChange: (tab: string) => void;
-    onBook?: () => void;
+    onBook?: (price?: number) => void;
 }
 
 export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook }) => {
@@ -134,7 +134,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                             <Button variant="ghost" size="icon" className="text-brand-primary hover:bg-brand-primary/10 rounded-full">
                                 <Share2 className="w-5 h-5" />
                             </Button>
-                            <Button onClick={onBook} className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-8 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Button onClick={() => onBook?.()} className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-8 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95">
                                 Book now
                             </Button>
                         </div>

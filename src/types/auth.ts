@@ -21,4 +21,6 @@ export interface AuthContextType {
     sendVerificationEmail: () => Promise<void>;
     sendPasswordReset: (email: string) => Promise<void>;
     requireAuth: () => void;
+    renderRecaptcha: (containerId?: string, size?: 'invisible' | 'normal', onSolved?: () => void) => Promise<void>;
+    clearRecaptcha: () => void;
 }

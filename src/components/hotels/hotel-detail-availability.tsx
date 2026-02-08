@@ -19,7 +19,7 @@ interface HotelDetailAvailabilityProps {
     roomsCount?: number;
     onDateChange?: (checkIn: string, checkOut: string) => void;
     onGuestsChange?: (adults: number, children: number, rooms: number) => void;
-    onBook?: () => void;
+    onBook?: (price?: number, serviceName?: string, externalItemId?: string) => void;
 }
 
 export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = ({
@@ -335,7 +335,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         </SelectContent>
                                     </Select>
 
-                                    <Button onClick={onBook} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
+                                    <Button onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room')} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
                                         Book now
                                     </Button>
                                 </div>
@@ -444,7 +444,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                             </Select>
                                         </td>
                                         <td className="p-3 align-middle bg-brand-primary/5">
-                                            <Button onClick={onBook} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
+                                            <Button onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room', block.block_id || block.room_id)} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
                                                 Book now
                                             </Button>
                                             <div className="text-center text-[10px] text-gray-400 mt-2">• You won't be charged yet</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,12 +13,16 @@ import {
     signInWithPopup,
     sendEmailVerification,
     sendPasswordResetEmail,
+    RecaptchaVerifier,
+    signInWithPhoneNumber,
     User as FirebaseUser,
+    ConfirmationResult,
 } from 'firebase/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { AuthContextType, User, UserRole } from '@/types/auth';
+import { toast } from 'sonner';
 
 // Update the type definition in the interface if it's not exported from types/auth
 // Since we can't see types/auth.ts, we'll assume we need to cast or update the implementation
@@ -33,6 +37,13 @@ import { APP_CONSTANTS } from '@/lib/constants';
 // import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies'; // Deprecated in favor of HttpOnly cookies
 import { useUserProfile } from '@/hooks/use-user-profile';
 
+declare global {
+    interface Window {
+        recaptchaVerifier: RecaptchaVerifier | undefined;
+        confirmationResult: ConfirmationResult | undefined;
+    }
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -40,6 +51,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [authLoading, setAuthLoading] = useState(true);
     const queryClient = useQueryClient();
     const router = useRouter();
+    const isRenderingRef = useRef<boolean>(false);
+    const currentContainerIdRef = useRef<string | null>(null);
+    const verifierRef = useRef<RecaptchaVerifier | null>(null);
+    const renderPromiseRef = useRef<Promise<void> | null>(null);
+    const requestIdRef = useRef<number>(0);
 
     useEffect(() => {
         if (!auth) {
@@ -67,8 +83,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setAuthLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = undefined;
+            }
+            unsubscribe();
+        };
     }, [queryClient]);
+
+    const handleAuthError = (error: any): string => {
+        const code = error?.code;
+        // console.error(`Auth Error [${code}]:`, error);
+
+        switch (code) {
+            // Sign In / General
+            case 'auth/invalid-credential':
+            case 'auth/wrong-password':
+            case 'auth/user-not-found':
+                return 'Invalid email or password. Please check your credentials and try again.';
+            case 'auth/user-disabled':
+                return 'This account has been disabled. Please contact support for assistance.';
+            case 'auth/too-many-requests':
+                return 'Too many failed attempts. Please wait a few minutes before trying again.';
+            case 'auth/network-request-failed':
+                return 'Network connection error. Please check your internet and try again.';
+
+            // Sign Up
+            case 'auth/email-already-in-use':
+                return 'An account with this email already exists. Try signing in instead.';
+            case 'auth/weak-password':
+                return 'Your password is too weak. Please use at least 8 characters with a mix of letters and numbers.';
+            case 'auth/invalid-email':
+                return 'Please enter a valid email address.';
+            case 'auth/operation-not-allowed':
+                return 'Email/password sign-in is currently disabled. Please contact support.';
+
+            // Password Reset
+            case 'auth/expired-action-code':
+                return 'The reset link has expired. Please request a new one.';
+            case 'auth/invalid-action-code':
+                return 'The reset link is invalid or has already been used.';
+
+            // reCAPTCHA
+            case 'auth/captcha-check-failed':
+                return 'Verification failed. Please solve the reCAPTCHA again.';
+
+            default:
+                // Return a generic user-facing message but log the technical detail
+                return error?.message || 'An unexpected authentication error occurred. Please try again.';
+        }
+    };
 
     const { data: userProfile, isLoading: profileLoading } = useUserProfile(firebaseUser);
 
@@ -88,36 +153,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password?: string): Promise<UserRole> => {
         if (!auth) throw new Error("Auth not initialized");
         if (!password) throw new Error("Password required");
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const token = await userCredential.user.getIdToken();
-        // setAuthCookie(token);
-        await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-        });
 
-        if (db) {
-            const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const token = await userCredential.user.getIdToken();
+            // setAuthCookie(token);
+            await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token }),
+            });
 
-                // Pre-populate the query cache to avoid immediate refetch
-                const userProfileData: User = {
-                    id: userCredential.user.uid,
-                    email: userCredential.user.email!,
-                    role: role,
-                    emailVerified: userCredential.user.emailVerified,
-                    name: userData.name || userCredential.user.displayName || ''
-                };
+            if (db) {
+                const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
 
-                queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
+                    // Pre-populate the query cache to avoid immediate refetch
+                    const userProfileData: User = {
+                        id: userCredential.user.uid,
+                        email: userCredential.user.email!,
+                        role: role,
+                        emailVerified: userCredential.user.emailVerified,
+                        name: userData.name || userCredential.user.displayName || ''
+                    };
 
-                return role;
+                    queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
+
+                    return role;
+                }
             }
+            return APP_CONSTANTS.ROLES.USER;
+        } catch (error) {
+            throw new Error(handleAuthError(error));
         }
-        return APP_CONSTANTS.ROLES.USER;
     };
 
     const register = useCallback(async (name: string, email: string, password?: string, requestAdmin?: boolean) => {
@@ -153,23 +223,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error('❌ Warning: Document was not found after creation!');
             }
         } catch (error) {
-            console.error('❌ Error in register function:', error);
-            const err = error as any;
-            const code: string | undefined = err?.code;
-            // Provide friendlier error messages
-            if (code === 'auth/email-already-in-use') {
-                throw new Error('An account with this email already exists. Try signing in or use Forgot Password.');
-            }
-            if (code === 'auth/weak-password') {
-                throw new Error('Your password is too weak. Please use at least 8 characters.');
-            }
-            if (code === 'auth/invalid-email') {
-                throw new Error('The email address is invalid.');
-            }
-            // Default fallback
-            throw new Error(err?.message || 'Registration failed. Please try again.');
+            throw new Error(handleAuthError(error));
         }
-    }, []);
+    }, [auth, db, queryClient]);
 
 
 
@@ -221,7 +277,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const sendPasswordReset = async (email: string) => {
         if (!auth) throw new Error("Auth not initialized");
-        await sendPasswordResetEmail(auth, email);
+        try {
+            await sendPasswordResetEmail(auth, email);
+        } catch (error) {
+            throw new Error(handleAuthError(error));
+        }
     };
 
     const requireAuth = () => {
@@ -231,8 +291,147 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const clearRecaptcha = useCallback(() => {
+        if (typeof window === 'undefined') return;
+
+        // Increment Request ID to invalidate any in-flight renders
+        requestIdRef.current += 1;
+
+        if (verifierRef.current) {
+            try {
+                verifierRef.current.clear();
+            } catch (e) {
+                // console.warn('Error clearing verifier ref:', e);
+            }
+            verifierRef.current = null;
+        }
+
+        if (window.recaptchaVerifier) {
+            try {
+                window.recaptchaVerifier.clear();
+            } catch (e) {
+                // console.warn('Error clearing global verifier:', e);
+            }
+            window.recaptchaVerifier = undefined;
+        }
+
+        if (currentContainerIdRef.current) {
+            const element = document.getElementById(currentContainerIdRef.current);
+            if (element) {
+                element.innerHTML = '';
+            }
+            currentContainerIdRef.current = null;
+        }
+
+        isRenderingRef.current = false;
+        renderPromiseRef.current = null;
+    }, []);
+
+    const renderRecaptcha = useCallback(async (containerId: string = 'recaptcha-container', size: 'invisible' | 'normal' = 'invisible', onSolved?: () => void) => {
+        if (!auth || typeof window === 'undefined') return;
+
+        // 1. Mark this specific call with a new ID
+        const myRequestId = ++requestIdRef.current;
+
+        // 2. Small delay to allow any unmount cleanups to process
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // 3. If a newer request already started during our delay, bail
+        if (myRequestId !== requestIdRef.current) return;
+
+        const element = document.getElementById(containerId);
+        if (!element) return;
+
+        // 4. Return existing promise if we're already rendering this container
+        if (renderPromiseRef.current && currentContainerIdRef.current === containerId) {
+            return renderPromiseRef.current;
+        }
+
+        // 5. If we're rendering something else, clear it first
+        if (currentContainerIdRef.current && currentContainerIdRef.current !== containerId) {
+            clearRecaptcha();
+            // Be sure to update myRequestId as clearRecaptcha increments it
+            requestIdRef.current = myRequestId;
+        }
+
+        const renderTask = (async () => {
+            isRenderingRef.current = true;
+            currentContainerIdRef.current = containerId;
+
+            try {
+                // Final safety check before new initialization
+                if (myRequestId !== requestIdRef.current) return;
+
+                if (element.hasChildNodes() && verifierRef.current) {
+                    verifierRef.current.clear();
+                    element.innerHTML = '';
+                }
+
+                // Final safety clear
+                element.innerHTML = '';
+
+                const verifier = new RecaptchaVerifier(auth, containerId, {
+                    size: size,
+                    callback: (token: string) => {
+                        if (onSolved) onSolved();
+                    },
+                    'expired-callback': () => {
+                        // console.warn('reCAPTCHA expired');
+                    }
+                });
+
+                // Double check if we were cleared during constructor
+                if (myRequestId !== requestIdRef.current) {
+                    try { verifier.clear(); } catch (e) { }
+                    return;
+                }
+
+                verifierRef.current = verifier;
+                window.recaptchaVerifier = verifier;
+
+                await verifier.render();
+
+                // console.info(`reCAPTCHA rendered successfully in #${containerId}`);
+            } catch (error) {
+                console.error('Error rendering reCAPTCHA:', error);
+                if (myRequestId === requestIdRef.current) {
+                    isRenderingRef.current = false;
+                    currentContainerIdRef.current = null;
+                    verifierRef.current = null;
+                }
+                throw error;
+            } finally {
+                if (myRequestId === requestIdRef.current) {
+                    renderPromiseRef.current = null;
+                }
+            }
+        })();
+
+        renderPromiseRef.current = renderTask;
+        return renderTask;
+    }, [auth, clearRecaptcha]);
+
+    // Obsolete: Phone auth removed
+    const sendOtp = async (phoneNumber: string) => {
+        throw new Error("Phone authentication is currently disabled.");
+    };
+
+    const value: AuthContextType = {
+        user: userProfile || null,
+        loading: authLoading || (!!firebaseUser && profileLoading),
+        login,
+        register,
+        logout,
+        loginWithGoogle,
+        sendVerificationEmail,
+        sendPasswordReset,
+        requireAuth,
+        renderRecaptcha,
+        clearRecaptcha
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, loginWithGoogle, sendVerificationEmail, sendPasswordReset, requireAuth }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

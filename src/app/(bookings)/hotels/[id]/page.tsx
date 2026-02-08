@@ -33,6 +33,9 @@ export default function HotelDetailPage() {
         ]
     });
     const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [selectedPrice, setSelectedPrice] = useState<number>(0);
+    const [selectedServiceName, setSelectedServiceName] = useState<string>('');
+    const [selectedExternalItemId, setSelectedExternalItemId] = useState<string>('');
     const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
 
     // Manage dates
@@ -151,7 +154,13 @@ export default function HotelDetailPage() {
                 hotel={hotel}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
-                onBook={() => setIsBookingOpen(true)}
+                onBook={() => {
+                    setActiveTab('pricing');
+                    window.scrollTo({
+                        top: document.getElementById('availability-section')?.offsetTop || 400,
+                        behavior: 'smooth'
+                    });
+                }}
             />
 
             <div className="container mx-auto px-4 py-8">
@@ -166,24 +175,31 @@ export default function HotelDetailPage() {
                         )}
 
                         {activeTab === 'pricing' && (
-                            <HotelDetailAvailability
-                                hotel={hotel}
-                                checkInDate={checkInDate}
-                                checkOutDate={checkOutDate}
-                                adults={adults}
-                                childrenCount={children}
-                                roomsCount={rooms}
-                                onDateChange={(ci: string, co: string) => {
-                                    setCheckInDate(ci);
-                                    setCheckOutDate(co);
-                                }}
-                                onGuestsChange={(ad: number, ch: number, rm: number) => {
-                                    setAdults(ad);
-                                    setChildren(ch);
-                                    setRoomsCount(rm);
-                                }}
-                                onBook={() => setIsBookingOpen(true)}
-                            />
+                            <div id="availability-section">
+                                <HotelDetailAvailability
+                                    hotel={hotel}
+                                    checkInDate={checkInDate}
+                                    checkOutDate={checkOutDate}
+                                    adults={adults}
+                                    childrenCount={children}
+                                    roomsCount={rooms}
+                                    onDateChange={(ci: string, co: string) => {
+                                        setCheckInDate(ci);
+                                        setCheckOutDate(co);
+                                    }}
+                                    onGuestsChange={(ad: number, ch: number, rm: number) => {
+                                        setAdults(ad);
+                                        setChildren(ch);
+                                        setRoomsCount(rm);
+                                    }}
+                                    onBook={(p?: number, s?: string, rid?: string) => {
+                                        if (p) setSelectedPrice(p);
+                                        if (s) setSelectedServiceName(s);
+                                        if (rid) setSelectedExternalItemId(rid);
+                                        setIsBookingOpen(true);
+                                    }}
+                                />
+                            </div>
                         )}
 
                         {activeTab === 'facilities' && (
@@ -216,7 +232,7 @@ export default function HotelDetailPage() {
                         {activeTab === 'reviews' && (
                             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
                                 <h2 className="text-2xl font-bold text-brand-dark mb-6">Guest Reviews</h2>
-                                <HotelDetailSidebar hotel={hotel} onBook={() => setIsBookingOpen(true)} />
+                                <HotelDetailSidebar hotel={hotel} onBook={() => setActiveTab('pricing')} />
                             </div>
                         )}
                     </div>
@@ -224,18 +240,27 @@ export default function HotelDetailPage() {
                     {/* Sidebar */}
                     {activeTab === 'overview' && (
                         <div className="w-full lg:w-1/4">
-                            <HotelDetailSidebar hotel={hotel} onBook={() => setIsBookingOpen(true)} />
+                            <HotelDetailSidebar hotel={hotel} onBook={() => {
+                                setActiveTab('pricing');
+                                window.scrollTo({
+                                    top: document.getElementById('availability-section')?.offsetTop || 400,
+                                    behavior: 'smooth'
+                                });
+                            }} />
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Booking Modal */}
             <BookingModal
                 isOpen={isBookingOpen}
-                onClose={() => setIsBookingOpen(false)}
-                serviceName={hotel.name}
-                price={hotel.price}
+                onClose={() => {
+                    setIsBookingOpen(false);
+                    setSelectedServiceName('');
+                }}
+                serviceName={selectedServiceName || hotel.name}
+                price={selectedPrice || hotel.price}
+                externalItemId={selectedExternalItemId}
                 type="hotel"
                 initialCheckIn={checkInDate}
                 initialCheckOut={checkOutDate}

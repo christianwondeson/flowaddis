@@ -28,6 +28,7 @@ interface BookingModalProps {
     initialCheckIn?: string;
     initialCheckOut?: string;
     isLocal?: boolean;
+    externalItemId?: string;
 }
 
 const normalizePhone = (v: string) => v.replace(/[^+\d]/g, '');
@@ -76,12 +77,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     type = 'hotel',
     initialCheckIn = '',
     initialCheckOut = '',
-    isLocal = true,
+    isLocal = false,
+    externalItemId = 'N/A',
 }) => {
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
     const { user, requireAuth } = useAuth();
     const [step, setStep] = useState<'form' | 'payment' | 'receipt'>('form');
     const [bookingData, setBookingData] = useState<any>(null);
+
+    // Create a snapshot for the service identification
+    const externalSnapshot = useMemo(() => ({
+        serviceName,
+        checkIn: initialCheckIn,
+        checkOut: initialCheckOut,
+        type,
+        timestamp: new Date().toISOString()
+    }), [serviceName, initialCheckIn, initialCheckOut, type]);
 
     const {
         register,
@@ -364,10 +375,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                         {step === 'payment' && (
                             <PaymentForm
-                                amount={price}
+                                amount={price || 0}
                                 onSuccess={handlePaymentSuccess}
                                 onCancel={() => setStep('form')}
                                 isLocal={isLocal}
+                                bookingType={type as any}
+                                source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
+                                externalItemId={externalItemId}
+                                externalSnapshot={externalSnapshot}
                             />
                         )}
 

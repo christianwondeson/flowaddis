@@ -72,8 +72,8 @@ export function HeroSlider({ children }: HeroSliderProps) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-16 md:pt-24 lg:pt-28">
-        <div className="text-center mb-6 md:mb-10 pointer-events-none">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-24 md:pt-24 lg:pt-28">
+        <div className="text-center mb-12 md:mb-16 pointer-events-none">
           <motion.div
             key={`text-${currentSlide}`}
             initial={{ opacity: 0, y: 30 }}
@@ -91,18 +91,7 @@ export function HeroSlider({ children }: HeroSliderProps) {
         {children}
       </div>
 
-      {/* Slider Indicators */}
-      <div className="absolute bottom-6 md:bottom-10 left-1/2 transform -translate-x-1/2 flex gap-2 md:gap-3 z-20">
-        {slides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentSlide(idx)}
-            className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${currentSlide === idx ? 'bg-white w-6 md:w-8' : 'bg-white/40 hover:bg-white/60'
-              }`}
-            aria-label={`Go to slide ${idx + 1}`}
-          />
-        ))}
-      </div>
+
     </>
   );
 }
