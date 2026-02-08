@@ -12,7 +12,7 @@ interface HotelDetailHeaderProps {
     hotel: any;
     activeTab: string;
     onTabChange: (tab: string) => void;
-    onBook?: (price?: number) => void;
+    onBook?: (price?: number, name?: string, id?: string) => void;
 }
 
 export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook }) => {

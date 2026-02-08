@@ -9,7 +9,7 @@ interface HotelDetailSidebarProps {
     hotel: any;
     reviews?: any[];
     loading?: boolean;
-    onBook?: (price?: number) => void;
+    onBook?: (price?: number, name?: string, id?: string) => void;
 }
 
 export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, reviews = [], loading = false, onBook }) => {

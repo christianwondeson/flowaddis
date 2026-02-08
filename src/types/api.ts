@@ -73,6 +73,7 @@ export interface HotelFilters {
 
 export interface RoomBlock {
     room_id: string;
+    block_id?: string;
     name_without_policy: string;
     nr_adults: number;
     nr_children?: number;
