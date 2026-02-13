@@ -45,7 +45,7 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
             pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            pdf.save(`Flowaddis-Receipt-${booking.id}.pdf`);
+            pdf.save(`Bookaddis-Receipt-${booking.id}.pdf`);
         } catch (error) {
             console.error('Error generating PDF:', error);
         }
@@ -117,7 +117,7 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
 
                     <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-50 mt-4">
                         <p>Generated on {new Date().toLocaleDateString()}</p>
-                        <p className="mt-1">Thank you for choosing Flowaddis</p>
+                        <p className="mt-1">Thank you for choosing BookAddis</p>
                     </div>
                 </div>
             </div>

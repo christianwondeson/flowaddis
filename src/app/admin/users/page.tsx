@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { User } from '@/types/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Shield, User as UserIcon, MoreHorizontal, Mail } from 'lucide-react';
+import { Search, Shield, User as UserIcon, MoreHorizontal, Mail, CreditCard, CheckCircle2, XCircle, Clock, X } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -15,11 +15,34 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Modal } from '@/components/ui/modal';
+import { useAuth } from '@/components/providers/auth-provider';
+
+interface Transaction {
+    id: string;
+    amount: number;
+    currency: string;
+    status: 'succeeded' | 'failed' | 'pending';
+    provider: string;
+    transaction_id: string;
+    created_at: string;
+    booking: {
+        id: string;
+        booking_type: string;
+    }
+}
 
 export default function UsersPage() {
+    const { user: authUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Transaction History State
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
+    const [loadingTransactions, setLoadingTransactions] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -42,10 +65,47 @@ export default function UsersPage() {
         fetchUsers();
     }, []);
 
+    const fetchUserTransactions = async (uid: string) => {
+        setLoadingTransactions(true);
+        try {
+            const token = await auth?.currentUser?.getIdToken();
+            const response = await fetch(`/api/admin/payments/user/${uid}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setUserTransactions(data || []);
+            }
+        } catch (error) {
+            console.error("Error fetching user transactions:", error);
+        } finally {
+            setLoadingTransactions(false);
+        }
+    };
+
+    const handleViewTransactions = (user: User) => {
+        setSelectedUser(user);
+        setIsModalOpen(true);
+        fetchUserTransactions(user.id);
+    };
+
     const filteredUsers = users.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const getStatusBadge = (status: Transaction['status']) => {
+        switch (status) {
+            case 'succeeded':
+                return <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" /> Success</span>;
+            case 'failed':
+                return <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 flex items-center gap-1"><XCircle className="w-2.5 h-2.5" /> Failed</span>;
+            default:
+                return <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> Pending</span>;
+        }
+    };
 
     if (loading) {
         return <div className="p-8 text-center text-gray-500">Loading users...</div>;
@@ -100,8 +160,8 @@ export default function UsersPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${user.role === 'admin'
-                                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                            : 'bg-blue-50 text-blue-700 border-blue-200'
                                             }`}>
                                             {user.role === 'admin' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
                                             {user.role === 'admin' ? 'Administrator' : 'User'}
@@ -109,8 +169,8 @@ export default function UsersPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${user.adminStatus === 'pending'
-                                                ? 'bg-orange-100 text-orange-800'
-                                                : 'bg-green-100 text-green-800'
+                                            ? 'bg-orange-100 text-orange-800'
+                                            : 'bg-green-100 text-green-800'
                                             }`}>
                                             {user.adminStatus === 'pending' ? 'Pending Approval' : 'Active'}
                                         </span>
@@ -127,6 +187,10 @@ export default function UsersPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => handleViewTransactions(user)}>
+                                                    <CreditCard className="w-4 h-4 mr-2" />
+                                                    View Transactions
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem>View Profile</DropdownMenuItem>
                                                 <DropdownMenuItem>Edit Details</DropdownMenuItem>
                                                 <DropdownMenuSeparator />
@@ -140,6 +204,50 @@ export default function UsersPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Transactions Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={`Transaction History - ${selectedUser?.name || selectedUser?.email}`}
+            >
+                <div className="space-y-6 p-1">
+                    {loadingTransactions ? (
+                        <div className="flex flex-col items-center justify-center py-12 gap-3">
+                            <div className="w-8 h-8 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
+                            <p className="text-sm text-gray-500 font-medium">Fetching payment history...</p>
+                        </div>
+                    ) : userTransactions.length > 0 ? (
+                        <div className="space-y-4">
+                            {userTransactions.map((tx) => (
+                                <div key={tx.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center justify-between group hover:bg-white hover:border-brand-primary/20 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-gray-400 group-hover:text-brand-primary transition-colors">
+                                            <CreditCard className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-gray-400 uppercase tracking-tighter mb-0.5">#{tx.transaction_id.substring(0, 12)}...</div>
+                                            <div className="text-sm font-bold text-gray-900">{tx.booking.booking_type.toUpperCase()} Booking</div>
+                                            <div className="text-[10px] text-gray-500">{new Date(tx.created_at).toLocaleString()}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-sm font-bold text-brand-dark mb-1">{tx.currency} {Number(tx.amount).toLocaleString()}</div>
+                                        {getStatusBadge(tx.status)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
+                                <CreditCard className="w-6 h-6" />
+                            </div>
+                            <p className="text-gray-500 text-sm font-medium">No transactions found for this user.</p>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 }

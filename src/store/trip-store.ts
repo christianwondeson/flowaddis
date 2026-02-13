@@ -67,8 +67,8 @@ export const useTripStore = create<TripState>()(
                 }
 
                 // For now, also save to localStorage to simulate persistence
-                const existingTrips = JSON.parse(localStorage.getItem('flowaddis_trips') || '[]');
-                localStorage.setItem('flowaddis_trips', JSON.stringify([...existingTrips, newTrip]));
+                const existingTrips = JSON.parse(localStorage.getItem('bookaddis_trips') || '[]');
+                localStorage.setItem('bookaddis_trips', JSON.stringify([...existingTrips, newTrip]));
 
                 clearTrip();
                 return tripId;

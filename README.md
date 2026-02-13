@@ -1,11 +1,11 @@
-# FlowAddis - Ethiopian Travel & Tourism Platform
+# BookAddis - Ethiopian Travel & Tourism Platform
 
-![FlowAddis](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![BookAddis](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16.0.10-black.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-blue.svg)
 ![License](https://img.shields.io/badge/license-Private-red.svg)
 
-FlowAddis is a comprehensive travel and tourism platform for Ethiopia, offering flight bookings, hotel reservations, conference management, shuttle services, and more. Built with Next.js 16, TypeScript, and Firebase.
+BookAddis is a comprehensive travel and tourism platform for Ethiopia, offering flight bookings, hotel reservations, conference management, shuttle services, and more. Built with Next.js 16, TypeScript, and Firebase.
 
 ## 🌟 Features
 
@@ -141,7 +141,7 @@ flowaddis/
    STRIPE_SECRET_KEY=sk_test_...
    
    # Backend
-   BACKEND_URL=https://api.flowaddis.com
+   BACKEND_URL=https://api.bookaddis.com
    ```
 
 4. **Run the development server:**
@@ -161,7 +161,7 @@ npm start
 
 ## 🔐 Authentication
 
-FlowAddis uses Firebase Authentication with support for:
+BookAddis uses Firebase Authentication with support for:
 - Email/Password authentication
 - Google OAuth
 - Two-Factor Authentication (2FA)

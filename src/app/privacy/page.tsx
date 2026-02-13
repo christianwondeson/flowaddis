@@ -12,7 +12,7 @@ export default function PrivacyPage() {
                         <section>
                             <h2 className="text-xl font-bold text-gray-900 mb-3">1. Introduction</h2>
                             <p>
-                                Welcome to Flowaddis. We respect your privacy and are committed to protecting your personal data.
+                                Welcome to BookAddis. We respect your privacy and are committed to protecting your personal data.
                                 This privacy policy will inform you as to how we look after your personal data when you visit our website
                                 and tell you about your privacy rights and how the law protects you.
                             </p>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
                                 If you have any questions about this privacy policy or our privacy practices, please contact us at:
                             </p>
                             <p className="mt-2 font-medium">
-                                Email: privacy@flowaddis.com<br />
+                                Email: bookaddiso@gmail.com<br />
                                 Phone: +251 911 520 275
                             </p>
                         </section>

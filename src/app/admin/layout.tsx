@@ -8,6 +8,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { canAccessAdmin, isAdminRole, isAdminBlocked, getAdminStatusMessage } from '@/lib/auth/admin-utils';
+import { toast } from 'sonner';
 
 export default function AdminLayout({
     children,
@@ -18,18 +19,35 @@ export default function AdminLayout({
     const router = useRouter();
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [loadingTimeout, setLoadingTimeout] = useState(false);
 
     useEffect(() => {
-        // The middleware handles redirecting unauthenticated users to /signin
-        // This component just needs to show appropriate loading/error states
-        // No client-side redirects to avoid race conditions with cookie setting
-    }, [user, loading]);
+        // Set a timeout for loading state to prevent indefinite waiting
+        if (loading) {
+            const timeoutId = setTimeout(() => {
+                setLoadingTimeout(true);
+            }, 10000); // 10 seconds
+
+            return () => clearTimeout(timeoutId);
+        } else {
+            setLoadingTimeout(false);
+        }
+    }, [loading]);
+
+    useEffect(() => {
+        // If loading times out, redirect to signin
+        if (loadingTimeout && !user) {
+            toast.error('Authentication timeout. Please sign in again.');
+            router.push('/signin?redirect=' + encodeURIComponent(pathname));
+        }
+    }, [loadingTimeout, user, router, pathname]);
 
     // Show loading state while auth is being verified
-    if (loading) {
+    if (loading && !loadingTimeout) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-brand-gray">
                 <div className="text-center space-y-4 max-w-md px-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto"></div>
                     <div className="text-sm text-gray-500">
                         Checking admin access…
                     </div>
@@ -39,29 +57,16 @@ export default function AdminLayout({
     }
 
     // Show access denied if user is not admin (after loading completes)
-    if (!user || !canAccessAdmin(user)) {
-        const statusMessage = getAdminStatusMessage(user);
-        const showStatusDetails = user && isAdminRole(user) && isAdminBlocked(user);
+    if (!loading && user && !canAccessAdmin(user)) {
+        toast.error('You do not have permission to access the admin area.');
+        router.push('/');
+        return null;
+    }
 
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-brand-gray">
-                <div className="text-center space-y-4 max-w-md px-4">
-                    <div className="text-sm text-gray-500">
-                        Verifying permissions…
-                    </div>
-                    {showStatusDetails && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                            <div className="text-sm font-semibold text-red-800 mb-1">
-                                Access Denied
-                            </div>
-                            <div className="text-xs text-red-600">
-                                {statusMessage}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
+    // If loading completes and no user is found, redirect to signin
+    if (!loading && !user) {
+        router.push('/signin?redirect=' + encodeURIComponent(pathname));
+        return null;
     }
 
     return (
@@ -93,11 +98,11 @@ export default function AdminLayout({
 
                     <div className="flex items-center gap-4">
                         <div className="text-right hidden sm:block">
-                            <div className="text-sm font-bold text-gray-900">{user.name || 'Admin User'}</div>
-                            <div className="text-xs text-gray-500">{user.email}</div>
+                            <div className="text-sm font-bold text-gray-900">{user!.name || 'Admin User'}</div>
+                            <div className="text-xs text-gray-500">{user!.email}</div>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold">
-                            {user.name ? user.name[0].toUpperCase() : 'A'}
+                            {user!.name ? user!.name[0].toUpperCase() : 'A'}
                         </div>
                     </div>
                 </header>

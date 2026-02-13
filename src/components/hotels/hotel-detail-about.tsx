@@ -37,18 +37,7 @@ export const HotelDetailAbout: React.FC<HotelDetailAboutProps> = ({ hotel, facil
                 ))}
             </div>
 
-            {/* Availability Alert */}
-            <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-xl p-4 flex gap-4">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
-                    <Maximize className="w-6 h-6 text-brand-primary" />
-                </div>
-                <div>
-                    <h4 className="font-bold text-brand-dark text-sm mb-1">Not usually available – you're in luck!</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                        {hotel.name} isn't usually available on our site. Reserve soon before it sells out!
-                    </p>
-                </div>
-            </div>
+
 
             {/* Description */}
             <div className="space-y-4">

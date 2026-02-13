@@ -45,6 +45,15 @@ const SHUTTLE_ADS_RIGHT: AdConfig[] = [
 ];
 
 export default function AdminShuttlesPage() {
+    // The following content appears to be markdown intended for a different file (e.g., walkthrough.md)
+    // and is not valid JavaScript/TypeScript syntax.
+    // To maintain syntactic correctness of this .tsx file, it has been commented out.
+    /*
+    ### ✅ UI Maintenance & Auth Fixes
+    1. **Removed Advertisements** - Deleted scarcity/marketing banners from hotel details
+    2. **Fixed Admin Sign Out** - Added immediate redirection to prevent permission hangs
+    3. **Redesigned Price Table** - Modernized desktop pricing view with better spacing and contrast
+    */
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Mock Data for Shuttles

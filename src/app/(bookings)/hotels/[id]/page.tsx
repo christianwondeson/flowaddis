@@ -12,6 +12,7 @@ import axios from 'axios';
 import { BookingModal } from '@/components/booking/booking-modal';
 import { formatDateLocal } from '@/lib/date-utils';
 import { Preloader } from '@/components/ui/preloader';
+import { Button } from '@/components/ui/button';
 
 export default function HotelDetailPage() {
     const { id } = useParams();
@@ -37,6 +38,7 @@ export default function HotelDetailPage() {
     const [selectedServiceName, setSelectedServiceName] = useState<string>('');
     const [selectedExternalItemId, setSelectedExternalItemId] = useState<string>('');
     const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
+    const [facilities, setFacilities] = useState<any[]>([]);
 
     // Manage dates
     const [checkInDate, setCheckInDate] = useState<string>('');
@@ -118,6 +120,11 @@ export default function HotelDetailPage() {
                 const mappedAddress = details?.address || details?.location || undefined;
                 const mappedRating = details?.review_score || details?.reviewScore || undefined;
                 const mappedReviewCount = details?.review_nr || details?.reviewCount || undefined;
+                const mappedCoordinates = details?.coordinates || details?.location_coordinates || undefined;
+
+                // Extract facilities data
+                const facilitiesData = details?.facility_groups || details?.facilities || [];
+                setFacilities(facilitiesData);
 
                 setHotel((prev: any) => ({
                     ...prev,
@@ -128,6 +135,7 @@ export default function HotelDetailPage() {
                     location: mappedAddress || prev.location,
                     rating: mappedRating != null ? mappedRating : prev.rating,
                     reviews: mappedReviewCount != null ? mappedReviewCount : prev.reviews,
+                    coordinates: mappedCoordinates || prev.coordinates,
                 }));
                 setIsGalleryLoading(false);
             } catch (e) {
@@ -149,7 +157,7 @@ export default function HotelDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-brand-gray pb-20 pt-15">
+        <div className="min-h-screen bg-brand-gray pb-20 lg:pb-20 pt-15">
             <HotelDetailHeader
                 hotel={hotel}
                 activeTab={activeTab}
@@ -170,7 +178,7 @@ export default function HotelDetailPage() {
                         {activeTab === 'overview' && (
                             <>
                                 <HotelDetailGallery images={hotel.images || [hotel.image]} loading={isGalleryLoading} />
-                                <HotelDetailAbout hotel={hotel} />
+                                <HotelDetailAbout hotel={hotel} facilities={facilities} loading={isGalleryLoading} />
                             </>
                         )}
 
@@ -205,7 +213,7 @@ export default function HotelDetailPage() {
                         {activeTab === 'facilities' && (
                             <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
                                 <h2 className="text-2xl font-bold text-brand-dark mb-6">Facilities & Amenities</h2>
-                                <HotelDetailAbout hotel={hotel} />
+                                <HotelDetailAbout hotel={hotel} facilities={facilities} loading={isGalleryLoading} />
                             </div>
                         )}
 
@@ -237,18 +245,41 @@ export default function HotelDetailPage() {
                         )}
                     </div>
 
-                    {/* Sidebar */}
-                    {activeTab === 'overview' && (
-                        <div className="w-full lg:w-1/4">
-                            <HotelDetailSidebar hotel={hotel} onBook={() => {
-                                setActiveTab('pricing');
-                                window.scrollTo({
-                                    top: document.getElementById('availability-section')?.offsetTop || 400,
-                                    behavior: 'smooth'
-                                });
-                            }} />
+                    {/* Sidebar - Always visible on desktop, sticky */}
+                    <div className="hidden lg:block lg:w-1/4">
+                        <div className="sticky top-24 space-y-4">
+                            <HotelDetailSidebar
+                                hotel={hotel}
+                                onBook={() => {
+                                    setActiveTab('pricing');
+                                    window.scrollTo({
+                                        top: document.getElementById('availability-section')?.offsetTop || 400,
+                                        behavior: 'smooth'
+                                    });
+                                }}
+                            />
+
+                            {/* Quick booking CTA - always visible */}
+                            <div className="bg-gradient-to-br from-brand-primary to-brand-primary/80 rounded-2xl p-6 text-white shadow-lg">
+                                <p className="text-sm opacity-90 mb-2">Best Price Guarantee</p>
+                                <p className="text-3xl font-bold mb-4">
+                                    ${hotel.price}<span className="text-base font-normal opacity-90">/night</span>
+                                </p>
+                                <Button
+                                    onClick={() => {
+                                        setActiveTab('pricing');
+                                        window.scrollTo({
+                                            top: document.getElementById('availability-section')?.offsetTop || 400,
+                                            behavior: 'smooth'
+                                        });
+                                    }}
+                                    className="w-full bg-white text-brand-primary hover:bg-gray-100 font-bold rounded-full shadow-md"
+                                >
+                                    Check Availability
+                                </Button>
+                            </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
 
@@ -265,6 +296,30 @@ export default function HotelDetailPage() {
                 initialCheckIn={checkInDate}
                 initialCheckOut={checkOutDate}
             />
+
+            {/* Mobile bottom bar - fixed on mobile/tablet */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 shadow-2xl">
+                <div className="container mx-auto flex items-center justify-between gap-4">
+                    <div>
+                        <p className="text-xs text-gray-500">From</p>
+                        <p className="text-xl font-bold text-brand-dark">
+                            ${hotel.price}<span className="text-sm font-normal text-gray-500">/night</span>
+                        </p>
+                    </div>
+                    <Button
+                        onClick={() => {
+                            setActiveTab('pricing');
+                            window.scrollTo({
+                                top: document.getElementById('availability-section')?.offsetTop || 400,
+                                behavior: 'smooth'
+                            });
+                        }}
+                        className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-6 sm:px-8 rounded-full flex-shrink-0 shadow-lg shadow-brand-primary/20"
+                    >
+                        Book now
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 }

@@ -150,6 +150,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const loading = authLoading || (!!firebaseUser && profileLoading);
 
+    /**
+     * Wait for the user state to update with the expected role.
+     * This prevents race conditions where navigation occurs before state is synchronized.
+     * @param expectedRole - The role we expect the user to have
+     * @param timeoutMs - Maximum time to wait (default 5000ms)
+     * @returns Promise that resolves when user state matches expected role or timeout occurs
+     */
+    const waitForUserUpdate = useCallback(async (expectedRole: UserRole, timeoutMs: number = 5000): Promise<void> => {
+        const startTime = Date.now();
+        const pollInterval = 50; // Check every 50ms
+
+        return new Promise((resolve) => {
+            const checkUser = () => {
+                // Get the current user from query cache
+                const currentUser = queryClient.getQueryData<User>(queryKeys.user.profile());
+
+                // Success: user state matches expected role
+                if (currentUser?.role === expectedRole) {
+                    resolve();
+                    return;
+                }
+
+                // Timeout: waited too long
+                if (Date.now() - startTime >= timeoutMs) {
+                    // console.warn(`waitForUserUpdate timed out after ${timeoutMs}ms. Expected role: ${expectedRole}, Current role: ${currentUser?.role}`);
+                    resolve(); // Resolve anyway to prevent blocking
+                    return;
+                }
+
+                // Continue polling
+                setTimeout(checkUser, pollInterval);
+            };
+
+            checkUser();
+        });
+    }, [queryClient]);
+
     const login = async (email: string, password?: string): Promise<UserRole> => {
         if (!auth) throw new Error("Auth not initialized");
         if (!password) throw new Error("Password required");
@@ -176,10 +213,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         email: userCredential.user.email!,
                         role: role,
                         emailVerified: userCredential.user.emailVerified,
-                        name: userData.name || userCredential.user.displayName || ''
+                        name: userData.name || userCredential.user.displayName || '',
+                        adminStatus: userData.adminStatus || 'none'
                     };
 
                     queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
+
+                    // CRITICAL: Wait for the user state to synchronize before returning
+                    // This prevents race conditions where navigation occurs before state updates
+                    await waitForUserUpdate(role, 5000);
 
                     return role;
                 }
@@ -256,18 +298,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
 
+        let role: UserRole;
         if (!userDoc.exists()) {
-            await setDoc(userDocRef, {
+            const newUserData = {
                 name: user.displayName || "Unknown",
                 email: user.email,
                 role: APP_CONSTANTS.ROLES.USER,
+                adminStatus: 'none' as const,
                 createdAt: serverTimestamp()
+            };
+            await setDoc(userDocRef, newUserData);
+            role = APP_CONSTANTS.ROLES.USER;
+
+            // Pre-populate cache for new user
+            queryClient.setQueryData(queryKeys.user.profile(), {
+                id: user.uid,
+                email: user.email!,
+                role: role,
+                emailVerified: user.emailVerified,
+                name: user.displayName || "Unknown",
+                adminStatus: 'none' as const
             });
-            return APP_CONSTANTS.ROLES.USER;
         } else {
             const userData = userDoc.data();
-            return (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+            role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+
+            // Pre-populate cache for existing user
+            queryClient.setQueryData(queryKeys.user.profile(), {
+                id: user.uid,
+                email: user.email!,
+                role: role,
+                emailVerified: user.emailVerified,
+                name: userData.name || user.displayName || "Unknown",
+                adminStatus: userData.adminStatus || 'none'
+            });
         }
+
+        // CRITICAL: Wait for the user state to synchronize before returning
+        await waitForUserUpdate(role, 5000);
+
+        return role;
     };
 
     const sendVerificationEmail = async () => {
@@ -417,8 +487,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const value: AuthContextType = {
-        user: userProfile || null,
-        loading: authLoading || (!!firebaseUser && profileLoading),
+        user, // Use the memoized user which includes the fallback
+        loading,
         login,
         register,
         logout,

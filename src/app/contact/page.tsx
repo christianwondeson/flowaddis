@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export const metadata: Metadata = {
-    title: 'Contact Us | FlowAddis',
-    description: 'Get in touch with FlowAddis for support, inquiries, or feedback.',
+    title: 'Contact Us | BookAddis',
+    description: 'Get in touch with BookAddis for support, inquiries, or feedback.',
 };
 
 export default function ContactPage() {
@@ -56,8 +56,8 @@ export default function ContactPage() {
                                             <Mail className="w-6 h-6 text-brand-primary" />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-brand-dark mb-1">Email</h3>
-                                            <p className="text-gray-600">flowaddis@gmail.com</p>
+                                            <p className="text-gray-600 font-medium">Email Us</p>
+                                            <p className="text-gray-600">bookaddiso@gmail.com</p>
                                             <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
                                         </div>
                                     </div>

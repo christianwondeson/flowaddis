@@ -80,11 +80,19 @@ export function HotelsMapContent() {
     }, [data, page]);
 
     const center = useMemo((): [number, number] => {
+        // Check URL params first for passed coordinates (from hotel detail page)
+        const lat = params.get('lat');
+        const lng = params.get('lng');
+        if (lat && lng) {
+            return [parseFloat(lat), parseFloat(lng)];
+        }
+
+        // Otherwise use first hotel or default
         if (hotels.length > 0 && hotels[0].coordinates) {
             return [hotels[0].coordinates.lat, hotels[0].coordinates.lng];
         }
         return [9.0108, 38.7613]; // Default to Addis Ababa
-    }, [hotels]);
+    }, [hotels, params]);
 
     // Create markers from accumulated hotels (grows as user clicks "Load More")
     const markers: PriceMarker[] = useMemo(() => {

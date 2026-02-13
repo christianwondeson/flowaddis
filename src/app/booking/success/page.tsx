@@ -37,7 +37,7 @@ function SuccessContent() {
 
             <h1 className="text-3xl font-bold text-gray-900 mb-3">Booking Confirmed!</h1>
             <p className="text-gray-500 mb-8">
-                Thank you for choosing FlowAddis. Your payment has been processed successfully and your booking is secured.
+                Thank you for choosing BookAddis. Your payment has been processed successfully and your booking is secured.
             </p>
 
             <div className="space-y-4 mb-10">

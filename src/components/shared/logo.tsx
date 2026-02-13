@@ -21,7 +21,7 @@ export const Logo: React.FC<LogoProps> = ({ className, size = 'md' }) => {
     return (
         <div className={clsx('font-extrabold tracking-tight flex items-center gap-2', text, className)}>
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-brand-secondary">
-                FlowAddis
+                BookAddis
             </span>
         </div>
     );

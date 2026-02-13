@@ -40,12 +40,29 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
     };
 
     const tabs = [
-        { id: 'overview', label: 'Overview' },
-        { id: 'pricing', label: 'Pricing' },
-        { id: 'facilities', label: 'Facilities' },
-        { id: 'rules', label: 'House rules' },
-        { id: 'reviews', label: 'Guest reviews' },
+        { id: 'overview', label: 'Overview', icon: 'home' },
+        { id: 'pricing', label: 'Pricing', icon: 'dollar' },
+        { id: 'facilities', label: 'Facilities', icon: 'grid' },
+        { id: 'rules', label: 'House rules', icon: 'book' },
+        { id: 'reviews', label: 'Guest reviews', icon: 'star' },
     ];
+
+    const getTabIcon = (iconName: string) => {
+        switch (iconName) {
+            case 'home':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
+            case 'dollar':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+            case 'grid':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>;
+            case 'book':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
+            case 'star':
+                return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>;
+            default:
+                return null;
+        }
+    };
 
     return (
         <div className="bg-white border-b border-gray-200">
@@ -91,6 +108,12 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                         const params = new URLSearchParams();
                                         if (hotel.location) params.set('query', hotel.location);
                                         if (hotel.name) params.set('hotelName', hotel.name);
+
+                                        // Pass coordinates for map centering
+                                        if (hotel.coordinates?.lat) params.set('lat', hotel.coordinates.lat.toString());
+                                        if (hotel.coordinates?.lng) params.set('lng', hotel.coordinates.lng.toString());
+                                        if (hotel.id) params.set('highlightId', hotel.id);
+
                                         router.push(`/hotels/map?${params.toString()}`);
                                     }}
                                     className="text-brand-primary font-bold hover:underline"
@@ -142,19 +165,36 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                 </div>
 
                 {/* Tabs */}
-                <div className="flex overflow-x-auto no-scrollbar">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => onTabChange(tab.id)}
-                            className={`px-6 py-4 text-xs font-bold whitespace-nowrap border-b-2 transition-all duration-200 ${activeTab === tab.id
-                                ? 'border-brand-primary text-brand-primary'
-                                : 'border-transparent text-gray-500 hover:text-brand-primary hover:bg-gray-50'
-                                }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
+                <div className="relative">
+                    {/* Left fade indicator - hidden on large screens */}
+                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none lg:hidden" />
+
+                    <div className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-1 lg:gap-0">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => onTabChange(tab.id)}
+                                className={`
+                                    snap-start flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4
+                                    text-xs sm:text-sm font-bold whitespace-nowrap
+                                    border-b-3 transition-all duration-200
+                                    min-w-[110px] sm:min-w-[120px] lg:min-w-0
+                                    ${activeTab === tab.id
+                                        ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+                                        : 'border-transparent text-gray-500 hover:text-brand-primary hover:bg-gray-50'
+                                    }
+                                `}
+                            >
+                                <div className="flex items-center gap-2 justify-center">
+                                    <span className="hidden sm:inline">{getTabIcon(tab.icon)}</span>
+                                    <span>{tab.label}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Right fade indicator - hidden on large screens */}
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none lg:hidden" />
                 </div>
             </div>
         </div>

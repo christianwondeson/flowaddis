@@ -61,10 +61,11 @@ function SignInContent() {
         setLoading(true)
         try {
             const role = await login(email, password)
+            // Use Next.js router for smooth client-side navigation
             if (role === 'admin' && from === '/') {
-                window.location.href = '/admin'
+                router.push('/admin')
             } else {
-                window.location.href = from
+                router.push(from)
             }
         } catch (error: any) {
             // console.error("Error during sign-in:", error)
@@ -78,10 +79,11 @@ function SignInContent() {
         setLoading(true)
         try {
             const role = await loginWithGoogle()
+            // Use Next.js router for smooth client-side navigation
             if (role === 'admin' && from === '/') {
-                window.location.href = '/admin'
+                router.push('/admin')
             } else {
-                window.location.href = from
+                router.push(from)
             }
         } catch (error: any) {
             // console.error(error)

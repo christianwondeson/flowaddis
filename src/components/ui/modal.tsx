@@ -59,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="p-6 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto no-scrollbar">
                     {children}
                 </div>
             </div>

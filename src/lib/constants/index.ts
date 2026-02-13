@@ -13,6 +13,7 @@ export const APP_CONSTANTS = {
         BASE_URL: '/api',
         HOTELS: '/api/hotels/search',
         FLIGHTS: '/api/flights/search',
+        ADMIN_PAYMENTS: '/v1/admin/payments',
     },
     UI: {
         // Timing constants (in milliseconds)

@@ -88,7 +88,7 @@ export default function SignUpPage() {
     return (
         <AuthLayout
             title="Create Account"
-            subtitle="Join FlowAddis today"
+            subtitle="Join BookAddis today"
             footerLink={{
                 text: "Already have an account?",
                 href: "/signin",

@@ -3,8 +3,8 @@ import { Metadata } from 'next';
 import { MapPin, Users, Award, Target, Heart, Sparkles } from 'lucide-react';
 
 export const metadata: Metadata = {
-    title: 'About Us | FlowAddis',
-    description: 'Learn about FlowAddis - Your premium gateway to Ethiopia for flights, hotels, conferences, and transportation.',
+    title: 'About Us | BookAddis',
+    description: 'Learn about BookAddis - Your premium gateway to Ethiopia for flights, hotels, conferences, and transportation.',
 };
 
 export default function AboutPage() {
@@ -93,7 +93,7 @@ export default function AboutPage() {
                                 providers to bring you unmatched value and convenience.
                             </p>
                             <p>
-                                Today, FlowAddis serves thousands of customers, helping them discover Ethiopia's
+                                Today, BookAddis serves thousands of customers, helping them discover Ethiopia's
                                 beauty, conduct successful business events, and create unforgettable memories.
                             </p>
                         </div>
@@ -133,7 +133,7 @@ export default function AboutPage() {
                             Ready to Experience Ethiopia?
                         </h2>
                         <p className="text-lg text-gray-600 mb-8">
-                            Start planning your perfect trip with FlowAddis today.
+                            Start planning your perfect trip with BookAddis today.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <a

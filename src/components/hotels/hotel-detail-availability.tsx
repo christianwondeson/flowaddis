@@ -246,10 +246,13 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                     />
                 </div>
                 <Button
-                    onClick={handleSearchUpdate}
+                    onClick={() => {
+                        handleSearchUpdate();
+                        onDateChange?.(tempCheckIn, tempCheckOut);
+                    }}
                     className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm h-12 md:h-full rounded-xl md:rounded-lg transition-all active:scale-95 shadow-md shadow-brand-primary/20"
                 >
-                    Change search
+                    Update search
                 </Button>
             </div>
 
@@ -347,22 +350,23 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
             </div>
 
             {/* Table */}
-            <div className="hidden md:block border border-brand-primary/20 rounded-xl overflow-hidden shadow-sm">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ring-1 ring-gray-900/5">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-brand-primary/10 text-brand-primary text-[12px] font-extrabold">
-                            <th className="p-3 border-r border-brand-primary/10">Room Type</th>
-                            <th className="p-3 border-r border-brand-primary/10">Guests</th>
-                            <th className="p-3 border-r border-brand-primary/10">Price</th>
-                            <th className="p-3 border-r border-brand-primary/10">Your choices</th>
-                            <th className="p-3 border-r border-brand-primary/10">Select Rooms</th>
-                            <th className="p-3"></th>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Accommodation Type</th>
+                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Guests</th>
+                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Today's Price</th>
+                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Your Choices</th>
+                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Select Rooms</th>
+                            <th className="px-6 py-4 bg-brand-primary/5"></th>
                         </tr>
                     </thead>
-                    <tbody className="text-xs">
+                    <tbody className="divide-y divide-gray-100">
                         {rooms.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="p-8 text-center text-gray-500">
+                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
                                     No rooms available for the selected dates.
                                 </td>
                             </tr>
@@ -370,84 +374,110 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                             rooms.map((block, index) => {
                                 const details = roomDetails[block.room_id] || {};
                                 return (
-                                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                                        <td className="p-3 border-r border-gray-100 align-top w-1/4">
-                                            <button className="text-brand-primary font-bold hover:underline block mb-2 text-left">
+                                    <tr key={index} className="group hover:bg-gray-50/50 transition-all duration-200">
+                                        {/* Room Type */}
+                                        <td className="px-6 py-6 align-top max-w-[300px]">
+                                            <button className="text-brand-primary font-bold hover:text-brand-primary/80 transition-colors block mb-1.5 text-base text-left leading-tight decoration-brand-primary/30 decoration-2 underline-offset-4 hover:underline">
                                                 {details.room_name || block.name_without_policy || 'Standard Room'}
                                             </button>
 
                                             {block.extrabed_available && (
-                                                <div className="text-green-600 font-bold flex items-center gap-1 mb-2 text-[10px]">
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-50 text-green-700 font-bold text-[10px] mb-3">
                                                     <Check className="w-3 h-3" />
                                                     Extra bed available
                                                 </div>
                                             )}
 
-                                            <div className="space-y-1 text-[10px] text-gray-600">
+                                            <div className="flex flex-col gap-1.5 mt-2">
                                                 {details.bed_configurations?.[0]?.bed_types?.map((bed: any, i: number) => (
-                                                    <div key={i} className="flex items-center gap-1">
-                                                        <span className="font-bold">{bed.name_with_count}</span>
+                                                    <div key={i} className="flex items-center gap-2 text-[11px] text-gray-500">
+                                                        <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center">
+                                                            <Check className="w-2.5 h-2.5 text-gray-400" />
+                                                        </div>
+                                                        <span className="font-medium">{bed.name_with_count}</span>
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            <div className="flex flex-wrap gap-1 mt-4">
+                                            <div className="flex flex-wrap gap-1.5 mt-5">
                                                 {details.highlights?.slice(0, 4).map((highlight: any, i: number) => (
-                                                    <span key={i} className="px-1.5 py-0.5 bg-brand-primary/5 text-brand-primary border border-brand-primary/10 rounded-md text-[9px] font-bold">
+                                                    <span key={i} className="px-2 py-0.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-md text-[9px] font-bold group-hover:border-brand-primary/20 group-hover:text-brand-primary group-hover:bg-brand-primary/5 transition-all">
                                                         {highlight.translated_name}
                                                     </span>
                                                 ))}
                                             </div>
                                         </td>
-                                        <td className="p-3 border-r border-gray-100 align-top">
-                                            <div className="flex gap-0.5">
+
+                                        {/* Guests */}
+                                        <td className="px-6 py-6 align-top">
+                                            <div className="flex items-center justify-center gap-1">
                                                 {Array.from({ length: block.nr_adults || 2 }).map((_, i) => (
-                                                    <Users key={i} className="w-3 h-3 text-brand-dark" />
+                                                    <Users key={i} className="w-4 h-4 text-brand-dark opacity-70" />
                                                 ))}
                                                 {(block.nr_children ?? 0) > 0 && Array.from({ length: block.nr_children ?? 0 }).map((_, i) => (
-                                                    <Users key={i} className="w-2.5 h-2.5 text-gray-400" />
+                                                    <Users key={i} className="w-3.5 h-3.5 text-gray-300" />
                                                 ))}
                                             </div>
                                         </td>
-                                        <td className="p-3 border-r border-gray-100 align-top">
-                                            <div className="text-lg font-bold text-brand-dark">
+
+                                        {/* Price */}
+                                        <td className="px-6 py-6 align-top min-w-[150px]">
+                                            <div className="text-xl font-extrabold text-brand-dark tracking-tight">
                                                 {formatCurrency(block.price_breakdown?.all_inclusive_price || 0, block.price_breakdown?.currency)}
                                             </div>
-                                            <div className="text-[10px] text-gray-400">
+                                            <div className="text-[10px] font-medium text-gray-400 mt-0.5 leading-tight">
                                                 {block.price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
                                             </div>
                                         </td>
-                                        <td className="p-3 border-r border-gray-100 align-top space-y-2">
+
+                                        {/* Your Choices */}
+                                        <td className="px-6 py-6 align-top space-y-3">
                                             {block.transactional_policy_objects?.map((policy: any, i: number) => (
-                                                <div key={i} className="flex items-start gap-1 text-green-600 font-bold">
-                                                    <Check className="w-3 h-3 mt-0.5" />
+                                                <div key={i} className="flex items-start gap-2 text-[12px] text-green-700 font-bold leading-snug">
+                                                    <div className="mt-0.5 shrink-0">
+                                                        <Check className="w-3.5 h-3.5 text-green-600" />
+                                                    </div>
                                                     <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(policy.text) }} />
                                                 </div>
                                             ))}
                                             {block.refundable === 0 && (
-                                                <div className="flex items-start gap-1 text-red-500">
-                                                    <Ban className="w-3 h-3 mt-0.5" />
+                                                <div className="flex items-start gap-2 text-[12px] text-red-500 font-bold leading-snug">
+                                                    <div className="mt-0.5 shrink-0">
+                                                        <Ban className="w-3.5 h-3.5" />
+                                                    </div>
                                                     <span>Non-refundable</span>
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-3 border-r border-gray-100 align-top">
+
+                                        {/* Select Rooms */}
+                                        <td className="px-6 py-6 align-top">
                                             <Select defaultValue="0">
-                                                <SelectTrigger className="w-16 h-8 text-xs border-gray-100 rounded-lg">
+                                                <SelectTrigger className="w-20 h-10 text-sm font-bold border-gray-200 rounded-xl focus:ring-brand-primary/20">
                                                     <SelectValue />
                                                 </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="0">0</SelectItem>
-                                                    <SelectItem value="1">1</SelectItem>
-                                                    <SelectItem value="2">2</SelectItem>
+                                                <SelectContent className="rounded-xl border-gray-100 shadow-xl">
+                                                    <SelectItem value="0" className="text-sm font-medium">0</SelectItem>
+                                                    <SelectItem value="1" className="text-sm font-medium font-bold text-brand-primary">1</SelectItem>
+                                                    <SelectItem value="2" className="text-sm font-medium">2</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </td>
-                                        <td className="p-3 align-middle bg-brand-primary/5">
-                                            <Button onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room', block.block_id || block.room_id)} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
-                                                Book now
-                                            </Button>
-                                            <div className="text-center text-[10px] text-gray-400 mt-2">• You won't be charged yet</div>
+
+                                        {/* Action */}
+                                        <td className="px-6 py-6 align-middle bg-brand-primary/[0.02] group-hover:bg-brand-primary/[0.04] transition-colors">
+                                            <div className="flex flex-col gap-2">
+                                                <Button
+                                                    onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room', block.block_id || block.room_id)}
+                                                    className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-brand-primary/10 transition-all active:scale-[0.98] group-hover:translate-y-[-1px]"
+                                                >
+                                                    Book now
+                                                </Button>
+                                                <div className="text-center text-[10px] font-bold text-gray-400">
+                                                    <span className="text-green-600 mr-1">●</span>
+                                                    Free cancellation
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
