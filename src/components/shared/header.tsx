@@ -51,7 +51,7 @@ export const Header: React.FC = () => {
                 <div className="flex justify-between items-center">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <Logo />
+                        <Logo light={isTransparentPage && !scrolled} />
                     </Link>
 
                     {/* Desktop Navigation */}

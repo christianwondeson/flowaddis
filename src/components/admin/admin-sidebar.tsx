@@ -35,7 +35,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigat
     return (
         <aside className={clsx("w-64 bg-brand-dark text-white flex flex-col", className)}>
             <div className="p-6 border-b border-white/10">
-                <Logo className="text-white" />
+                <Logo light={true} />
             </div>
 
             <nav className="flex-1 p-4 space-y-2">

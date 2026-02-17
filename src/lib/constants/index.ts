@@ -1,6 +1,6 @@
 export const APP_CONSTANTS = {
     AUTH: {
-        COOKIE_NAME: 'auth-token',
+        COOKIE_NAME: '__session',
         COOKIE_MAX_AGE: 86400, // 24 hours
         REDIRECT_PARAM: 'redirect',
         SIGNIN_PATH: '/signin',

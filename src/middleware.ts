@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { APP_CONSTANTS } from '@/lib/constants';
 import type { NextRequest } from 'next/server';
 
 // Protected routes that require authentication
@@ -7,7 +8,7 @@ const authRoutes = ['/signin', '/signup'];
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get(APP_CONSTANTS.AUTH.COOKIE_NAME)?.value;
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));

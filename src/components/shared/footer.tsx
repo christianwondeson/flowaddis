@@ -10,7 +10,7 @@ export const Footer: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                     {/* Brand */}
                     <div className="space-y-6">
-                        <Logo className="text-white" />
+                        <Logo light={true} />
                         <p className="text-gray-400 text-sm leading-relaxed">
                             Your premium gateway to Ethiopia. Experience seamless booking for flights, hotels, conferences, and transportation.
                         </p>
