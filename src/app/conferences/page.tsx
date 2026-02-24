@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Briefcase } from 'lucide-react';
 import { ServicePageWrapper } from '@/components/layout/service-page-wrapper';
 import { VenueCard } from '@/components/conferences/venue-card';
@@ -101,7 +101,7 @@ const mockConferences = [
 ];
 
 export default function ConferencesPage() {
-    const handleBook = (venue: any) => {
+    const handleBook = (venue: { name: string }) => {
         toast.success(`Starting booking for ${venue.name}`);
     };
 

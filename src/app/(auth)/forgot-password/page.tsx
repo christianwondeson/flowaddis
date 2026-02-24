@@ -50,9 +50,9 @@ function ForgotPasswordContent() {
             setSentEmail(email);
             setEmailSent(true);
             toast.success("Password reset email sent!");
-        } catch (error: any) {
-            // console.error(error);
-            toast.error(error.message || "Failed to send reset email. Please try again.");
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to send reset email. Please try again.";
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }

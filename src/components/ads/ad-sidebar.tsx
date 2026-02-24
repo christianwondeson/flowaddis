@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AdSidebarProps, AdConfig } from '@/lib/types/ads';
+import { AdSidebarProps } from '@/lib/types/ads';
 
 export function AdSidebar({ ads, position }: AdSidebarProps) {
     const [currentAdIndex, setCurrentAdIndex] = useState(0);
@@ -53,10 +53,10 @@ export function AdSidebar({ ads, position }: AdSidebarProps) {
 
     return (
         <aside
-            className={`hidden xl:block sticky top-24 ${position === 'left' ? 'mr-6' : 'ml-6'
+            className={`hidden xl:block sticky top-40 z-30 ${position === 'left' ? 'mr-4' : 'ml-4'
                 }`}
         >
-            <div className="w-[300px] space-y-4">
+            <div className="w-[200px] space-y-4">
                 {currentAd.linkUrl ? (
                     <a
                         href={currentAd.linkUrl}

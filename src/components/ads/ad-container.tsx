@@ -33,7 +33,7 @@ export function AdContainer({ children, leftAds, rightAds }: AdContainerProps) {
         <div className="relative w-full">
             {/* Mobile Ad Banner - Top of page with auto-rotation */}
             {currentMobileAd && (
-                <div className="xl:hidden bg-gradient-to-r from-teal-500 via-blue-500 to-blue-600 sticky top-0 z-40 shadow-lg">
+                <div className="xl:hidden bg-linear-to-r from-teal-500 via-blue-500 to-blue-600 sticky top-0 z-40 shadow-lg">
                     <div className="container mx-auto px-3 py-3">
                         <a
                             href={currentMobileAd.linkUrl || '#'}
@@ -78,22 +78,22 @@ export function AdContainer({ children, leftAds, rightAds }: AdContainerProps) {
             )}
 
             {/* Desktop Layout */}
-            <div className="hidden xl:flex items-start justify-center w-full">
+            <div className="hidden xl:flex items-start justify-center w-full gap-4">
                 {/* Left Ad Sidebar - only on 2xl screens */}
                 {hasLeftAds && (
-                    <div className="hidden 2xl:block">
+                    <div className="hidden 2xl:block sticky top-40 z-30 mt-20">
                         <AdSidebar ads={leftAds} position="left" />
                     </div>
                 )}
 
                 {/* Main Content */}
-                <div className="flex-1 max-w-[1400px] w-full">
+                <div className="flex-1 max-w-[1200px] w-full mt-16">
                     {children}
                 </div>
 
                 {/* Right Ad Sidebar - on xl and larger screens */}
                 {hasRightAds && (
-                    <div className="hidden xl:block">
+                    <div className="hidden xl:block sticky top-40 z-30 mt-20">
                         <AdSidebar ads={rightAds} position="right" />
                     </div>
                 )}
