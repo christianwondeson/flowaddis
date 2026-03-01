@@ -131,7 +131,7 @@ export default function TransactionsPage() {
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Volume</span>
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                        <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600">
                             <ArrowUpRight className="w-4 h-4" />
                         </div>
                     </div>
@@ -234,7 +234,7 @@ export default function TransactionsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                                <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
                                                     <UserIcon className="w-3 h-3" />
                                                 </div>
                                                 <div className="text-sm text-gray-600 font-medium">#{tx.firebase_uid?.substring(0, 8) || 'Unknown'}</div>

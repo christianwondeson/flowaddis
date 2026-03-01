@@ -63,7 +63,7 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
     const displayPrice = hotelData?.price || venue.price;
 
     return (
-        <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col border-gray-100">
+        <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col border border-gray-100 rounded-2xl">
             {/* Image Section */}
             <div className="relative h-48 sm:h-56 overflow-hidden bg-brand-gray">
                 {isLoading ? (

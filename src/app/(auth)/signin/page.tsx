@@ -135,7 +135,7 @@ function SignInContent() {
                 <div className="flex justify-end">
                     <Link
                         href={`/forgot-password?redirect=${encodeURIComponent(from)}`}
-                        className="text-xs sm:text-sm font-medium text-brand-primary hover:text-blue-700 transition-colors"
+                        className="text-xs sm:text-sm font-medium text-brand-primary hover:text-teal-700 transition-colors"
                     >
                         Forgot password?
                     </Link>
@@ -148,7 +148,7 @@ function SignInContent() {
                 <Button
                     type="submit"
                     disabled={loading || !recaptchaSolved}
-                    className="w-full bg-brand-primary hover:bg-blue-700 text-white font-semibold py-2.5 sm:py-3 rounded-lg transition-colors disabled:opacity-50"
+                    className="w-full bg-brand-primary hover:bg-teal-700 text-white font-semibold py-2.5 sm:py-3 rounded-2xl transition-all duration-300 disabled:opacity-50 min-h-[48px]"
                 >
                     {loading ? "Signing in..." : "Sign In"}
                 </Button>

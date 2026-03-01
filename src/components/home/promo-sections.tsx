@@ -38,7 +38,7 @@ export function SignInPromo() {
                     </div>
                 </div>
                 <div className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
-                    <div className="absolute inset-0 bg-blue-50 rounded-full scale-90 group-hover:scale-100 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-teal-50 rounded-full scale-90 group-hover:scale-100 transition-transform duration-500" />
                     <div className="absolute inset-0 flex items-center justify-center">
                         <div className="relative">
                             <Gift className="w-16 h-16 text-brand-primary animate-bounce" />
@@ -111,11 +111,11 @@ export function OffersSection() {
 }
 
 const destinations = [
-    { name: 'Nairobi', country: 'Kenya', flag: '🇰🇪', image: 'https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=80&w=800' },
-    { name: 'Dubai', country: 'UAE', flag: '🇦🇪', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=800' },
-    { name: 'Johannesburg', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1549944850-84e00be4203b?auto=format&fit=crop&q=80&w=800' },
-    { name: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹', image: '/assets/images/addis-ababa-night.jpg' },
-    { name: 'Cape Town', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?auto=format&fit=crop&q=80&w=800' },
+    { name: 'Nairobi', country: 'Kenya', flag: '🇰🇪', image: 'https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=80&w=800', price: 420 },
+    { name: 'Dubai', country: 'UAE', flag: '🇦🇪', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=800', price: 380 },
+    { name: 'Johannesburg', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1549944850-84e00be4203b?auto=format&fit=crop&q=80&w=800', price: 295 },
+    { name: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹', image: '/assets/images/addis-ababa-night.jpg', price: 185 },
+    { name: 'Cape Town', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?auto=format&fit=crop&q=80&w=800', price: 340 },
 ];
 
 export function TrendingDestinations() {
@@ -134,7 +134,7 @@ export function TrendingDestinations() {
             />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {destinations.slice(0, 2).map((dest, idx) => (
-                    <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-64 rounded-xl overflow-hidden shadow-sm">
+                    <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-64 rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
                         <img
                             src={dest.image}
                             alt={dest.name}
@@ -150,25 +150,29 @@ export function TrendingDestinations() {
                                 <span className="text-2xl">{dest.flag}</span>
                             </div>
                         </div>
+                        <div className="absolute bottom-4 left-4">
+                            <span className="text-teal-300 text-sm font-semibold">Starting ${dest.price}</span>
+                        </div>
                     </Link>
                 ))}
                 <div className="grid grid-cols-1 gap-4">
                     {destinations.slice(2).map((dest, idx) => (
-                        <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-[120px] rounded-xl overflow-hidden shadow-sm">
+                        <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-[120px] rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
                             <img
                                 src={dest.image}
                                 alt={dest.name}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544203331-360580971092?auto=format&fit=crop&q=80&w=800';
+                                    (e.target as HTMLImageElement).src = '/assets/images/addis-view.jpg';
                                 }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                            <div className="absolute top-3 left-3 text-white">
+                            <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-bold text-lg">{dest.name}</span>
+                                    <span className="font-bold text-lg text-white">{dest.name}</span>
                                     <span className="text-xl">{dest.flag}</span>
                                 </div>
+                                <span className="text-teal-300 text-sm font-semibold">Starting ${dest.price}</span>
                             </div>
                         </Link>
                     ))}
@@ -191,9 +195,14 @@ const imageForCity = (name: string, fallback?: string) => {
 };
 
 const MANUAL_CITIES = [
-    { name: 'Addis Ababa', dest_id: '900040142', nr_hotels: 150, image: 'https://tse2.mm.bing.net/th/id/OIP.eirxq5q5BdeR1K1ETCuItgHaE4?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3' },
-    { name: 'Bishoftu', dest_id: '900040143', nr_hotels: 12, image: 'https://th.bing.com/th/id/OIP.WXUWfYZOZa9vSodkaEp0wgHaDt?w=318&h=175&c=7&r=0&o=7&cb=ucfimg2&pid=1.7&rm=3&ucfimg=1' },
-    { name: 'Debre Zeyt', dest_id: '900040149', nr_hotels: 10, image: 'https://th.bing.com/th/id/OIP.9hPKHWrnsOkiw48lmxszogHaE8?w=243&h=180&c=7&r=0&o=7&cb=ucfimg2&pid=1.7&rm=3&ucfimg=1' },
+    { name: 'Lalibela', dest_id: '900040142', nr_hotels: 25, image: '/assets/images/benuna.jpg' },
+    { name: 'Bahir Dar', dest_id: '900040143', nr_hotels: 40, image: '/assets/images/wnchi-lake-crater.png' },
+    { name: 'Mekelle', dest_id: '900040144', nr_hotels: 30, image: '/assets/images/benuna.jpg' },
+    { name: 'Axum', dest_id: '900040145', nr_hotels: 15, image: '/assets/images/benuna.jpg' },
+    { name: 'Harar', dest_id: '900040146', nr_hotels: 20, image: '/assets/images/addis-view.jpg' },
+    { name: 'Arba Minch', dest_id: '900040147', nr_hotels: 18, image: '/assets/images/sofomar-cave.png' },
+    { name: 'Debre Zeit', dest_id: '900040149', nr_hotels: 10, image: '/assets/images/addis-view.jpg' },
+    { name: 'Omo Valley', dest_id: '900040150', nr_hotels: 12, image: '/assets/images/wnchi-lake-crater.png' },
 ];
 
 export function ExploreEthiopia() {
@@ -220,20 +229,22 @@ export function ExploreEthiopia() {
                     <Link
                         href={`/hotels?query=${city.name}&${defaultParams.toString()}`}
                         key={idx}
-                        className="group"
+                        className="group block"
                     >
-                        <div className="aspect-square rounded-xl overflow-hidden mb-2 bg-gray-100">
+                        <div className="aspect-square rounded-2xl overflow-hidden relative bg-gray-100 border border-gray-100 shadow-sm group-hover:shadow-md transition-all duration-300">
                             <img
-                                src={city.image || `https://cf.bstatic.com/xdata/images/city/square250/${city.dest_id}.jpg?k=...`}
+                                src={city.image || `/assets/images/addis-view.jpg`}
                                 alt={city.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&q=80&w=400';
+                                    (e.target as HTMLImageElement).src = '/assets/images/addis-view.jpg';
                                 }}
                             />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                                <h3 className="font-bold text-white text-sm drop-shadow-md">{city.name}</h3>
+                            </div>
                         </div>
-                        <h3 className="font-bold text-brand-dark text-sm">{city.name}</h3>
-                        <p className="text-xs text-gray-500">{city.nr_hotels || 'Many'} properties</p>
                     </Link>
                 ))}
             </div>

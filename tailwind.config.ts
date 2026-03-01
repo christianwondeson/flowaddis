@@ -43,10 +43,10 @@ const config: Config = {
                 input: "var(--input)",
                 ring: "var(--ring)",
                 brand: {
-                    gray: "#F3F4F6", // Placeholder: Light gray
-                    dark: "#111827", // Placeholder: Dark gray/black
-                    primary: "#0066CC",
-                    secondary: "#00A3E0",
+                    gray: "#F1F5F9",
+                    dark: "#0F172A",
+                    primary: "#0D9488",
+                    secondary: "#14B8A6",
                 },
             },
         },

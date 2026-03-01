@@ -66,7 +66,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ center, zoom = 12, marke
       html: `
         <style>
           .price-marker-tag {
-            background: ${highlighted ? '#e63946' : '#003580'};
+            background: ${highlighted ? '#0f766e' : '#0D9488'};
             color: #fff;
             border-radius: 6px;
             padding: 6px 10px;
@@ -82,7 +82,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ center, zoom = 12, marke
           .price-marker-tag:hover {
             transform: scale(1.15) translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-            background: ${highlighted ? '#d62839' : '#0056b3'};
+            background: ${highlighted ? '#0f766e' : '#0f766e'};
             z-index: 1000 !important;
           }
           .price-marker-arrow {
@@ -90,12 +90,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({ center, zoom = 12, marke
             height: 0;
             border-left: 7px solid transparent;
             border-right: 7px solid transparent;
-            border-top: 7px solid ${highlighted ? '#e63946' : '#003580'};
+            border-top: 7px solid ${highlighted ? '#0f766e' : '#0D9488'};
             margin-top: -2px;
             transition: border-top-color 0.2s ease-in-out;
           }
           .price-marker-container:hover .price-marker-arrow {
-            border-top-color: ${highlighted ? '#d62839' : '#0056b3'};
+            border-top-color: #0f766e;
           }
         </style>
         <div class="price-marker-container" style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">

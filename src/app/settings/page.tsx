@@ -12,7 +12,7 @@ export default function SettingsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen pt-24 pb-12 flex items-center justify-center">
+            <div className="min-h-screen pt-16 md:pt-20 pb-16 flex items-center justify-center bg-brand-gray/30">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
             </div>
         );
@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
     if (!user) {
         return (
-            <div className="min-h-screen pt-24 pb-12 container mx-auto px-4 text-center">
+            <div className="min-h-screen pt-16 md:pt-20 pb-16 container mx-auto px-4 sm:px-6 lg:px-6 text-center bg-brand-gray/30">
                 <h1 className="text-2xl font-bold mb-4">Please sign in to access settings</h1>
                 <Button onClick={() => window.location.href = '/signin'}>Sign In</Button>
             </div>
@@ -28,8 +28,8 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="min-h-screen pt-24 pb-12 bg-gray-50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
+        <div className="min-h-screen pt-16 md:pt-20 pb-16 md:pb-20 bg-brand-gray/30">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-6 max-w-3xl">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="p-6 border-b border-gray-100">
                         <h1 className="text-2xl font-bold text-gray-900">Account Settings</h1>

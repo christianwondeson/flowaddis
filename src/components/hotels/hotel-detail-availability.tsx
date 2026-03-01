@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, ChevronDown, Check, Info, Tag, Ban, Loader2 } from 'lucide-react';
+import { Users, Check, Info, Tag, Ban, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { formatCurrency } from '@/lib/currency';
-import { formatDateEnglishStr } from '@/lib/date-utils';
 import { sanitizeHtml } from '@/lib/utils/sanitize';
 import { Hotel, RoomBlock, RoomDetails } from '@/types/api';
 import axios from 'axios';
@@ -29,33 +26,12 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     adults = 2,
     childrenCount = 0,
     roomsCount = 1,
-    onDateChange,
-    onGuestsChange,
     onBook
 }) => {
     const [rooms, setRooms] = useState<RoomBlock[]>([]);
     const [roomDetails, setRoomDetails] = useState<Record<string, RoomDetails>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // Local state for interactive search
-    const [tempCheckIn, setTempCheckIn] = useState<string>(checkInDate || '');
-    const [tempCheckOut, setTempCheckOut] = useState<string>(checkOutDate || '');
-    const [tempAdults, setTempAdults] = useState<number>(adults);
-    const [tempChildren, setTempChildren] = useState<number>(childrenCount);
-    const [tempRooms, setTempRooms] = useState<number>(roomsCount);
-    const [isGuestSelectOpen, setIsGuestSelectOpen] = useState(false);
-
-    useEffect(() => {
-        if (checkInDate) setTempCheckIn(checkInDate);
-        if (checkOutDate) setTempCheckOut(checkOutDate);
-    }, [checkInDate, checkOutDate]);
-
-    useEffect(() => {
-        setTempAdults(adults);
-        setTempChildren(childrenCount);
-        setTempRooms(roomsCount);
-    }, [adults, childrenCount, roomsCount]);
 
     useEffect(() => {
         const fetchRooms = async () => {
@@ -96,11 +72,6 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
         fetchRooms();
     }, [hotel.id, checkInDate, checkOutDate, adults, childrenCount, roomsCount]);
 
-    const handleSearchUpdate = () => {
-        if (onDateChange) onDateChange(tempCheckIn, tempCheckOut);
-        if (onGuestsChange) onGuestsChange(tempAdults, tempChildren, tempRooms);
-    };
-
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -134,127 +105,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                     We Price Match
                 </button>
             </div>
-            <div className="text-xs text-gray-500">Prices converted to {rooms[0]?.price_breakdown?.currency || 'USD'} <Info className="w-3 h-3 inline" /></div>
-
-            {/* Search Bar */}
-            <div className="flex flex-col md:grid md:grid-cols-4 gap-3 md:gap-1 p-3 md:p-1 bg-brand-primary/5 border border-brand-primary/10 rounded-2xl shadow-sm mb-6">
-                <div className="md:col-span-1 bg-white p-3 md:p-2 rounded-xl md:rounded-lg flex items-center gap-2 border border-transparent hover:border-brand-primary/20 transition-all shadow-sm md:shadow-none">
-                    <Popover
-                        trigger={
-                            <div className="flex items-center gap-3 md:gap-2 cursor-pointer w-full">
-                                <Calendar className="w-5 h-5 md:w-4 md:h-4 text-brand-primary" />
-                                <div className="flex flex-col md:block">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase md:hidden">Dates</span>
-                                    <span className="text-xs md:text-[10px] font-bold text-brand-dark truncate">
-                                        {formatDateEnglishStr(tempCheckIn)} — {formatDateEnglishStr(tempCheckOut)}
-                                    </span>
-                                </div>
-                            </div>
-                        }
-                        content={
-                            <div className="p-3 sm:p-4 bg-transparent rounded-2xl">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-[min(92vw,680px)]">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Check-in</label>
-                                        <CalendarComponent
-                                            selected={tempCheckIn ? new Date(tempCheckIn) : undefined}
-                                            onSelect={(date) => setTempCheckIn(date.toISOString().split('T')[0])}
-                                            minDate={new Date()}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2">Check-out</label>
-                                        <CalendarComponent
-                                            selected={tempCheckOut ? new Date(tempCheckOut) : undefined}
-                                            onSelect={(date) => setTempCheckOut(date.toISOString().split('T')[0])}
-                                            minDate={tempCheckIn ? new Date(new Date(tempCheckIn).getTime() + 86400000) : new Date()}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    />
-                </div>
-                <div className="md:col-span-2 bg-white p-3 md:p-2 rounded-xl md:rounded-lg flex items-center gap-2 border border-transparent hover:border-brand-primary/20 transition-all shadow-sm md:shadow-none">
-                    <Popover
-                        isOpen={isGuestSelectOpen}
-                        onOpenChange={setIsGuestSelectOpen}
-                        trigger={
-                            <div className="flex items-center gap-3 md:gap-2 cursor-pointer w-full">
-                                <Users className="w-5 h-5 md:w-4 md:h-4 text-brand-primary" />
-                                <div className="flex flex-col md:block">
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase md:hidden">Guests & Rooms</span>
-                                    <span className="text-xs md:text-[10px] font-bold text-brand-dark">
-                                        {tempAdults} adults • {tempChildren} children • {tempRooms} room
-                                    </span>
-                                </div>
-                                <ChevronDown className="w-4 h-4 text-brand-primary ml-auto" />
-                            </div>
-                        }
-                        content={
-                            <div className="space-y-4 w-[min(92vw,320px)]">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">Adults</span>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTempAdults(Math.max(1, tempAdults - 1)); }}
-                                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
-                                        >-</button>
-                                        <span className="text-sm font-bold w-4 text-center">{tempAdults}</span>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTempAdults(tempAdults + 1); }}
-                                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
-                                        >+</button>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">Children</span>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTempChildren(Math.max(0, tempChildren - 1)); }}
-                                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
-                                        >-</button>
-                                        <span className="text-sm font-bold w-4 text-center">{tempChildren}</span>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTempChildren(tempChildren + 1); }}
-                                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
-                                        >+</button>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium">Rooms</span>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTempRooms(Math.max(1, tempRooms - 1)); }}
-                                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
-                                        >-</button>
-                                        <span className="text-sm font-bold w-4 text-center">{tempRooms}</span>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTempRooms(tempRooms + 1); }}
-                                            className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-95"
-                                        >+</button>
-                                    </div>
-                                </div>
-                                <Button
-                                    className="w-full bg-brand-primary text-white text-xs h-11 rounded-xl"
-                                    onClick={() => setIsGuestSelectOpen(false)}
-                                >
-                                    Done
-                                </Button>
-                            </div>
-                        }
-                    />
-                </div>
-                <Button
-                    onClick={() => {
-                        handleSearchUpdate();
-                        onDateChange?.(tempCheckIn, tempCheckOut);
-                    }}
-                    className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm h-12 md:h-full rounded-xl md:rounded-lg transition-all active:scale-95 shadow-md shadow-brand-primary/20"
-                >
-                    Update search
-                </Button>
-            </div>
+            <div className="text-xs text-gray-500 mb-6">Prices converted to {rooms[0]?.price_breakdown?.currency || 'USD'} <Info className="w-3 h-3 inline" /></div>
 
             {/* Mobile Cards (md:hidden) */}
             <div className="space-y-3 md:hidden">
@@ -338,7 +189,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         </SelectContent>
                                     </Select>
 
-                                    <Button onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room')} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
+                                    <Button onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room', block.block_id || block.room_id)} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
                                         Book now
                                     </Button>
                                 </div>

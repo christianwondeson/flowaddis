@@ -41,64 +41,60 @@ export const Header: React.FC = () => {
     // On mobile, always use solid header when on booking pages (with ads) so logo stays visible
     const isBookingPage = ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
     const useSolidOnMobile = isBookingPage;
+    // On booking pages with colored hero, use solid header when scrolled so sign buttons stay visible
+    const showSolidHeader = scrolled || useSolidOnMobile;
 
     return (
         <header
             className={clsx(
                 'fixed top-0 left-0 right-0 z-[60] transition-all duration-300',
                 'pt-[env(safe-area-inset-top,0px)]',
-                isTransparentPage
-                    ? (scrolled || useSolidOnMobile
-                        ? 'bg-white/95 backdrop-blur-md shadow-sm py-2 md:py-2'
-                        : 'bg-transparent py-3 md:py-4 md:bg-black/20 md:backdrop-blur-sm')
-                    : 'bg-white/95 backdrop-blur-md shadow-sm py-2'
+                isTransparentPage && !showSolidHeader
+                    ? 'bg-transparent py-3 md:py-4'
+                    : 'bg-white shadow-md py-2 md:py-2'
             )}
+            style={!(isTransparentPage && !showSolidHeader) ? { backgroundColor: 'white' } : undefined}
         >
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <Logo light={isTransparentPage && !scrolled && !useSolidOnMobile} />
+                        <Logo light={isTransparentPage && !showSolidHeader} />
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <nav
-                        className={clsx(
-                            'hidden md:flex items-center gap-1 px-2 py-1 rounded-full',
-                            isTransparentPage && !scrolled
-                                ? 'bg-transparent border-transparent'
-                                : 'bg-white/50 backdrop-blur-sm border border-white/20'
-                        )}
-                    >
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.name}
-                                href={item.path}
-                                className={clsx(
-                                    'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer',
-                                    isActive(item.path)
-                                        ? 'bg-brand-primary text-white shadow-md'
-                                        : (isTransparentPage && !scrolled
-                                            ? 'text-white hover:bg-white/20'
-                                            : 'text-brand-dark hover:bg-white hover:text-brand-primary')
-                                )}
-                            >
-                                <item.icon className="w-4 h-4" />
-                                {item.name}
-                            </Link>
-                        ))}
+                    {/* Desktop Navigation - modern active tab: subtle teal underline */}
+                    <nav className="hidden md:flex items-center gap-6">
+                        {navItems.map((item) => {
+                            const active = isActive(item.path);
+                            return (
+                                <Link
+                                    key={item.name}
+                                    href={item.path}
+                                    className={clsx(
+                                        'relative flex items-center gap-2 text-sm font-bold transition-colors cursor-pointer pb-1',
+                                    isTransparentPage && !showSolidHeader
+                                        ? 'text-white hover:text-white/80'
+                                        : 'text-slate-900 hover:text-teal-600',
+                                        active && "after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-teal-600 after:rounded-full"
+                                    )}
+                                >
+                                    <item.icon className="w-4 h-4" />
+                                    {item.name}
+                                </Link>
+                            );
+                        })}
                     </nav>
 
-                    {/* Auth Buttons / User Menu */}
+                    {/* Auth Buttons / User Menu - always visible */}
                     <div className="hidden md:flex items-center gap-3">
-                        <UserMenu isHomePage={isTransparentPage} scrolled={scrolled} />
+                        <UserMenu isHomePage={isTransparentPage} scrolled={showSolidHeader} />
                     </div>
 
                     {/* Mobile Menu Button */}
                     <button
                         className={clsx(
                             'md:hidden p-2 rounded-full transition-colors',
-                            isTransparentPage && !scrolled && !useSolidOnMobile
+                            isTransparentPage && !showSolidHeader
                                 ? 'text-white hover:bg-white/20'
                                 : 'text-brand-dark hover:bg-gray-100'
                         )}
@@ -127,7 +123,7 @@ export const Header: React.FC = () => {
                                     className={clsx(
                                         'flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium',
                                         isActive(item.path)
-                                            ? 'bg-brand-primary/10 text-brand-primary'
+                                            ? 'bg-teal-100 text-teal-600'
                                             : 'text-gray-600 hover:bg-gray-50'
                                     )}
                                     onClick={() => setIsMenuOpen(false)}
@@ -140,12 +136,18 @@ export const Header: React.FC = () => {
                                 {user ? (
                                     <>
                                         <div className="px-4 py-2 text-sm font-medium text-brand-dark">Hi, {user.name}</div>
+                                        <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 font-medium" onClick={() => setIsMenuOpen(false)}>
+                                            Profile
+                                        </Link>
+                                        <Link href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 font-medium" onClick={() => setIsMenuOpen(false)}>
+                                            Settings
+                                        </Link>
                                         {user.role === 'admin' && (
                                             <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
                                                 <Button variant="outline" className="w-full justify-center">Dashboard</Button>
                                             </Link>
                                         )}
-                                        <Button variant="ghost" className="w-full justify-center" onClick={() => { logout(); setIsMenuOpen(false); }}>Sign Out</Button>
+                                        <Button variant="ghost" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { logout(); setIsMenuOpen(false); }}>Sign Out</Button>
                                     </>
                                 ) : (
                                     <>

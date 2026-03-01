@@ -106,7 +106,7 @@ function ForgotPasswordContent() {
                 <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-brand-primary hover:bg-blue-700 text-white font-semibold py-2.5 sm:py-3 rounded-lg transition-colors"
+                    className="w-full bg-brand-primary hover:bg-teal-700 text-white font-semibold py-2.5 sm:py-3 rounded-2xl transition-colors"
                 >
                     {loading ? 'Sending...' : 'Send Reset Link'}
                 </Button>

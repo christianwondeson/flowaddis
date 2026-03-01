@@ -11,16 +11,15 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+        <div className="min-h-screen bg-brand-gray/30 pt-16 md:pt-20">
             {/* Hero Section */}
-            <section className="relative bg-brand-dark text-white py-20 md:py-32">
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20"></div>
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <section className="bg-teal-600 text-white py-6 md:py-10">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="max-w-3xl mx-auto text-center">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+                        <h1 className="text-3xl md:text-4xl font-bold mb-2">
                             Contact Us
                         </h1>
-                        <p className="text-xl md:text-2xl text-gray-300">
+                        <p className="text-teal-100 text-base md:text-lg">
                             We're here to help. Reach out anytime!
                         </p>
                     </div>
@@ -28,8 +27,8 @@ export default function ContactPage() {
             </section>
 
             {/* Contact Content */}
-            <section className="py-16 md:py-24">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-10 md:py-16">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid md:grid-cols-2 gap-12">
                             {/* Contact Information */}
@@ -159,8 +158,8 @@ export default function ContactPage() {
             </section>
 
             {/* FAQ Section */}
-            <section className="py-16 md:py-24 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-10 md:py-16 bg-white pb-20">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="max-w-3xl mx-auto">
                         <h2 className="text-3xl font-bold text-brand-dark mb-8 text-center">Frequently Asked Questions</h2>
                         <div className="space-y-6">

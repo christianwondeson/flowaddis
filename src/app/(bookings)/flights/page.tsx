@@ -24,31 +24,14 @@ import { FlightDetails } from '@/components/flights/flight-details';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
 
-// Sample advertisement configurations
-const FLIGHT_ADS_LEFT: AdConfig[] = [
+// One advertisement on the right per mockup (matches hotels page pattern)
+const FLIGHT_ADS_RIGHT: AdConfig[] = [
     {
         id: 'ethiopian-airlines-1',
         imageUrl: '/ads/flight-ad-sample.png',
         altText: 'Discover Ethiopia with Ethiopian Airlines',
         linkUrl: 'https://www.ethiopianairlines.com',
         targetBlank: true
-    },
-    {
-        id: 'partnership-opportunity',
-        imageUrl: '/ads/partnership-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
-
-const FLIGHT_ADS_RIGHT: AdConfig[] = [
-    {
-        id: 'hotel-ad-1',
-        imageUrl: '/ads/hotel-ad-sample.png',
-        altText: 'Luxury Stays in Addis Ababa',
-        linkUrl: '/hotels',
-        targetBlank: false
     },
     {
         id: 'partnership-opportunity-2',
@@ -226,15 +209,15 @@ function FlightsPageContent() {
     const displayFlights = flights && flights.length > 0 ? flights : [];
 
     return (
-        <AdContainer leftAds={FLIGHT_ADS_LEFT} rightAds={FLIGHT_ADS_RIGHT}>
-            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-8">
+        <AdContainer leftAds={[]} rightAds={FLIGHT_ADS_RIGHT}>
+            <div className="min-h-screen pb-24 md:pb-20" style={{ backgroundColor: '#F1F5F9' }}>
                 {/* Header Section - compact on mobile */}
-                <div className="bg-brand-primary text-white py-6 sm:py-8 md:py-12 lg:py-16">
+                <div className="bg-teal-600 text-white py-6 sm:py-8 md:py-12 lg:py-16">
                     <div className="container mx-auto px-4 sm:px-6">
                         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4 tracking-tight">
                             Find Your Perfect Flight
                         </h1>
-                        <p className="text-blue-100 text-sm sm:text-base md:text-lg max-w-2xl">
+                        <p className="text-teal-100/90 text-sm sm:text-base md:text-lg max-w-2xl">
                             Search and book international and domestic flights with the best airlines.
                         </p>
                     </div>
@@ -250,21 +233,21 @@ function FlightsPageContent() {
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('ROUNDTRIP')}
-                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ROUNDTRIP' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-700 hover:text-brand-primary'}`}
+                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ROUNDTRIP' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-700 hover:text-teal-600'}`}
                                         >
                                             Round trip
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('ONEWAY')}
-                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ONEWAY' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-700 hover:text-brand-primary'}`}
+                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ONEWAY' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-700 hover:text-teal-600'}`}
                                         >
                                             One way
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('MULTISTOP')}
-                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'MULTISTOP' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-700 hover:text-brand-primary'}`}
+                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'MULTISTOP' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-700 hover:text-teal-600'}`}
                                         >
                                             Multi-city
                                         </button>
@@ -415,7 +398,7 @@ function FlightsPageContent() {
                                         </div>
                                         <div className="md:col-span-2">
                                             <Button
-                                                className="w-full h-[52px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-600/20 transition-all"
+                                                className="w-full h-[52px] flex items-center justify-center gap-2 bg-brand-primary hover:bg-teal-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-brand-primary/20 transition-all"
                                                 onClick={handleSearch}
                                                 disabled={isLoading}
                                             >

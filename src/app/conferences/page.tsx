@@ -5,6 +5,26 @@ import { Briefcase } from 'lucide-react';
 import { ServicePageWrapper } from '@/components/layout/service-page-wrapper';
 import { VenueCard } from '@/components/conferences/venue-card';
 import { toast } from 'sonner';
+import { AdContainer } from '@/components/ads/ad-container';
+import { AdConfig } from '@/lib/types/ads';
+
+// One advertisement on the right per mockup (matches hotels page pattern)
+const CONFERENCE_ADS_RIGHT: AdConfig[] = [
+    {
+        id: 'conference-venue-1',
+        imageUrl: '/ads/hotel-ad-sample.png',
+        altText: 'Conference Venues in Addis Ababa',
+        linkUrl: '/conferences',
+        targetBlank: false
+    },
+    {
+        id: 'partnership-conference',
+        imageUrl: '/ads/partnership-ad.png',
+        altText: 'Partnership Opportunities - Advertise Your Brand',
+        linkUrl: '/contact',
+        targetBlank: false
+    }
+];
 
 // Real hotel venue data for conferences (Pricing in USD)
 const mockConferences = [
@@ -106,23 +126,25 @@ export default function ConferencesPage() {
     };
 
     return (
-        <ServicePageWrapper
-            icon={Briefcase}
-            title="Conference & Event Venues"
-            description="Host your next event in world-class facilities with state-of-the-art technology and premium services."
-            accentColor="primary"
-        >
-            {/* Venues Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                {mockConferences.map((venue, index) => (
-                    <VenueCard
-                        key={venue.id}
-                        venue={venue}
-                        index={index}
-                        onBook={handleBook}
-                    />
-                ))}
-            </div>
-        </ServicePageWrapper>
+        <AdContainer leftAds={[]} rightAds={CONFERENCE_ADS_RIGHT}>
+            <ServicePageWrapper
+                icon={Briefcase}
+                title="Conference & Event Venues"
+                description="Host your next event in world-class facilities with state-of-the-art technology and premium services."
+                accentColor="primary"
+            >
+                {/* Venues Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                    {mockConferences.map((venue, index) => (
+                        <VenueCard
+                            key={venue.id}
+                            venue={venue}
+                            index={index}
+                            onBook={handleBook}
+                        />
+                    ))}
+                </div>
+            </ServicePageWrapper>
+        </AdContainer>
     );
 }

@@ -10,11 +10,13 @@ interface GuestSelectorProps {
     children: number;
     rooms: number;
     onChange: (adults: number, children: number, rooms: number) => void;
+    /** When true, renders only the counter content (no Popover/trigger) for use inside a custom popover */
+    contentOnly?: boolean;
 }
 
 import { Counter } from '@/components/shared/counter';
 
-export const GuestSelector: React.FC<GuestSelectorProps> = ({ adults, children, rooms, onChange }) => {
+export const GuestSelector: React.FC<GuestSelectorProps> = ({ adults, children, rooms, onChange, contentOnly }) => {
     const update = (type: 'adults' | 'children' | 'rooms', value: number) => {
         if (type === 'adults') onChange(value, children, rooms);
         if (type === 'children') onChange(adults, value, rooms);
@@ -45,6 +47,8 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({ adults, children, 
             />
         </div>
     );
+
+    if (contentOnly) return content;
 
     return (
         <Popover

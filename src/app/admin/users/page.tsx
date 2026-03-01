@@ -161,7 +161,7 @@ export default function UsersPage() {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${user.role === 'admin'
                                             ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                                            : 'bg-teal-50 text-teal-700 border-teal-200'
                                             }`}>
                                             {user.role === 'admin' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
                                             {user.role === 'admin' ? 'Administrator' : 'User'}

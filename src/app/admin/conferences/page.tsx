@@ -67,7 +67,7 @@ export default function AdminConferencesPage() {
                     </div>
                     <Button
                         onClick={() => setIsModalOpen(true)}
-                        className="bg-brand-primary hover:bg-blue-700 text-white gap-2"
+                        className="bg-brand-primary hover:bg-teal-700 text-white gap-2"
                     >
                         <Plus className="w-4 h-4" />
                         Add New Conference
@@ -126,7 +126,7 @@ export default function AdminConferencesPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${conf.status === 'Upcoming' ? 'bg-blue-100 text-blue-700' :
+                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${conf.status === 'Upcoming' ? 'bg-teal-100 text-teal-700' :
                                             conf.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                                             }`}>
                                             {conf.status}

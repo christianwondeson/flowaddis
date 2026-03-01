@@ -9,16 +9,15 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+        <div className="min-h-screen bg-brand-gray/30 pt-16 md:pt-20">
             {/* Hero Section */}
-            <section className="relative bg-brand-dark text-white py-20 md:py-32">
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/20 to-brand-secondary/20"></div>
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <section className="relative bg-teal-600 text-white py-6 md:py-10">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6 relative z-10">
                     <div className="max-w-3xl mx-auto text-center">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-                            About FlowAddis
+                        <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                            About BookAddis
                         </h1>
-                        <p className="text-xl md:text-2xl text-gray-300">
+                        <p className="text-teal-100 text-base md:text-lg">
                             Your Premium Gateway to Ethiopia
                         </p>
                     </div>
@@ -26,11 +25,11 @@ export default function AboutPage() {
             </section>
 
             {/* Mission Section */}
-            <section className="py-16 md:py-24">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-10 md:py-16">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="max-w-4xl mx-auto">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-6">Our Mission</h2>
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-4">Our Mission</h2>
                             <p className="text-lg text-gray-600 leading-relaxed">
                                 FlowAddis is dedicated to making travel and event planning in Ethiopia seamless,
                                 accessible, and enjoyable. We connect travelers and businesses with the best
@@ -39,7 +38,7 @@ export default function AboutPage() {
                         </div>
 
                         {/* Values Grid */}
-                        <div className="grid md:grid-cols-3 gap-8 mb-16">
+                        <div className="grid md:grid-cols-3 gap-6 mb-12">
                             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
                                 <div className="w-14 h-14 bg-brand-primary/10 rounded-xl flex items-center justify-center mb-4">
                                     <Target className="w-7 h-7 text-brand-primary" />
@@ -75,10 +74,10 @@ export default function AboutPage() {
             </section>
 
             {/* Story Section */}
-            <section className="py-16 md:py-24 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-10 md:py-16 bg-white">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="max-w-4xl mx-auto">
-                        <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-8 text-center">Our Story</h2>
+                        <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-6 text-center">Our Story</h2>
                         <div className="prose prose-lg max-w-none text-gray-600">
                             <p className="mb-6">
                                 FlowAddis was born from a vision to transform how people experience Ethiopia.
@@ -102,8 +101,8 @@ export default function AboutPage() {
             </section>
 
             {/* Stats Section */}
-            <section className="py-16 md:py-24 bg-brand-dark text-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-10 md:py-16 bg-brand-dark text-white">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
                         <div className="text-center">
                             <div className="text-4xl md:text-5xl font-bold text-brand-secondary mb-2">1000+</div>
@@ -126,10 +125,10 @@ export default function AboutPage() {
             </section>
 
             {/* CTA Section */}
-            <section className="py-16 md:py-24">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <section className="py-10 md:py-16 pb-20">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                     <div className="max-w-3xl mx-auto text-center">
-                        <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-6">
+                        <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-4">
                             Ready to Experience Ethiopia?
                         </h2>
                         <p className="text-lg text-gray-600 mb-8">
@@ -138,7 +137,7 @@ export default function AboutPage() {
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <a
                                 href="/hotels"
-                                className="bg-brand-primary text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-600 transition-colors"
+                                className="bg-brand-primary text-white px-8 py-4 rounded-xl font-bold hover:bg-teal-700 transition-colors"
                             >
                                 Browse Hotels
                             </a>

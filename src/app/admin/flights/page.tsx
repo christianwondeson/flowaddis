@@ -28,7 +28,7 @@ export default function AdminFlightsPage() {
                 </div>
                 <Button
                     onClick={() => setIsModalOpen(true)}
-                    className="bg-brand-primary hover:bg-blue-700 text-white gap-2"
+                    className="bg-brand-primary hover:bg-teal-700 text-white gap-2"
                 >
                     <Plus className="w-4 h-4" />
                     Add New Flight

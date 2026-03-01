@@ -216,7 +216,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                     <div className="flex flex-col gap-2">
                         {[
                             { label: "Wonderful: 9+", value: 90, color: "bg-green-50 border-green-200" },
-                            { label: "Very Good: 8+", value: 80, color: "bg-blue-50 border-blue-200" },
+                            { label: "Very Good: 8+", value: 80, color: "bg-teal-50 border-teal-200" },
                             { label: "Good: 7+", value: 70, color: "bg-yellow-50 border-yellow-200" },
                             { label: "Pleasant: 6+", value: 60, color: "bg-orange-50 border-orange-200" },
                         ].map((score) => {

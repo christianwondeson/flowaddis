@@ -44,3 +44,14 @@ export function formatDateEnglishStr(dateStr?: string): string {
     const d = parseDateLocal(dateStr);
     return formatDateEnglish(d);
 }
+
+/**
+ * Formats a date range for display: "Oct 25 - Nov 1" (mockup style).
+ */
+export function formatDateRangeShort(checkIn?: string, checkOut?: string): string {
+    if (!checkIn || !checkOut) return 'Select dates';
+    const d1 = parseDateLocal(checkIn);
+    const d2 = parseDateLocal(checkOut);
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return `${fmt(d1)} - ${fmt(d2)}`;
+}

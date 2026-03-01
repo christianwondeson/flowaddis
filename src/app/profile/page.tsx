@@ -12,7 +12,7 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen pt-24 pb-12 flex items-center justify-center">
+            <div className="min-h-screen pt-16 md:pt-20 pb-16 flex items-center justify-center bg-brand-gray/30">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
             </div>
         );
@@ -28,8 +28,8 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="min-h-screen pt-24 pb-12 bg-gray-50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
+        <div className="min-h-screen pt-16 md:pt-20 pb-16 md:pb-20 bg-brand-gray/30">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-6 max-w-3xl">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     {/* Header */}
                     <div className="bg-brand-primary/5 p-6 border-b border-gray-100">

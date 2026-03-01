@@ -53,10 +53,14 @@ export function AdSidebar({ ads, position }: AdSidebarProps) {
 
     return (
         <aside
-            className={`hidden xl:block sticky top-40 z-30 ${position === 'left' ? 'mr-4' : 'ml-4'
+            className={`hidden xl:block sticky top-24 z-30 shrink-0 ${position === 'left' ? 'mr-4 order-first' : 'ml-4 order-last'
                 }`}
         >
-            <div className="w-[200px] space-y-4">
+            <div className="w-[200px] space-y-2">
+                {/* Advertisement label - prominent per mockup */}
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Advertisement</span>
+                </div>
                 {currentAd.linkUrl ? (
                     <a
                         href={currentAd.linkUrl}
@@ -70,9 +74,6 @@ export function AdSidebar({ ads, position }: AdSidebarProps) {
                 ) : (
                     <div onClick={handleAdClick}>{adContent}</div>
                 )}
-                <div className="text-center">
-                    <span className="text-xs text-gray-400 uppercase tracking-wider">Advertisement</span>
-                </div>
             </div>
         </aside>
     );

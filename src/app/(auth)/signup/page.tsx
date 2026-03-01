@@ -188,7 +188,7 @@ export default function SignUpPage() {
                 <Button
                     type="submit"
                     disabled={loading || !recaptchaSolved}
-                    className="w-full bg-brand-primary hover:bg-blue-700 text-white font-semibold py-2.5 sm:py-3 rounded-lg transition-colors mt-6 disabled:opacity-50"
+                    className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold py-2.5 sm:py-3 rounded-2xl transition-all duration-300 mt-6 disabled:opacity-50 min-h-[48px]"
                 >
                     {loading ? "Creating account..." : "Create Account"}
                 </Button>

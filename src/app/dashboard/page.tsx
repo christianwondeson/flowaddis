@@ -56,7 +56,7 @@ export default function CustomerDashboard() {
                                 {trip.items.map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-3 md:gap-4 p-3 bg-gray-50 rounded-lg">
                                         <div className="p-2 bg-white rounded-full shadow-sm flex-shrink-0">
-                                            {item.type === 'flight' && <Plane className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />}
+                                            {item.type === 'flight' && <Plane className="w-4 h-4 md:w-5 md:h-5 text-teal-500" />}
                                             {item.type === 'hotel' && <Hotel className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />}
                                             {item.type === 'shuttle' && <Bus className="w-4 h-4 md:w-5 md:h-5 text-green-500" />}
                                             {item.type === 'conference' && <Users className="w-4 h-4 md:w-5 md:h-5 text-purple-500" />}

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plane, Hotel, Users, Bus, Search, MapPin, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Plane, Hotel, Users, Bus, Search, MapPin, Calendar as CalendarIcon, Clock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LocationInput } from '@/components/search/location-input';
@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { Popover } from '@/components/ui/popover';
 const Calendar = dynamic(() => import('@/components/ui/calendar').then(m => m.Calendar), { ssr: false });
 const FlightRouteSelect = dynamic(() => import('@/components/search/flight-route-select').then(m => m.FlightRouteSelect), { ssr: false });
-import { formatDateLocal, parseDateLocal, formatDateEnglishStr } from '@/lib/date-utils';
+import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateRangeShort } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
 
 type TabType = 'flights' | 'hotels' | 'conferences' | 'shuttles';
@@ -28,7 +28,7 @@ const TABS: { id: TabType; icon: typeof Plane; label: string; available: boolean
 
 export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => void }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>('hotels');
+  const [activeTab, setActiveTab] = useState<TabType>('flights');
   const [isSearching, setIsSearching] = useState(false);
 
   const handleTabChange = (tab: TabType) => {
@@ -287,8 +287,9 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
         );
       case 'hotels':
         return (
-          <>
-            <div className="sm:col-span-2 md:col-span-4">
+          <div className="col-span-full grid grid-cols-1 sm:grid-cols-3 md:grid-cols-9 gap-3 md:gap-4 items-end">
+            {/* Destination - pin icon, single-line per mockup */}
+            <div className="md:col-span-4">
               <LocationInput
                 label="Destination"
                 placeholder="Where are you going?"
@@ -299,64 +300,78 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 }}
                 onSelectLocation={(loc) => setHotelLocation({ dest_id: loc.dest_id, dest_type: loc.dest_type })}
                 api="hotels"
+                icon={<MapPin className="w-4 h-4 text-gray-400 shrink-0" />}
                 className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
               />
             </div>
-            <div className="sm:col-span-2 md:col-span-4">
-              <div className="grid grid-cols-2 gap-3">
-                <Popover
-                  align="center"
-                  trigger={
-                    <div className="w-full cursor-pointer">
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Check-in</label>
-                      <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/40 transition-all">
-                        <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0" aria-hidden />
-                        <span className="text-gray-900 font-medium text-sm truncate">{hotelCheckIn ? formatDateEnglishStr(hotelCheckIn) : 'Select date'}</span>
-                      </div>
+            {/* Dates - single field "Oct 25 - Nov 1" per mockup */}
+            <div className="md:col-span-3">
+              <Popover
+                align="center"
+                trigger={
+                  <div className="w-full cursor-pointer">
+                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Dates</label>
+                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-500/40 transition-all group">
+                      <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0 group-hover:text-teal-600" aria-hidden />
+                      <span className="text-gray-900 font-medium text-sm truncate">
+                        {formatDateRangeShort(hotelCheckIn, hotelCheckOut)}
+                      </span>
                     </div>
-                  }
-                  content={
-                    <div className="w-full">
+                  </div>
+                }
+                content={
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 sm:p-4 min-w-[280px] sm:min-w-[520px]">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Check-in</label>
                       <Calendar
                         selected={hotelCheckIn ? parseDateLocal(hotelCheckIn) : undefined}
-                        onSelect={(date) => setHotelCheckIn(formatDateLocal(date))}
+                        onSelect={(date) => {
+                          setHotelCheckIn(formatDateLocal(date));
+                          if (hotelCheckOut && parseDateLocal(hotelCheckOut) <= date) {
+                            setHotelCheckOut(formatDateLocal(new Date(date.getTime() + 86400000)));
+                          }
+                        }}
                         minDate={new Date()}
                       />
                     </div>
-                  }
-                />
-                <Popover
-                  trigger={
-                    <div className="w-full cursor-pointer">
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Check-out</label>
-                      <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/40 transition-all">
-                        <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0" aria-hidden />
-                        <span className="text-gray-900 font-medium text-sm truncate">{hotelCheckOut ? formatDateEnglishStr(hotelCheckOut) : 'Select date'}</span>
-                      </div>
-                    </div>
-                  }
-                  content={
-                    <div className="w-full">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Check-out</label>
                       <Calendar
                         selected={hotelCheckOut ? parseDateLocal(hotelCheckOut) : undefined}
                         onSelect={(date) => setHotelCheckOut(formatDateLocal(date))}
                         minDate={hotelCheckIn ? parseDateLocal(hotelCheckIn) : new Date()}
                       />
                     </div>
-                  }
-                />
-              </div>
-            </div>
-            <div className="sm:col-span-2 md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Guests</label>
-              <GuestSelector
-                adults={hotelGuests.adults}
-                children={hotelGuests.children}
-                rooms={hotelGuests.rooms}
-                onChange={(adults, children, rooms) => setHotelGuests({ adults, children, rooms })}
+                  </div>
+                }
               />
             </div>
-          </>
+            {/* Guests - "1 Room, 2 Guests" format per mockup */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Guests</label>
+              <Popover
+                trigger={
+                  <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-500/40 transition-all cursor-pointer group">
+                    <User className="w-5 h-5 text-gray-400 shrink-0 group-hover:text-teal-600" aria-hidden />
+                    <span className="text-gray-900 font-medium text-sm truncate">
+                      {hotelGuests.rooms} Room{hotelGuests.rooms !== 1 ? 's' : ''}, {hotelGuests.adults + hotelGuests.children} Guest{(hotelGuests.adults + hotelGuests.children) !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                }
+                content={
+                  <div className="p-2">
+                    <GuestSelector
+                      adults={hotelGuests.adults}
+                      children={hotelGuests.children}
+                      rooms={hotelGuests.rooms}
+                      onChange={(adults, children, rooms) => setHotelGuests({ adults, children, rooms })}
+                      contentOnly
+                    />
+                  </div>
+                }
+              />
+            </div>
+          </div>
         );
       case 'conferences':
         return (
@@ -472,13 +487,13 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               className={cn(
                 'flex items-center gap-2 px-3 py-2.5 md:px-4 md:py-3 text-xs md:text-sm font-semibold transition-all duration-200 relative whitespace-nowrap rounded-t-lg -mb-px',
                 activeTab === tab.id
-                  ? 'text-brand-primary bg-brand-primary/5'
+                  ? 'text-white bg-teal-600'
                   : tab.available
                     ? 'text-gray-600 hover:text-brand-primary hover:bg-gray-50/80'
                     : 'text-gray-400 cursor-not-allowed',
               )}
             >
-              <tab.icon className={cn('w-4 h-4 shrink-0', activeTab === tab.id ? 'text-brand-primary' : tab.available ? 'text-gray-500' : 'text-gray-400')} />
+              <tab.icon className={cn('w-4 h-4 shrink-0', activeTab === tab.id ? 'text-white' : tab.available ? 'text-gray-500' : 'text-gray-400')} />
               <span>{tab.label}</span>
               {!tab.available && (
                 <span className="hidden sm:inline text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
@@ -488,7 +503,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-t-full"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-600 rounded-t-full"
                   initial={false}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
@@ -509,7 +524,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               type="button"
               disabled={!canSearch || isSearching}
               aria-busy={isSearching}
-              className="w-full h-12 md:h-[52px] flex items-center justify-center gap-2 text-sm md:text-base font-semibold bg-brand-primary hover:bg-[#0055a8] text-white rounded-xl shadow-[0_4px_14px_rgba(0,102,255,0.25)] transition-all hover:shadow-[0_6px_20px_rgba(0,102,255,0.3)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full h-12 md:h-[52px] flex items-center justify-center gap-2 text-sm md:text-base font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
               onClick={handleSearch}
             >
               {isSearching ? (

@@ -17,24 +17,7 @@ import { Preloader } from '@/components/ui/preloader';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
 
-// Sample advertisement configurations for hotels page
-const HOTEL_ADS_LEFT: AdConfig[] = [
-    {
-        id: 'flight-ad-1',
-        imageUrl: '/ads/flight-ad-sample.png',
-        altText: 'Discover Ethiopia with Ethiopian Airlines',
-        linkUrl: '/flights',
-        targetBlank: false
-    },
-    {
-        id: 'partnership-opportunity',
-        imageUrl: '/ads/partnership-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
-
+// One advertisement on the right per mockup
 const HOTEL_ADS_RIGHT: AdConfig[] = [
     {
         id: 'hotel-promo-1',
@@ -393,21 +376,21 @@ function HotelsPageContent() {
     };
 
     return (
-        <AdContainer leftAds={HOTEL_ADS_LEFT} rightAds={HOTEL_ADS_RIGHT}>
-            <div className="min-h-screen bg-gray-50 pb-24 md:pb-20 pt-8 md:pt-16">
-                {/* Header Section - compact on mobile */}
-                <div className="bg-brand-primary text-white py-6 sm:py-8 md:py-12 lg:py-16">
-                    <div className="container mx-auto px-4 sm:px-6">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4 tracking-tight">
+        <AdContainer leftAds={[]} rightAds={HOTEL_ADS_RIGHT}>
+            <div className="min-h-screen pt-0 pb-24 md:pb-20" style={{ backgroundColor: '#F1F5F9' }}>
+                {/* Header Section - compact per mockup */}
+                <div className="bg-teal-600 text-white py-4 sm:py-5 md:py-6">
+                    <div className="container mx-auto px-4 sm:px-6 lg:px-6">
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2 tracking-tight">
                             Luxury Stays in Addis Ababa
                         </h1>
-                        <p className="text-blue-100 text-sm sm:text-base md:text-lg max-w-2xl">
-                            Discover top-rated hotels with world-class amenities and Ethiopian hospitality.
+                        <p className="text-teal-100/90 text-sm sm:text-base max-w-2xl">
+                            Discover the perfect accommodation for your trip.
                         </p>
                     </div>
                 </div>
 
-                <div className="container mx-auto px-4 sm:px-6 -mt-6 sm:-mt-8 md:-mt-12">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-6 -mt-4 sm:-mt-5 md:-mt-6">
                     <HotelSearchForm
                         destination={destination}
                         checkIn={checkIn}
@@ -480,13 +463,13 @@ function HotelsPageContent() {
 
                         {/* Results Content */}
                         <div className="w-full lg:w-3/4 space-y-6">
-                            {/* Results Header */}
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                                <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                                    {searchParams.query || 'Ethiopia'} – {initialTotalCount || 0} hotels and places to stay
-                                </h1>
+                            {/* Results Header - mockup: "Addis Ababa - 207 hotels" */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                                <h2 className="text-xl md:text-2xl font-bold text-slate-900">
+                                    {searchParams.query || 'Addis Ababa'} – {initialTotalCount || 0} hotels
+                                </h2>
 
-                                {/* Sorting Tabs */}
+                                {/* Sorting Tabs - mockup style */}
                                 <div className="flex flex-wrap gap-2">
                                     {[
                                         { label: 'Lowest Price First', value: 'price' },
@@ -497,9 +480,9 @@ function HotelsPageContent() {
                                             <button
                                                 key={tab.value}
                                                 onClick={() => setFilters({ ...filters, sortOrder: tab.value })}
-                                                className={`px-3 py-1.5 text-[11px] font-bold rounded-full border transition-all ${isActive
-                                                    ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                                                    : "bg-white border-gray-200 text-gray-600 hover:border-blue-600 hover:text-blue-600"
+                                                className={`px-4 py-2.5 text-sm font-bold rounded-xl border transition-all duration-200 min-h-[44px] ${isActive
+                                                    ? "bg-teal-600 border-teal-600 text-white shadow-sm"
+                                                    : "bg-white border-gray-200 text-gray-600 hover:border-teal-600 hover:text-teal-600"
                                                     }`}
                                             >
                                                 {tab.label}
@@ -528,9 +511,9 @@ function HotelsPageContent() {
                                         onClick={() => !isLoadingMore && setPage(p => p + 1)}
                                         disabled={isLoadingMore}
                                         aria-busy={isLoadingMore}
-                                        className={`px-6 py-3 rounded-xl transition-all text-sm font-bold flex items-center gap-3 shadow-sm ${isLoadingMore
+                                        className={`px-6 py-3 rounded-2xl transition-all duration-300 text-sm font-bold flex items-center gap-3 shadow-sm min-h-[48px] ${isLoadingMore
                                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                            : 'bg-brand-primary text-white hover:bg-brand-primary/90 hover:shadow-md'
+                                            : 'bg-teal-600 text-white hover:bg-teal-700 hover:shadow-md active:scale-[0.99]'
                                             }`}
                                     >
                                         {isLoadingMore && (

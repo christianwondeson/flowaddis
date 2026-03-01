@@ -22,7 +22,7 @@ export default function AdminDashboard() {
             icon: Users,
             change: '+12%',
             trend: 'up',
-            color: 'blue',
+            color: 'teal',
             subtext: '+148 this month'
         },
         {
@@ -56,7 +56,7 @@ export default function AdminDashboard() {
 
     // Booking breakdown
     const bookingStats = [
-        { type: 'Hotels', count: 456, percentage: 53, color: 'bg-blue-500' },
+        { type: 'Hotels', count: 456, percentage: 53, color: 'bg-teal-500' },
         { type: 'Flights', count: 289, percentage: 34, color: 'bg-green-500' },
         { type: 'Conferences', count: 78, percentage: 9, color: 'bg-purple-500' },
         { type: 'Shuttles', count: 33, percentage: 4, color: 'bg-orange-500' },
@@ -289,7 +289,7 @@ export default function AdminDashboard() {
                         {[
                             { name: 'Telebirr', percent: 45, color: 'bg-green-500', icon: '📱' },
                             { name: 'Stripe (Cards)', percent: 30, color: 'bg-purple-500', icon: '💳' },
-                            { name: 'Revolut', percent: 15, color: 'bg-blue-500', icon: 'R' },
+                            { name: 'Revolut', percent: 15, color: 'bg-teal-500', icon: 'R' },
                             { name: 'CBE Birr', percent: 10, color: 'bg-yellow-500', icon: '🏦' },
                         ].map((method, idx) => (
                             <div key={idx}>
@@ -310,9 +310,9 @@ export default function AdminDashboard() {
                         ))}
                     </div>
 
-                    <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                        <h4 className="text-sm font-bold text-blue-800 mb-1">Payment Health</h4>
-                        <p className="text-xs text-blue-600">All payment gateways are operational. Telebirr success rate is up 2% from last week.</p>
+                    <div className="mt-8 p-4 bg-teal-50 rounded-xl border border-teal-100">
+                        <h4 className="text-sm font-bold text-teal-800 mb-1">Payment Health</h4>
+                        <p className="text-xs text-teal-600">All payment gateways are operational. Telebirr success rate is up 2% from last week.</p>
                     </div>
                 </div>
             </div>
@@ -379,10 +379,10 @@ export default function AdminDashboard() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Link href="/admin/hotels" className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
+                <Link href="/admin/hotels" className="bg-gradient-to-br from-teal-500 to-teal-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
                     <Hotel className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-lg">Manage Hotels</h3>
-                    <p className="text-blue-100 text-sm mt-1">View and edit hotel listings</p>
+                    <p className="text-teal-100 text-sm mt-1">View and edit hotel listings</p>
                 </Link>
                 <Link href="/admin/flights" className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
                     <Plane className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />

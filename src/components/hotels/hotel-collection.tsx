@@ -41,7 +41,7 @@ export const HotelCollection: React.FC<HotelCollectionProps> = ({
                             setExpanded((e) => !e);
                             onSeeAll?.();
                         }}
-                        className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs font-bold"
+                        className="text-brand-primary border-brand-primary hover:bg-teal-50 text-xs font-bold"
                     >
                         {expanded ? 'Show less' : 'See all'}
                     </Button>

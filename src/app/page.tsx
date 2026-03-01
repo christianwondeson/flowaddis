@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = React.useState('hotels');
+  const [activeTab, setActiveTab] = React.useState('flights');
 
   return (
-    <div className="space-y-12 md:space-y-16 lg:space-y-20 pb-16 md:pb-20 overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: '#F1F5F9' }}>
       {/* Hero Section with Slider */}
       <section className="relative min-h-[500px] md:h-[540px] lg:h-[600px] xl:h-[640px] flex items-center justify-center pt-20 md:pt-24 lg:pt-28 no-scrollbar">
         <HeroSlider>
@@ -26,54 +26,35 @@ export default function HomePage() {
         </HeroSlider>
       </section>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-16 md:space-y-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-16 md:space-y-24 py-12 md:py-16">
         {/* Offers Section - COMMENTED OUT (Mock Data) */}
         {/* <section>
           <OffersSection />
         </section> */}
 
-        {activeTab !== 'flights' && (
-          <>
-            {/* Trending Destinations */}
-            <section>
-              <TrendingDestinations />
-            </section>
+        {/* Trending Destinations */}
+        <section>
+          <TrendingDestinations />
+        </section>
 
-            {/* Explore Ethiopia */}
-            <section>
-              <ExploreEthiopia />
-            </section>
+        {/* Explore Ethiopia */}
+        <section>
+          <ExploreEthiopia />
+        </section>
 
-            {/* Browse by property type - COMMENTED OUT (Mock Data) */}
-            {/* <section>
-              <PropertyTypeSection />
-            </section> */}
+        {/* Featured Hotels */}
+        <section>
+          <FeaturedHotels />
+        </section>
 
-            {/* Looking for the perfect stay? - COMMENTED OUT (Mock Data) */}
-            {/* <section>
-              <PerfectStaySection />
-            </section> */}
-
-            {/* Homes guests love - COMMENTED OUT (Mock Data) */}
-            {/* <section>
-              <HomesGuestsLoveSection />
-            </section> */}
-
-            {/* Featured Hotels */}
-            <section>
-              <FeaturedHotels />
-            </section>
-
-            {/* Popular with travelers from Ethiopia */}
-            <section className="pb-12">
-              <SectionHeading
-                title="Popular with travelers from Ethiopia"
-                subtitle="Top picks for your next trip"
-              />
-              <PopularDestinationsTabs />
-            </section>
-          </>
-        )}
+        {/* Popular with travelers */}
+        <section className="pb-16 md:pb-20">
+          <SectionHeading
+            title="Popular with travelers"
+            subtitle="Top picks for your next trip"
+          />
+          <PopularDestinationsTabs />
+        </section>
       </div>
     </div>
   );
@@ -107,7 +88,7 @@ const DESTINATION_IMAGES: Record<string, string> = {
 const FALLBACK_IMAGE = '/assets/images/addis-view.jpg';
 
 function PopularDestinationsTabs() {
-  const [activeTab, setActiveTab] = React.useState('domestic');
+  const [activeTab, setActiveTab] = React.useState('adventure');
 
   const defaultParams = new URLSearchParams({
     checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
@@ -117,35 +98,35 @@ function PopularDestinationsTabs() {
   });
 
   const tabs = [
-    { id: 'domestic', label: 'Domestic cities' },
-    { id: 'international', label: 'International cities' },
-    { id: 'regions', label: 'Regions' },
+    { id: 'adventure', label: 'Adventure' },
+    { id: 'culture', label: 'Culture' },
+    { id: 'relaxation', label: 'Relaxation' },
   ];
 
   const content: Record<string, { name: string; query: string }[]> = {
-    domestic: [
-      { name: 'Addis Ababa hotels', query: 'Addis Ababa' },
-      { name: 'Bishoftu hotels', query: 'Bishoftu' },
-      { name: 'Hawassa hotels', query: 'Hawassa' },
-      { name: 'Bahir Dar hotels', query: 'Bahir Dar' },
-      { name: 'Gonder hotels', query: 'Gonder' },
-      { name: 'Lalibela hotels', query: 'Lalibela' },
-      { name: 'Adama hotels', query: 'Adama' },
-      { name: 'Mekele hotels', query: 'Mekele' },
+    adventure: [
+      { name: 'Sof Omar Caves', query: 'Southern Nations' },
+      { name: 'Wenchi Crater', query: 'Bishoftu' },
+      { name: 'Simien Mountains', query: 'Gonder' },
+      { name: 'Omo Valley', query: 'Southern Nations' },
+      { name: 'Bale Mountains', query: 'Oromia' },
+      { name: 'Danakil Depression', query: 'Tigray' },
     ],
-    international: [
-      { name: 'Dubai hotels', query: 'Dubai' },
-      { name: 'Nairobi hotels', query: 'Nairobi' },
-      { name: 'Johannesburg hotels', query: 'Johannesburg' },
-      { name: 'Istanbul hotels', query: 'Istanbul' },
-      { name: 'London hotels', query: 'London' },
-      { name: 'Paris hotels', query: 'Paris' },
+    culture: [
+      { name: 'Lalibela', query: 'Lalibela' },
+      { name: 'Axum', query: 'Mekele' },
+      { name: 'Gondar', query: 'Gonder' },
+      { name: 'Harar', query: 'Addis Ababa' },
+      { name: 'Bahir Dar', query: 'Bahir Dar' },
+      { name: 'Addis Ababa', query: 'Addis Ababa' },
     ],
-    regions: [
-      { name: 'Oromia hotels', query: 'Oromia' },
-      { name: 'Amhara hotels', query: 'Amhara' },
-      { name: 'Tigray hotels', query: 'Tigray' },
-      { name: 'Southern Nations hotels', query: 'Southern Nations' },
+    relaxation: [
+      { name: 'Hawassa Lake', query: 'Hawassa' },
+      { name: 'Bishoftu Lakes', query: 'Bishoftu' },
+      { name: 'Langano', query: 'Oromia' },
+      { name: 'Debre Zeyt', query: 'Adama' },
+      { name: 'Arba Minch', query: 'Southern Nations' },
+      { name: 'Lake Tana', query: 'Bahir Dar' },
     ],
   };
 
@@ -155,10 +136,10 @@ function PopularDestinationsTabs() {
         {tabs.map((tab) => (
           <Button
             key={tab.id}
-            variant={activeTab === tab.id ? 'outline' : 'ghost'}
+            variant={activeTab === tab.id ? 'default' : 'ghost'}
             onClick={() => setActiveTab(tab.id)}
             className={`rounded-full px-4 sm:px-6 py-2.5 transition-all text-sm sm:text-base ${activeTab === tab.id
-              ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
+              ? 'bg-teal-600 text-white hover:bg-teal-700 border-0'
               : 'text-gray-600 hover:bg-gray-50'
               }`}
           >
@@ -175,7 +156,7 @@ function PopularDestinationsTabs() {
             <Link
               key={idx}
               href={`/hotels?query=${query}&${defaultParams.toString()}`}
-              className="group block rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white"
+              className="group block rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white"
             >
               <div className="aspect-[4/3] sm:aspect-[3/2] relative overflow-hidden bg-gray-100">
                 <img
@@ -185,9 +166,12 @@ function PopularDestinationsTabs() {
                   onError={(e) => e.currentTarget.src = FALLBACK_IMAGE}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
+                <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-0.5">
                   <span className="text-white font-bold text-sm sm:text-base drop-shadow-md">
                     {item.name.replace(' hotels', '')}
+                  </span>
+                  <span className="text-teal-200 text-xs font-medium drop-shadow-md">
+                    Starting ${[85, 120, 95, 75, 110][idx % 5]}
                   </span>
                 </div>
               </div>

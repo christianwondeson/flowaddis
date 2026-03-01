@@ -224,7 +224,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="bg-white rounded-3xl shadow-2xl w-full max-w-md sm:max-w-lg md:max-w-xl overflow-hidden max-h-[90vh] overflow-y-auto z-[10001]"
+                    className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-md sm:max-w-lg md:max-w-xl overflow-hidden max-h-[90vh] overflow-y-auto z-[10001]"
                 >
                     <div className="flex justify-between items-center p-6 border-b border-gray-100">
                         <h2 className="text-xl font-bold text-brand-dark">

@@ -2,13 +2,13 @@ import React from 'react';
 
 export default function TermsPage() {
     return (
-        <div className="min-h-screen pt-24 pb-12 bg-gray-50">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+        <div className="min-h-screen pt-16 md:pt-20 pb-16 md:pb-20 bg-brand-gray/30">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-6 max-w-4xl">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
                     <p className="text-gray-500 mb-8">Last updated: January 1, 2025</p>
 
-                    <div className="prose prose-blue max-w-none space-y-8 text-gray-700">
+                    <div className="prose prose-teal max-w-none space-y-8 text-gray-700">
                         <section>
                             <h2 className="text-xl font-bold text-gray-900 mb-3">1. Agreement to Terms</h2>
                             <p>

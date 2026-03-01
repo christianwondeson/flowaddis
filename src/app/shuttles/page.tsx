@@ -9,6 +9,26 @@ import { GuestSelector } from '@/components/search/guest-selector';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover } from '@/components/ui/popover';
 import { formatCurrency } from '@/lib/currency';
+import { AdContainer } from '@/components/ads/ad-container';
+import { AdConfig } from '@/lib/types/ads';
+
+// One advertisement on the right per mockup (matches hotels page pattern)
+const SHUTTLE_ADS_RIGHT: AdConfig[] = [
+    {
+        id: 'shuttle-promo-1',
+        imageUrl: '/ads/partnership-ad.png',
+        altText: 'Airport & City Shuttles - Advertise Your Service',
+        linkUrl: '/contact',
+        targetBlank: false
+    },
+    {
+        id: 'hotel-shuttle',
+        imageUrl: '/ads/hotel-ad-sample.png',
+        altText: 'Luxury Stays in Addis Ababa',
+        linkUrl: '/hotels',
+        targetBlank: false
+    }
+];
 
 // Mock data
 const mockShuttles = [
@@ -50,12 +70,13 @@ export default function ShuttlesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 pt-10 md:pt-15">
+        <AdContainer leftAds={[]} rightAds={SHUTTLE_ADS_RIGHT}>
+        <div className="min-h-screen bg-brand-gray/30 pb-24 pt-0">
             {/* Header Section */}
-            <div className="bg-brand-primary text-white py-12 md:py-16">
+            <div className="bg-teal-600 text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
                     <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">Airport & City Shuttles</h1>
-                    <p className="text-blue-100 text-base md:text-lg max-w-2xl">
+                    <p className="text-teal-100 text-base md:text-lg max-w-2xl">
                         Reliable, comfortable transportation for your journey in Addis Ababa.
                     </p>
                 </div>
@@ -63,7 +84,7 @@ export default function ShuttlesPage() {
 
             <div className="container mx-auto px-4 -mt-8 md:-mt-10">
                 {/* Search Widget */}
-                <Card className="p-4 md:p-6 shadow-xl mb-8 md:mb-12 overflow-visible">
+                <Card className="p-4 md:p-6 shadow-lg rounded-2xl border border-gray-100 mb-8 md:mb-12 overflow-visible">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                         <div className="md:col-span-4">
                             <LocationInput
@@ -102,7 +123,7 @@ export default function ShuttlesPage() {
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <Button className="w-full h-[50px] flex items-center justify-center gap-2 text-white font-bold text-lg shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/50 transition-all">
+                            <Button className="w-full h-[52px] min-h-[48px] flex items-center justify-center gap-2 text-white font-bold text-lg rounded-2xl shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/50 transition-all duration-300">
                                 <Search className="w-5 h-5" /> Search
                             </Button>
                         </div>
@@ -114,7 +135,7 @@ export default function ShuttlesPage() {
                     <h2 className="text-xl md:text-2xl font-bold text-brand-dark mb-4 md:mb-6">Available Shuttles</h2>
 
                     {mockShuttles.map((shuttle) => (
-                        <Card key={shuttle.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100">
+                        <Card key={shuttle.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100 rounded-2xl">
                             <div className="flex flex-col md:flex-row">
                                 {/* Image */}
                                 <div className="w-full md:w-2/5 h-48 md:h-auto relative">
@@ -157,7 +178,7 @@ export default function ShuttlesPage() {
                                     </div>
 
                                     <div className="flex justify-end pt-4 border-t border-gray-100">
-                                        <Button onClick={() => handleBook(shuttle)} className="w-full md:w-auto">
+                                        <Button onClick={() => handleBook(shuttle)} className="w-full md:w-auto rounded-2xl min-h-[48px]">
                                             Book Now <ArrowRight className="w-4 h-4 ml-2" />
                                         </Button>
                                     </div>
@@ -168,5 +189,6 @@ export default function ShuttlesPage() {
                 </div>
             </div>
         </div>
+        </AdContainer>
     );
 }

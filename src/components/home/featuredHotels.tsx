@@ -75,7 +75,7 @@ export function FeaturedHotels() {
   return (
     <section>
       <SectionHeading
-        title="Featured Luxury Hotels"
+        title="Featured hotels"
         subtitle="Experience world-class hospitality in the heart of Addis Ababa."
       />
 
@@ -83,7 +83,7 @@ export function FeaturedHotels() {
         {featuredHotels.map((hotel) => {
           const isSaved = currentTrip.some(item => item.details?.id === hotel.id);
           return (
-            <div key={hotel.id} className="group cursor-pointer flex flex-col h-full bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden" onClick={() => handleBook(hotel.id)}>
+            <div key={hotel.id} className="group cursor-pointer flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden" onClick={() => handleBook(hotel.id)}>
               <div className="relative aspect-[4/3] overflow-hidden">
                 <img
                   src={hotel.image}
@@ -129,8 +129,8 @@ export function FeaturedHotels() {
                 <div className="mt-auto pt-4 flex flex-col items-end">
                   <span className="text-xs text-gray-500">Starting from</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xs font-bold text-gray-900">US$</span>
-                    <span className="text-xl font-bold text-gray-900">{Math.round(hotel.price)}</span>
+                    <span className="text-xs font-bold text-brand-primary">US$</span>
+                    <span className="text-xl font-bold text-brand-primary">{Math.round(hotel.price)}</span>
                   </div>
                 </div>
               </div>

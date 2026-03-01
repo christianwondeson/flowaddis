@@ -28,7 +28,7 @@ export const Logo: React.FC<LogoProps> = ({
     const width = typeof size === 'number' ? size : sizes[size].width;
     const textSize = typeof size === 'number' ? 'text-xl' : sizes[size].text;
 
-    const fill = light ? "#ffffff" : "#0066CC";
+    const fill = light ? "#ffffff" : "#0d9488";
 
     return (
         <div className={clsx('flex items-center gap-2', className)}>
@@ -57,9 +57,9 @@ export const Logo: React.FC<LogoProps> = ({
                 <span className={clsx(
                     'font-extrabold tracking-tight leading-none',
                     textSize,
-                    light ? "text-white" : "text-brand-primary"
+                    light ? "text-white" : "text-teal-600"
                 )}>
-                    Book<span className="text-brand-secondary">Addis</span>
+                    Book<span className="text-teal-500">Addis</span>
                 </span>
             )}
         </div>

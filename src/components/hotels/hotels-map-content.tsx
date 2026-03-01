@@ -113,34 +113,46 @@ export function HotelsMapContent() {
     }, [hotels]);
 
     return (
-        <div className="h-[calc(100vh-64px)] mt-16 overflow-hidden bg-white relative">
-            <div className="flex h-full flex-col lg:flex-row">
-                {/* Left Panel: Filters & List */}
-                <div className={`w-full lg:w-[500px] xl:w-[600px] h-full flex flex-col border-r border-gray-100 shadow-xl z-10 bg-white transition-all duration-300 ${viewMode === 'map' ? 'hidden lg:flex' : 'flex'}`}>
-                    {/* Filter Header */}
-                    <div className="p-6 border-b border-gray-100">
-                        <h1 className="text-xl font-bold text-brand-dark mb-1">Hotels on Map</h1>
-                        <p className="text-sm text-gray-500">
-                            Showing {markers.length} of {data?.totalCount || 0} hotels • Click "Load more" to add more to map
-                        </p>
+        <div className="h-[calc(100vh-64px)] mt-16 overflow-hidden bg-brand-gray/30 relative">
+            <div className="flex h-full flex-col xl:flex-row">
+                {/* Mobile/Tablet: single panel (list or map). Desktop (xl+): Filter | List | Map - mockup */}
+                <div className={`flex-1 min-w-0 h-full flex flex-col xl:flex-row transition-all duration-300 ${viewMode === 'map' ? 'hidden xl:flex' : 'flex'}`}>
+                    {/* Filter column - desktop only, left */}
+                    <div className="hidden xl:block xl:w-64 xl:shrink-0 xl:border-r xl:border-gray-100 xl:bg-white xl:overflow-y-auto xl:scrollbar-hide">
+                        <div className="p-4 border-b border-gray-100">
+                            <h2 className="text-sm font-bold text-brand-dark">Filter</h2>
+                        </div>
+                        <HotelFilters
+                            showMapPreview={false}
+                            hotels={hotels}
+                            filters={filters}
+                            onFilterChange={(f) => { setPage(0); setFilters(f); }}
+                            checkIn={checkIn}
+                            checkOut={checkOut}
+                        />
                     </div>
 
-                    {/* Scrollable Content (Filters + List) */}
-                    <div className="flex-grow overflow-y-auto custom-scrollbar scrollbar-hide">
-                        {/* Filters Section */}
-                        <div className="border-b border-gray-100">
-                            <HotelFilters
-                                showMapPreview={false}
-                                hotels={hotels}
-                                filters={filters}
-                                onFilterChange={(f) => { setPage(0); setFilters(f); }}
-                                checkIn={checkIn}
-                                checkOut={checkOut}
-                            />
+                    {/* List column - center. On <xl, filters are inline above list */}
+                    <div className="flex-1 min-w-0 flex flex-col border-r border-gray-100 bg-white overflow-hidden">
+                        <div className="p-4 md:p-6 border-b border-gray-100 shrink-0">
+                            <h1 className="text-xl font-bold text-brand-dark mb-1">Hotels on Map</h1>
+                            <p className="text-sm text-gray-500">
+                                Showing {markers.length} of {data?.totalCount || 0} hotels
+                            </p>
                         </div>
-
-                        {/* Hotel List Section */}
-                        <div className="p-6 bg-gray-50/30">
+                        <div className="flex-grow overflow-y-auto scrollbar-hide">
+                            {/* Filters - visible on <xl only (on xl, filter is separate column) */}
+                            <div className="xl:hidden border-b border-gray-100">
+                                <HotelFilters
+                                    showMapPreview={false}
+                                    hotels={hotels}
+                                    filters={filters}
+                                    onFilterChange={(f) => { setPage(0); setFilters(f); }}
+                                    checkIn={checkIn}
+                                    checkOut={checkOut}
+                                />
+                            </div>
+                            <div className="p-4 md:p-6 bg-brand-gray/20">
                             <HotelList
                                 hotels={hotels}
                                 isLoading={isLoading && page === 0}
@@ -149,24 +161,24 @@ export function HotelsMapContent() {
                                 onHoverStart={(id) => setHoveredId(id)}
                                 onHoverEnd={() => setHoveredId(undefined)}
                             />
-
                             {data?.hasNextPage && !isPlaceholderData && (
                                 <div className="flex justify-center mt-8 pb-10">
                                     <Button
                                         variant="outline"
                                         onClick={() => setPage((p) => p + 1)}
-                                        className="rounded-full px-10 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white transition-all font-bold"
+                                        className="rounded-2xl px-10 py-3 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white transition-all duration-300 font-bold min-h-[48px]"
                                     >
                                         Load more results
                                     </Button>
                                 </div>
                             )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Panel: Full-screen Map with Gaps */}
-                <div className={`flex-grow h-full relative bg-gray-50 p-0 lg:p-6 transition-all duration-300 ${viewMode === 'list' ? 'hidden lg:block' : 'block'}`}>
+                {/* Map Panel - right */}
+                <div className={`flex-1 min-w-0 h-full relative bg-brand-gray/20 p-0 xl:p-6 transition-all duration-300 ${viewMode === 'list' ? 'hidden xl:block' : 'block'}`}>
                     <div className="w-full h-full lg:rounded-2xl overflow-hidden shadow-inner border-0 lg:border border-gray-200 relative">
                         <LeafletMap
                             center={center}
@@ -202,7 +214,7 @@ export function HotelsMapContent() {
             <div className="lg:hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-[1001]">
                 <Button
                     onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-                    className="rounded-full shadow-2xl px-6 py-6 bg-brand-dark text-white hover:bg-brand-dark/90 flex items-center gap-2 border-2 border-white/20 backdrop-blur-sm"
+                            className="rounded-2xl shadow-2xl px-6 py-4 bg-brand-primary text-white hover:bg-brand-primary/90 flex items-center gap-2 border-2 border-white/20 backdrop-blur-sm min-h-[48px]"
                 >
                     {viewMode === 'list' ? (
                         <>

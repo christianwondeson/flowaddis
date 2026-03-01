@@ -40,7 +40,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                     )}
                 </div>
                 <div className="p-3 sm:p-4 flex flex-col gap-2">
-                    <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight">
+                    <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-2 group-hover:text-teal-600 transition-colors leading-tight">
                         {hotel.name}
                     </h3>
                     <div className="flex items-center gap-1.5 text-gray-500 text-xs">
@@ -50,7 +50,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
 
                     <div className="flex items-center justify-between gap-2 mt-1">
                         <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 bg-brand-primary text-white rounded-lg flex items-center justify-center font-bold text-xs">
+                            <div className="w-7 h-7 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold text-xs">
                                 {hotel.rating != null ? Number(hotel.rating).toFixed(1) : '—'}
                             </div>
                             <div className="text-xs">
@@ -108,7 +108,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                     <div className="flex items-start justify-between gap-2 mb-0.5">
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                <h3 className="text-sm md:text-base font-bold text-blue-600 hover:underline cursor-pointer truncate">
+                                <h3 className="text-sm md:text-base font-bold text-teal-600 hover:underline cursor-pointer truncate">
                                     {hotel.name}
                                 </h3>
                                 <div className="flex items-center gap-0.5">
@@ -136,7 +136,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                                         e.stopPropagation();
                                         setShowFullDescription(!showFullDescription);
                                     }}
-                                    className="text-blue-600 font-bold hover:underline mt-0.5"
+                                    className="text-teal-600 font-bold hover:underline mt-0.5"
                                 >
                                     {showFullDescription ? "Show less" : "Show more"}
                                 </button>
@@ -180,10 +180,10 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                             <div className="text-[8px] text-gray-500 mt-0.5">1 night, 2 adults</div>
                         </div>
                         <Button
-                            onClick={() => onBook(hotel)}
-                            className="w-full mt-2 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[10px] font-bold transition-all"
+                            onClick={(e) => { e.stopPropagation(); onBook(hotel); }}
+                            className="w-full mt-2 h-8 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all"
                         >
-                            Check availability
+                            View Deal
                         </Button>
                     </div>
                 </div>

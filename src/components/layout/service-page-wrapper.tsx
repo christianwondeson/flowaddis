@@ -26,9 +26,9 @@ export function ServicePageWrapper({
     };
 
     return (
-        <div className="min-h-screen bg-brand-gray/30 pb-20 pt-10 md:pt-2.5">
-            {/* Header Section */}
-            <div className={clsx(accentColors[accentColor], "py-12 md:py-20 mt-16")}>
+        <div className="min-h-screen bg-brand-gray/30 pb-20 pt-0">
+            {/* Header Section - compact, no extra top margin */}
+            <div className={clsx(accentColors[accentColor], "py-8 md:py-12")}>
                 <div className="container mx-auto px-4">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20">
@@ -42,7 +42,7 @@ export function ServicePageWrapper({
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 -mt-8 md:-mt-10">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-6 -mt-6 md:-mt-8">
                 {children}
             </div>
         </div>

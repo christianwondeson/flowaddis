@@ -161,7 +161,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         <button
                             type="button"
                             onClick={() => setMethod('telebirr')}
-                            className={`p-4 md:p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'telebirr'
+                            className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'telebirr'
                                 ? 'border-[#5C2D91] bg-[#5C2D91]/10 shadow-lg ring-2 ring-[#5C2D91]/20'
                                 : 'border-gray-200 hover:border-[#5C2D91]/40 hover:shadow-md bg-white'
                                 }`}
@@ -180,7 +180,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         <button
                             type="button"
                             onClick={() => setMethod('cbebirr')}
-                            className={`p-4 md:p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'cbebirr'
+                            className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'cbebirr'
                                 ? 'border-[#006838] bg-[#006838]/10 shadow-lg ring-2 ring-[#006838]/20'
                                 : 'border-gray-200 hover:border-[#006838]/40 hover:shadow-md bg-white'
                                 }`}
@@ -201,7 +201,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 <button
                     type="button"
                     onClick={() => setMethod('stripe')}
-                    className={`p-4 md:p-6 rounded-2xl border-3 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'stripe'
+                    className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'stripe'
                         ? 'border-[#635BFF] bg-[#635BFF]/10 shadow-lg ring-2 ring-[#635BFF]/20'
                         : 'border-gray-200 hover:border-[#635BFF]/40 hover:shadow-md bg-white'
                         } ${!isLocal ? 'w-full' : ''}`}
@@ -286,7 +286,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 {method === 'stripe' && (
                     <div className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                            <div className="bg-blue-50 p-4 rounded-xl text-sm text-blue-700 border border-blue-100 flex items-center gap-3">
+                            <div className="bg-teal-50 p-4 rounded-xl text-sm text-teal-700 border border-teal-100 flex items-center gap-3">
                                 <CreditCard className="w-5 h-5 flex-shrink-0" />
                                 <div>
                                     <p className="font-bold">Secure Stripe Payment</p>

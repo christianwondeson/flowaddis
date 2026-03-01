@@ -76,19 +76,19 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     }, [showCI, showCO]);
 
     return (
-        <Card className="p-3 sm:p-4 md:p-6 shadow-lg md:shadow-xl mb-4 md:mb-6 bg-white rounded-2xl border border-gray-100 overflow-visible relative z-50">
+        <Card className="p-4 sm:p-5 md:p-6 shadow-lg mb-4 md:mb-6 bg-white rounded-2xl border border-gray-100 overflow-visible relative z-50">
             {/* Mobile compact bar - app-like tap target */}
             <div className="md:hidden">
                 {!mobileOpen && (
                     <button
                         type="button"
                         onClick={() => setMobileOpen(true)}
-                        className="w-full text-left bg-white border-2 border-brand-primary/30 rounded-2xl px-4 py-3.5 shadow-sm active:bg-gray-50 transition-colors min-h-[56px]"
+                        className="w-full text-left bg-white border-2 border-teal-600/30 rounded-2xl px-4 py-3.5 shadow-sm active:bg-gray-50 transition-colors min-h-[56px]"
                         aria-label="Open hotel search"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-                                <Search className="w-5 h-5 text-brand-primary" />
+                            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                                <Search className="w-5 h-5 text-teal-600" />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-base font-bold text-gray-900 truncate">{destination || 'Addis Ababa'}</div>
@@ -182,7 +182,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                             <Button
                                 onClick={handleSearchClick}
                                 disabled={isLoading}
-                                className="w-full h-[44px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[15px] rounded-xl shadow-lg shadow-blue-600/20"
+                                className="w-full h-[44px] flex items-center justify-center gap-2 bg-brand-primary hover:bg-teal-700 text-white font-bold text-[15px] rounded-xl shadow-lg shadow-brand-primary/20"
                             >
                                 {isLoading ? 'Searching...' : (<><Search className="w-5 h-5" /> Search</>)}
                             </Button>
@@ -259,7 +259,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                     <Button
                         onClick={handleSearchClick}
                         disabled={isLoading}
-                        className="w-full h-[52px] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-600/20 transition-all"
+                        className="w-full h-[52px] flex items-center justify-center gap-2 bg-brand-primary hover:bg-teal-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-brand-primary/20 transition-all"
                     >
                         {isLoading ? 'Searching...' : <><Search className="w-5 h-5" /> Search</>}
                     </Button>

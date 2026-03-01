@@ -59,7 +59,7 @@ export function AdContainer({ children, leftAds, rightAds }: AdContainerProps) {
                                                     e.preventDefault();
                                                     setCurrentMobileAdIndex(index);
                                                 }}
-                                                className={`h-1 rounded-full transition-all ${index === currentMobileAdIndex ? 'bg-brand-primary w-4' : 'bg-gray-300 w-1'}`}
+                                                className={`h-1 rounded-full transition-all ${index === currentMobileAdIndex ? 'bg-teal-600 w-4' : 'bg-gray-300 w-1'}`}
                                                 aria-label={`View ad ${index + 1}`}
                                             />
                                         ))}
@@ -71,23 +71,23 @@ export function AdContainer({ children, leftAds, rightAds }: AdContainerProps) {
                 </div>
             )}
 
-            {/* Desktop Layout */}
-            <div className="hidden xl:flex items-start justify-center w-full gap-4">
+            {/* Desktop Layout - mockup: [Filter | Listings | Advertisement], tight padding */}
+            <div className="hidden xl:flex items-start justify-between w-full gap-4 px-4 lg:px-6">
                 {/* Left Ad Sidebar - only on 2xl screens */}
                 {hasLeftAds && (
-                    <div className="hidden 2xl:block sticky top-40 z-30 mt-20">
+                    <div className="hidden 2xl:block shrink-0">
                         <AdSidebar ads={leftAds} position="left" />
                     </div>
                 )}
 
-                {/* Main Content */}
-                <div className="flex-1 max-w-[1200px] w-full mt-16">
+                {/* Main Content - takes remaining space, no max-width to fill layout */}
+                <div className="flex-1 min-w-0 mt-16">
                     {children}
                 </div>
 
-                {/* Right Ad Sidebar - on xl and larger screens */}
+                {/* Right Ad Sidebar - mockup: Advertisement on far right */}
                 {hasRightAds && (
-                    <div className="hidden xl:block sticky top-40 z-30 mt-20">
+                    <div className="shrink-0">
                         <AdSidebar ads={rightAds} position="right" />
                     </div>
                 )}
