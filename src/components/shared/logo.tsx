@@ -8,6 +8,10 @@ interface LogoProps {
     light?: boolean;
 }
 
+/**
+ * BookAddis logo – bed icon with person resting (accommodation/booking).
+ * Transparent background, brand colors. Represents hotels, comfort, and travel.
+ */
 export const Logo: React.FC<LogoProps> = ({
     className = "",
     size = 'md',
@@ -24,8 +28,7 @@ export const Logo: React.FC<LogoProps> = ({
     const width = typeof size === 'number' ? size : sizes[size].width;
     const textSize = typeof size === 'number' ? 'text-xl' : sizes[size].text;
 
-    const iconColor = light ? "var(--color-brand-white)" : "var(--color-brand-primary)";
-    const accentColor = "var(--color-brand-secondary)";
+    const fill = light ? "#ffffff" : "#0066CC";
 
     return (
         <div className={clsx('flex items-center gap-2', className)}>
@@ -35,27 +38,19 @@ export const Logo: React.FC<LogoProps> = ({
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
             >
-                {/* Bed headboard */}
-                <rect x="10" y="20" width="44" height="4" rx="2" fill={iconColor} />
-                <rect x="12" y="8" width="40" height="16" rx="4" fill={iconColor} />
-
-                {/* Pillows */}
-                <rect x="16" y="12" width="12" height="8" rx="3" fill={light ? "rgba(255,255,255,0.5)" : "var(--color-brand-gray)"} />
-                <rect x="36" y="12" width="12" height="8" rx="3" fill={light ? "rgba(255,255,255,0.5)" : "var(--color-brand-gray)"} />
-
-                {/* Bed frame */}
-                <rect x="8" y="24" width="48" height="6" rx="2" fill={iconColor} />
-                <rect x="6" y="30" width="52" height="10" rx="3" fill={iconColor} />
-
-                {/* Bed legs */}
-                <rect x="10" y="40" width="5" height="8" rx="2" fill={iconColor} />
-                <rect x="49" y="40" width="5" height="8" rx="2" fill={iconColor} />
-
-                {/* Stars */}
-                <circle cx="22" cy="4" r="2" fill={accentColor} />
-                <circle cx="32" cy="2" r="2.5" fill={accentColor} />
-                <circle cx="42" cy="4" r="2" fill={accentColor} />
+                {/* Bed icon – matches reference: headboard, mattress, footboard, pillow, person's head. Transparent background. */}
+                {/* Headboard (vertical bar left) */}
+                <rect x="10" y="18" width="8" height="32" rx="2" fill={fill} />
+                {/* Mattress (horizontal base) */}
+                <rect x="18" y="42" width="28" height="12" rx="2" fill={fill} />
+                {/* Footboard (vertical bar right) */}
+                <rect x="44" y="34" width="8" height="22" rx="2" fill={fill} />
+                {/* Pillow (elongated horizontal rectangle on left of mattress) */}
+                <rect x="20" y="44" width="12" height="8" rx="3" fill={fill} />
+                {/* Person's head (circle on pillow) */}
+                <circle cx="26" cy="47" r="5" fill={fill} />
             </svg>
 
             {showText && (

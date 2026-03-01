@@ -53,7 +53,7 @@ export const GuestSelector: React.FC<GuestSelectorProps> = ({ adults, children, 
                     <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all cursor-pointer group">
                         <Users className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
                         <span className="text-gray-900 font-semibold text-sm truncate">
-                            {adults} Adults, {children} Children, {rooms} Room
+                            {adults} Adult{adults !== 1 ? 's' : ''}, {children} Child{children !== 1 ? 'ren' : ''}, {rooms} Room{rooms !== 1 ? 's' : ''}
                         </span>
                     </div>
                 </div>

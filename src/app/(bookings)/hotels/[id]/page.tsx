@@ -157,7 +157,7 @@ export default function HotelDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-brand-gray pb-20 lg:pb-20 pt-15">
+        <div className="min-h-screen bg-brand-gray pb-24 lg:pb-20 pt-16 md:pt-20">
             <HotelDetailHeader
                 hotel={hotel}
                 activeTab={activeTab}
@@ -297,9 +297,9 @@ export default function HotelDetailPage() {
                 initialCheckOut={checkOutDate}
             />
 
-            {/* Mobile bottom bar - fixed on mobile/tablet */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 shadow-2xl">
-                <div className="container mx-auto flex items-center justify-between gap-4">
+            {/* Mobile bottom bar - fixed, safe-area aware */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 px-4 py-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                <div className="container mx-auto flex items-center justify-between gap-4 max-w-lg mx-auto">
                     <div>
                         <p className="text-xs text-gray-500">From</p>
                         <p className="text-xl font-bold text-brand-dark">
@@ -314,7 +314,7 @@ export default function HotelDetailPage() {
                                 behavior: 'smooth'
                             });
                         }}
-                        className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-6 sm:px-8 rounded-full flex-shrink-0 shadow-lg shadow-brand-primary/20"
+                        className="bg-brand-primary hover:bg-brand-primary/90 active:scale-[0.98] text-white font-bold px-8 py-3 rounded-xl flex-shrink-0 shadow-lg shadow-brand-primary/25 min-h-[48px]"
                     >
                         Book now
                     </Button>

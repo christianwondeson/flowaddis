@@ -394,18 +394,20 @@ function HotelsPageContent() {
 
     return (
         <AdContainer leftAds={HOTEL_ADS_LEFT} rightAds={HOTEL_ADS_RIGHT}>
-            <div className="min-h-screen bg-gray-50 pb-20 pt-10 md:pt-15">
-                {/* Header Section */}
-                <div className="bg-brand-primary text-white py-12 md:py-16">
-                    <div className="container mx-auto px-4">
-                        <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">Luxury Stays in Addis Ababa</h1>
-                        <p className="text-blue-100 text-base md:text-lg max-w-2xl">
+            <div className="min-h-screen bg-gray-50 pb-24 md:pb-20 pt-8 md:pt-16">
+                {/* Header Section - compact on mobile */}
+                <div className="bg-brand-primary text-white py-6 sm:py-8 md:py-12 lg:py-16">
+                    <div className="container mx-auto px-4 sm:px-6">
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4 tracking-tight">
+                            Luxury Stays in Addis Ababa
+                        </h1>
+                        <p className="text-blue-100 text-sm sm:text-base md:text-lg max-w-2xl">
                             Discover top-rated hotels with world-class amenities and Ethiopian hospitality.
                         </p>
                     </div>
                 </div>
 
-                <div className="container mx-auto px-4 -mt-10 md:-mt-12">
+                <div className="container mx-auto px-4 sm:px-6 -mt-6 sm:-mt-8 md:-mt-12">
                     <HotelSearchForm
                         destination={destination}
                         checkIn={checkIn}

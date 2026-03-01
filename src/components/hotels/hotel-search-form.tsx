@@ -76,35 +76,36 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     }, [showCI, showCO]);
 
     return (
-        <Card className="p-4 md:p-6 shadow-xl mb-4 md:mb-6 bg-white rounded-2xl border-0 overflow-visible relative z-50">
-            {/* Mobile compact bar */}
+        <Card className="p-3 sm:p-4 md:p-6 shadow-lg md:shadow-xl mb-4 md:mb-6 bg-white rounded-2xl border border-gray-100 overflow-visible relative z-50">
+            {/* Mobile compact bar - app-like tap target */}
             <div className="md:hidden">
                 {!mobileOpen && (
                     <button
                         type="button"
                         onClick={() => setMobileOpen(true)}
-                        className="w-full text-left bg-white border-2 border-brand-primary rounded-2xl px-4 py-3 shadow-sm"
+                        className="w-full text-left bg-white border-2 border-brand-primary/30 rounded-2xl px-4 py-3.5 shadow-sm active:bg-gray-50 transition-colors min-h-[56px]"
                         aria-label="Open hotel search"
                     >
-                        <div className="flex items-start gap-3">
-                            <div className="pt-0.5 text-gray-500">
-                                <Search className="w-4 h-4" />
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
+                                <Search className="w-5 h-5 text-brand-primary" />
                             </div>
-                            <div className="flex-1">
-                                <div className="text-base font-extrabold text-gray-900">{destination || 'Addis Ababa'}</div>
-                                <div className="text-[12px] text-gray-600 mt-0.5 flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                                <div className="text-base font-bold text-gray-900 truncate">{destination || 'Addis Ababa'}</div>
+                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 truncate">
                                     <span>{datesSummary}</span>
                                     <span>·</span>
                                     <span>{guestsSummary}</span>
                                 </div>
                             </div>
+                            <span className="text-gray-400 text-sm">Edit</span>
                         </div>
                     </button>
                 )}
 
                 {mobileOpen && (
-                    <div className="mt-3 relative z-[80]">
-                        <div className="w-full bg-white rounded-2xl p-2 border border-gray-200">
+                    <div className="mt-3 relative z-[80] animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="w-full bg-white rounded-2xl p-4 border border-gray-200 shadow-lg">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-2 flex-1 border border-gray-200">
                                     <Search className="w-4 h-4 text-gray-500" />

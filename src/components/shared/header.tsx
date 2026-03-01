@@ -9,6 +9,7 @@ import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
 import { UserMenu } from '@/components/shared/user-menu';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -37,21 +38,27 @@ export const Header: React.FC = () => {
 
     const isActive = (path: string) => pathname === path;
     const isTransparentPage = pathname === '/' || ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
+    // On mobile, always use solid header when on booking pages (with ads) so logo stays visible
+    const isBookingPage = ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
+    const useSolidOnMobile = isBookingPage;
 
     return (
         <header
             className={clsx(
                 'fixed top-0 left-0 right-0 z-[60] transition-all duration-300',
+                'pt-[env(safe-area-inset-top,0px)]',
                 isTransparentPage
-                    ? (scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-2' : 'bg-transparent py-4 md:bg-black/20 md:backdrop-blur-sm')
-                    : 'bg-white/90 backdrop-blur-md shadow-sm py-2'
+                    ? (scrolled || useSolidOnMobile
+                        ? 'bg-white/95 backdrop-blur-md shadow-sm py-2 md:py-2'
+                        : 'bg-transparent py-3 md:py-4 md:bg-black/20 md:backdrop-blur-sm')
+                    : 'bg-white/95 backdrop-blur-md shadow-sm py-2'
             )}
         >
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <Logo light={isTransparentPage && !scrolled} />
+                        <Logo light={isTransparentPage && !scrolled && !useSolidOnMobile} />
                     </Link>
 
                     {/* Desktop Navigation */}
@@ -70,7 +77,7 @@ export const Header: React.FC = () => {
                                 className={clsx(
                                     'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all cursor-pointer',
                                     isActive(item.path)
-                                        ? 'bg-brand-primary text-black shadow-md'
+                                        ? 'bg-brand-primary text-white shadow-md'
                                         : (isTransparentPage && !scrolled
                                             ? 'text-white hover:bg-white/20'
                                             : 'text-brand-dark hover:bg-white hover:text-brand-primary')
@@ -91,7 +98,7 @@ export const Header: React.FC = () => {
                     <button
                         className={clsx(
                             'md:hidden p-2 rounded-full transition-colors',
-                            isTransparentPage && !scrolled
+                            isTransparentPage && !scrolled && !useSolidOnMobile
                                 ? 'text-white hover:bg-white/20'
                                 : 'text-brand-dark hover:bg-gray-100'
                         )}
@@ -102,10 +109,16 @@ export const Header: React.FC = () => {
                 </div >
             </div >
 
-            {/* Mobile Menu */}
-            {
-                isMenuOpen && (
-                    <div className="md:hidden bg-white border-t border-gray-100 py-4 px-4 shadow-lg absolute w-full z-[70]">
+            {/* Mobile Menu - animated expand/collapse */}
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeInOut' }}
+                        className="md:hidden bg-white border-t border-gray-100 py-4 px-4 shadow-lg absolute w-full z-[70] overflow-hidden"
+                    >
                         <nav className="flex flex-col gap-2">
                             {navItems.map((item) => (
                                 <Link
@@ -146,9 +159,9 @@ export const Header: React.FC = () => {
                                 )}
                             </div>
                         </nav>
-                    </div>
-                )
-            }
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </header >
     );
 };

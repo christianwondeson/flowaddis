@@ -22,10 +22,10 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
     if (variant === 'vertical') {
         return (
             <Card
-                className="w-full overflow-hidden hover:shadow-md transition-all duration-300 border border-gray-200 bg-white cursor-pointer group"
+                className="w-full overflow-hidden hover:shadow-lg active:scale-[0.99] transition-all duration-300 border border-gray-100 bg-white cursor-pointer group rounded-2xl"
                 onClick={() => onBook(hotel)}
             >
-                <div className="h-36 md:h-48 overflow-hidden relative">
+                <div className="aspect-[4/3] sm:h-36 md:h-48 overflow-hidden relative">
                     <Image
                         src={hotel.image}
                         alt={hotel.name}
@@ -34,53 +34,46 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                         className="object-cover transform group-hover:scale-105 transition-transform duration-500"
                     />
                     {hotel.discountPercentage && (
-                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm">
+                        <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">
                             -{hotel.discountPercentage}%
                         </div>
                     )}
                 </div>
-                <div className="p-2 md:p-3 flex flex-col">
-                    <div className="flex items-center gap-0.5 mb-1">
-                        {Array.from({ length: Math.floor(hotel.rating || 0) }).map((_, i) => (
-                            <Star key={i} className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
-                        ))}
-                    </div>
-                    <h3 className="text-[13px] md:text-sm font-bold text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-600 transition-colors">
+                <div className="p-3 sm:p-4 flex flex-col gap-2">
+                    <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-2 group-hover:text-brand-primary transition-colors leading-tight">
                         {hotel.name}
                     </h3>
-                    <div className="text-[10px] text-gray-500 mb-1 md:mb-2 flex items-center gap-1">
-                        <MapPin className="w-2.5 h-2.5" />
+                    <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{hotel.location}</span>
                     </div>
 
-                    <div className="mt-1 md:mt-auto">
-                        {hotel.badges && hotel.badges.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-1 md:mb-2">
-                                {hotel.badges.slice(0, 1).map((badge, idx) => (
-                                    <span key={idx} className="px-1.5 py-0.5 bg-green-50 text-green-700 text-[9px] rounded-sm font-bold border border-green-100">
-                                        {badge}
-                                    </span>
-                                ))}
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-brand-primary text-white rounded-lg flex items-center justify-center font-bold text-xs">
+                                {hotel.rating != null ? Number(hotel.rating).toFixed(1) : '—'}
                             </div>
-                        )}
-
-                        <div className="flex items-center gap-2 mb-1 md:mb-2">
-                            <div className="w-6 h-6 bg-brand-dark text-white rounded-t-md rounded-br-md flex items-center justify-center font-bold text-[10px]">
-                                {hotel.rating}
-                            </div>
-                            <div className="text-[10px]">
-                                <span className="font-bold text-gray-900">{hotel.reviewWord || 'Exceptional'}</span>
-                                <span className="text-gray-500 ml-1">• {hotel.reviews} reviews</span>
+                            <div className="text-xs">
+                                <span className="font-semibold text-gray-900">{hotel.reviewWord || 'Exceptional'}</span>
+                                <span className="text-gray-500 ml-1">· {hotel.reviews} reviews</span>
                             </div>
                         </div>
-
                         <div className="text-right">
-                            <div className="text-[10px] md:text-[9px] text-gray-500">From</div>
-                            <div className="text-[13px] md:text-sm font-bold text-gray-900">
-                                {formatCurrency(hotel.price)} <span className="text-[10px] md:text-[9px] font-normal text-gray-500">per night</span>
+                            <div className="text-[10px] text-gray-500">From</div>
+                            <div className="text-sm font-bold text-gray-900">
+                                {formatCurrency(hotel.price)}<span className="text-xs font-normal text-gray-500">/night</span>
                             </div>
                         </div>
                     </div>
+                    {hotel.badges && hotel.badges.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {hotel.badges.slice(0, 2).map((badge, idx) => (
+                                <span key={idx} className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] rounded-md font-medium">
+                                    {badge}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </Card>
         );
@@ -95,7 +88,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
         >
             <div className="flex flex-col sm:flex-row h-full">
                 {/* Column 1: Image */}
-                <div className="w-full sm:w-[220px] md:w-[240px] lg:w-[260px] h-48 sm:h-auto relative overflow-hidden flex-shrink-0">
+                <div className="w-full sm:w-[220px] md:w-[240px] lg:w-[260px] h-48 sm:h-auto relative overflow-hidden shrink-0">
                     <Image
                         src={hotel.image}
                         alt={hotel.name}
@@ -125,7 +118,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 text-gray-600 text-[10px] mb-1.5">
-                                <MapPin className="w-2.5 h-2.5 text-gray-400 flex-shrink-0" />
+                                <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
                                 <span className="truncate underline cursor-pointer">{hotel.location}</span>
                                 {hotel.distance && <span className="text-gray-400 whitespace-nowrap">• {hotel.distance}</span>}
                             </div>
@@ -162,7 +155,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                 </div>
 
                 {/* Column 3: Review & Price (Right) */}
-                <div className="w-full sm:w-[140px] md:w-[160px] lg:w-[180px] p-3 flex flex-col justify-between items-end bg-gray-50/20 flex-shrink-0">
+                <div className="w-full sm:w-[140px] md:w-[160px] lg:w-[180px] p-3 flex flex-col justify-between items-end bg-gray-50/20 shrink-0">
                     <div className="flex items-center gap-2 text-right">
                         <div>
                             <div className="text-[11px] font-bold text-gray-900 leading-tight">{hotel.reviewWord || 'Exceptional'}</div>

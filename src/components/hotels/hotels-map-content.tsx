@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import nextDynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { PriceMarker, Hotel } from '@/types';
 const LeafletMap = nextDynamic(() => import('@/components/map/leaflet-map').then(m => m.LeafletMap), { ssr: false });
 import { HotelList } from '@/components/hotels/hotel-list';
@@ -177,16 +178,18 @@ export function HotelsMapContent() {
                             className="w-full h-full"
                         />
 
-                        {/* Floating Close Button - Hidden on mobile, visible on desktop */}
+                        {/* Back / Close Button - visible on mobile and desktop */}
                         <button
                             onClick={() => {
                                 const newParams = new URLSearchParams(params.toString());
                                 router.push(`/hotels?${newParams.toString()}`);
                             }}
-                            className="hidden lg:block absolute top-4 right-4 z-[1000] bg-white text-brand-dark p-2 rounded-full shadow-lg hover:bg-gray-100 transition-all border border-gray-200 group"
-                            title="Close map"
+                            className="absolute top-4 left-4 right-auto lg:left-auto lg:right-4 z-[1000] bg-white text-brand-dark p-2.5 rounded-full shadow-lg hover:bg-gray-100 transition-all border border-gray-200 flex items-center gap-2"
+                            title="Back to hotels list"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-200">
+                            <ArrowLeft className="w-5 h-5 lg:hidden" />
+                            <span className="text-sm font-semibold lg:hidden">Back</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="hidden lg:block group-hover:rotate-90 transition-transform duration-200">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>

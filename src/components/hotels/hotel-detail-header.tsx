@@ -134,7 +134,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                             )}
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                             <Popover
                                 isOpen={!!savedHotelId}
                                 onOpenChange={(open) => !open && setSavedHotelId(null)}
@@ -157,7 +157,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                             <Button variant="ghost" size="icon" className="text-brand-primary hover:bg-brand-primary/10 rounded-full">
                                 <Share2 className="w-5 h-5" />
                             </Button>
-                            <Button onClick={() => onBook?.()} className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-8 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95">
+                            <Button onClick={() => onBook?.()} className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-6 sm:px-8 py-2.5 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95 text-sm sm:text-base min-h-[44px]">
                                 Book now
                             </Button>
                         </div>

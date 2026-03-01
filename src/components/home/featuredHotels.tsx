@@ -14,6 +14,7 @@ import { useHotels } from '@/hooks/use-hotels';
 import { Heart } from 'lucide-react';
 import { useTripStore } from '@/store/trip-store';
 import { Popover } from '@/components/ui/popover';
+import { SectionHeading } from '@/components/home/section-heading';
 
 export function FeaturedHotels() {
   const { user } = useAuth();
@@ -60,7 +61,7 @@ export function FeaturedHotels() {
 
   if (isLoading) {
     return (
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <section>
         <div className="h-8 w-64 bg-gray-100 animate-pulse rounded mb-8" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
@@ -72,15 +73,11 @@ export function FeaturedHotels() {
   }
 
   return (
-    <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-1">
-          Featured Luxury Hotels
-        </h2>
-        <p className="text-gray-500 text-sm md:text-base">
-          Experience world-class hospitality in the heart of Addis Ababa.
-        </p>
-      </div>
+    <section>
+      <SectionHeading
+        title="Featured Luxury Hotels"
+        subtitle="Experience world-class hospitality in the heart of Addis Ababa."
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {featuredHotels.map((hotel) => {

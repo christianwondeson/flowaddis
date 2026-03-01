@@ -31,48 +31,42 @@ export function AdContainer({ children, leftAds, rightAds }: AdContainerProps) {
 
     return (
         <div className="relative w-full">
-            {/* Mobile Ad Banner - Top of page with auto-rotation */}
+            {/* Mobile Ad Banner - Inline below header, reduced padding to avoid extra gap */}
             {currentMobileAd && (
-                <div className="xl:hidden bg-linear-to-r from-teal-500 via-blue-500 to-blue-600 sticky top-0 z-40 shadow-lg">
-                    <div className="container mx-auto px-3 py-3">
+                <div className="xl:hidden pt-14 md:pt-16">
+                    <div className="container mx-auto px-4 sm:px-6 py-2">
                         <a
                             href={currentMobileAd.linkUrl || '#'}
                             target={currentMobileAd.targetBlank ? '_blank' : '_self'}
                             rel={currentMobileAd.targetBlank ? 'noopener noreferrer' : undefined}
-                            className="block"
+                            className="block rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow"
                         >
-                            <div className="relative h-24 sm:h-28 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-white/20">
+                            <div className="relative h-20 sm:h-24 rounded-2xl overflow-hidden">
                                 <img
                                     src={currentMobileAd.imageUrl}
                                     alt={currentMobileAd.altText}
-                                    className="w-full h-full object-contain bg-white"
+                                    className="w-full h-full object-contain bg-gray-50"
                                 />
                             </div>
+                            <div className="flex items-center justify-between px-3 py-1.5">
+                                <span className="text-[10px] text-gray-400 uppercase tracking-wider">Ad</span>
+                                {mobileAds && mobileAds.length > 1 && (
+                                    <div className="flex gap-1">
+                                        {mobileAds.map((_, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setCurrentMobileAdIndex(index);
+                                                }}
+                                                className={`h-1 rounded-full transition-all ${index === currentMobileAdIndex ? 'bg-brand-primary w-4' : 'bg-gray-300 w-1'}`}
+                                                aria-label={`View ad ${index + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </a>
-                        <div className="flex items-center justify-center gap-3 mt-2">
-                            <span className="text-[10px] text-white/80 uppercase tracking-wider font-semibold">
-                                Advertisement
-                            </span>
-                            {/* Rotation indicators */}
-                            {mobileAds && mobileAds.length > 1 && (
-                                <div className="flex gap-1.5">
-                                    {mobileAds.map((_, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setCurrentMobileAdIndex(index);
-                                            }}
-                                            className={`h-1.5 rounded-full transition-all ${index === currentMobileAdIndex
-                                                    ? 'bg-white w-6'
-                                                    : 'bg-white/40 w-1.5 hover:bg-white/60'
-                                                }`}
-                                            aria-label={`View ad ${index + 1}`}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </div>
             )}
@@ -99,7 +93,7 @@ export function AdContainer({ children, leftAds, rightAds }: AdContainerProps) {
                 )}
             </div>
 
-            {/* Mobile/Tablet Content - without sidebars */}
+            {/* Mobile/Tablet Content - without sidebars, no extra top padding (handled by page) */}
             <div className="xl:hidden">
                 {children}
             </div>

@@ -42,7 +42,7 @@ export const HotelList: React.FC<HotelListProps> = ({ hotels, isLoading, error, 
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 justify-items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 justify-items-stretch">
             {hotels.map((hotel) => (
                 <HotelCard
                     key={hotel.id}

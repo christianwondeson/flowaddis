@@ -30,17 +30,17 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
 
   return (
     <div className="md:hidden">
-      {/* Top row buttons */}
+      {/* Top row buttons - touch-friendly min 44px */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => setIsSortOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-full text-sm font-bold shadow-sm"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold shadow-sm active:bg-gray-50 transition-colors"
         >
           <SlidersHorizontal className="w-4 h-4" /> Sort
         </button>
         <button
           onClick={() => setIsFilterOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-full text-sm font-bold shadow-sm"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold shadow-sm active:bg-gray-50 transition-colors"
         >
           <Filter className="w-4 h-4" /> Filter
         </button>
@@ -49,7 +49,6 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
             pathname: '/hotels/map',
             query: {
               ...linkParams,
-              // Ensure filters are passed
               sortOrder: filters.sortOrder,
               minPrice: filters.minPrice,
               maxPrice: filters.maxPrice,
@@ -59,16 +58,16 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
               hotelName: filters.hotelName,
             }
           }}
-          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-200 rounded-full text-sm font-bold shadow-sm"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-white text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold shadow-sm active:bg-gray-50 transition-colors"
         >
           <MapIcon className="w-4 h-4" /> Map
         </Link>
       </div>
 
-      {/* Sort Modal */}
+      {/* Sort Modal - bottom sheet style */}
       {isSortOpen && (
-        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-end">
-          <div className="bg-white w-full rounded-t-2xl p-4 shadow-2xl">
+        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-end" onClick={() => setIsSortOpen(false)}>
+          <div className="bg-white w-full rounded-t-2xl p-4 shadow-2xl animate-in slide-in-from-bottom duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-base font-bold text-gray-900">Sort by</h3>
               <button
@@ -107,10 +106,10 @@ export const HotelFilterBar: React.FC<HotelFilterBarProps> = ({
         </div>
       )}
 
-      {/* Filter Modal */}
+      {/* Filter Modal - bottom sheet style */}
       {isFilterOpen && (
-        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-end">
-          <div className="bg-white w-full max-h-[85vh] overflow-y-auto rounded-t-2xl p-4 shadow-2xl">
+        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-end" onClick={() => setIsFilterOpen(false)}>
+          <div className="bg-white w-full max-h-[85vh] overflow-y-auto rounded-t-2xl p-4 shadow-2xl animate-in slide-in-from-bottom duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold text-gray-900">Filters</h3>
               <button

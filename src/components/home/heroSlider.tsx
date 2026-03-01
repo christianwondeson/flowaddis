@@ -68,12 +68,12 @@ export function HeroSlider({ children }: HeroSliderProps) {
             className="w-full h-full object-cover transform-gpu"
             style={{ willChange: 'transform, opacity' }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-brand-dark/60 via-brand-dark/30 to-brand-dark/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/25 to-black/75" />
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-24 md:pt-24 lg:pt-28">
-        <div className="text-center mb-12 md:mb-16 pointer-events-none">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-20 md:pt-24 lg:pt-28 flex flex-col items-center">
+        <div className="text-center mb-10 md:mb-12 pointer-events-none w-full">
           <motion.div
             key={`text-${currentSlide}`}
             initial={{ opacity: 0, y: 30 }}

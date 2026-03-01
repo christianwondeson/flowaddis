@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ArrowRight, Gift, Heart, ChevronRight, ChevronLeft } from 'lucide-react';
+import { SectionHeading } from '@/components/home/section-heading';
 import Link from 'next/link';
 import { useHotels } from '@/hooks/use-hotels';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -113,7 +114,7 @@ const destinations = [
     { name: 'Nairobi', country: 'Kenya', flag: '🇰🇪', image: 'https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=80&w=800' },
     { name: 'Dubai', country: 'UAE', flag: '🇦🇪', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=800' },
     { name: 'Johannesburg', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1549944850-84e00be4203b?auto=format&fit=crop&q=80&w=800' },
-    { name: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹', image: 'https://tse2.mm.bing.net/th/id/OIP.eirxq5q5BdeR1K1ETCuItgHaE4?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3' },
+    { name: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹', image: '/assets/images/addis-ababa-night.jpg' },
     { name: 'Cape Town', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?auto=format&fit=crop&q=80&w=800' },
 ];
 
@@ -127,10 +128,10 @@ export function TrendingDestinations() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">Trending destinations</h2>
-                <p className="text-gray-500">Travelers searching for Ethiopia also booked these</p>
-            </div>
+            <SectionHeading
+                title="Trending destinations"
+                subtitle="Travelers searching for Ethiopia also booked these"
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {destinations.slice(0, 2).map((dest, idx) => (
                     <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-64 rounded-xl overflow-hidden shadow-sm">
@@ -139,7 +140,7 @@ export function TrendingDestinations() {
                             alt={dest.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544203331-360580971092?auto=format&fit=crop&q=80&w=800';
+                                (e.target as HTMLImageElement).src = '/assets/images/addis-view.jpg';
                             }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -210,10 +211,10 @@ export function ExploreEthiopia() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">Explore Ethiopia</h2>
-                <p className="text-gray-500">These popular destinations have a lot to offer</p>
-            </div>
+            <SectionHeading
+                title="Explore Ethiopia"
+                subtitle="These popular destinations have a lot to offer"
+            />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                 {cities.map((city, idx) => (
                     <Link

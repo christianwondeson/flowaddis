@@ -227,18 +227,20 @@ function FlightsPageContent() {
 
     return (
         <AdContainer leftAds={FLIGHT_ADS_LEFT} rightAds={FLIGHT_ADS_RIGHT}>
-            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-                {/* Header Section */}
-                <div className="bg-brand-primary text-white py-12 md:py-16">
-                    <div className="container mx-auto px-4">
-                        <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">Find Your Perfect Flight</h1>
-                        <p className="text-blue-100 text-base md:text-lg max-w-2xl">
+            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-8">
+                {/* Header Section - compact on mobile */}
+                <div className="bg-brand-primary text-white py-6 sm:py-8 md:py-12 lg:py-16">
+                    <div className="container mx-auto px-4 sm:px-6">
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4 tracking-tight">
+                            Find Your Perfect Flight
+                        </h1>
+                        <p className="text-blue-100 text-sm sm:text-base md:text-lg max-w-2xl">
                             Search and book international and domestic flights with the best airlines.
                         </p>
                     </div>
                 </div>
 
-                <div className="container mx-auto px-4 -mt-10 md:-mt-12">
+                <div className="container mx-auto px-4 sm:px-6 -mt-6 sm:-mt-8 md:-mt-12">
                     {/* Search Widget */}
                     <Card className="p-4 md:p-6 shadow-xl mb-4 md:mb-6 overflow-visible relative z-50">
                         {!hasSearched ? (
