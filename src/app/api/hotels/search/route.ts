@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const checkIn = searchParams.get('checkIn') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const checkOut = searchParams.get('checkOut') || new Date(Date.now() + 172800000).toISOString().split('T')[0];
     const page = searchParams.get('page') || '0';
-    const sortOrder = searchParams.get('sortOrder') || 'popularity';
+    const sortOrder = searchParams.get('sortOrder') || 'class_descending';
     const pageSizeParam = searchParams.get('pageSize');
     const pageSize = pageSizeParam ? Math.max(1, Math.min(50, parseInt(pageSizeParam))) : 10;
     const currency = searchParams.get('currency') || 'USD';
@@ -62,49 +62,71 @@ export async function GET(request: Request) {
                 }
             }
 
-            const locationOptions = {
-                method: 'GET',
-                url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
-                params: {
-                    name: searchQuery,
-                    locale: 'en-gb',
-                },
-                headers: getApiHeaders(),
+            // Curated fallback – use first so "Addis Ababa" always means Addis Ababa, Ethiopia (no wrong country from API)
+            // dest_id -603097 = Addis Ababa, Ethiopia (verified – returns Haile Grand, Sheraton, Hilton, Radisson Blu, etc.)
+            const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string; cc?: string }> = {
+                'addis ababa': { dest_id: '-603097', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
+                'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
+                'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
+                'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
             };
-
-            const locationResponse = await axios.request(locationOptions);
-            const locations = locationResponse.data;
-
-            destId = '-553173'; // Default to Addis Ababa
-            searchType = 'city';
-            destType = 'city';
-
-            if (locations && locations.length > 0) {
-                // Prioritize Ethiopian locations if query implies it
-                const ethiopianLocation = locations.find((loc: any) => loc.cc1 === 'et');
-                const targetLocation = ethiopianLocation || locations[0];
-
-                destId = targetLocation.dest_id;
-                searchType = targetLocation.search_type;
-                destType = targetLocation.dest_type;
+            const fallbackKey = searchQuery.toLowerCase().replace(/,?\s*ethiopia$/i, '').trim();
+            if (FALLBACK_DESTS[fallbackKey]) {
+                destId = FALLBACK_DESTS[fallbackKey].dest_id;
+                searchType = FALLBACK_DESTS[fallbackKey].search_type;
+                destType = FALLBACK_DESTS[fallbackKey].dest_type;
             } else {
-                // Curated fallback dest_ids (maintain as needed)
-                const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
-                    'addis ababa': { dest_id: '-553173', dest_type: 'city', search_type: 'city' },
-                    'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
-                    'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
-                    'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
-                    'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
-                    'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                const locationOptions = {
+                    method: 'GET',
+                    url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
+                    params: {
+                        name: searchQuery,
+                        locale: 'en-gb',
+                    },
+                    headers: getApiHeaders(),
                 };
-                const key = searchQuery.toLowerCase();
-                if (FALLBACK_DESTS[key]) {
-                    destId = FALLBACK_DESTS[key].dest_id;
-                    searchType = FALLBACK_DESTS[key].search_type;
-                    destType = FALLBACK_DESTS[key].dest_type;
+
+                const locationResponse = await axios.request(locationOptions);
+                const locations = locationResponse.data;
+
+                destId = '-603097'; // Default to Addis Ababa, Ethiopia
+                searchType = 'city';
+                destType = 'city';
+
+                if (locations && locations.length > 0) {
+                    // Prioritize Ethiopian locations if query implies it
+                    const ethiopianLocation = locations.find((loc: any) => loc.cc1 === 'et');
+                    const targetLocation = ethiopianLocation || locations[0];
+
+                    destId = targetLocation.dest_id;
+                    searchType = targetLocation.search_type;
+                    destType = targetLocation.dest_type;
+                } else {
+                    // Curated fallback dest_ids (maintain as needed)
+                    const FALLBACK_DESTS_API: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
+                        'addis ababa': { dest_id: '-603097', dest_type: 'city', search_type: 'city' },
+                        'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                        'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
+                        'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
+                        'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
+                        'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
+                    };
+                    const key = searchQuery.toLowerCase();
+                    if (FALLBACK_DESTS_API[key]) {
+                        destId = FALLBACK_DESTS_API[key].dest_id;
+                        searchType = FALLBACK_DESTS_API[key].search_type;
+                        destType = FALLBACK_DESTS_API[key].dest_type;
+                    }
                 }
             }
         }
+
+        // Resolve fallback country code for Ethiopia queries
+        const queryLower = query.toLowerCase().trim();
+        const isEthiopiaQuery = /addis\s*ababa|ethiopia|bahir\s*dar|gonder|lalibela|hawassa|bishoftu/.test(queryLower);
+        const filterByCountry = isEthiopiaQuery ? 'et' : undefined;
 
         // 2. Build Filter IDs
         const categoriesFilterIds = [];
@@ -125,6 +147,16 @@ export async function GET(request: Request) {
         const latitude = searchParams.get('latitude');
         const longitude = searchParams.get('longitude');
 
+        const ORDER_MAP: Record<string, string> = {
+            class_descending: 'class_descending',
+            review_score: 'review_score',
+            review_score_descending: 'review_score_descending',
+            popularity: 'popularity',
+            price: 'price',
+            distance: 'distance',
+        };
+        const apiOrderBy = ORDER_MAP[sortOrder] || sortOrder || 'class_descending';
+
         if (latitude && longitude) {
             // Search by coordinates
             searchOptions = {
@@ -136,7 +168,8 @@ export async function GET(request: Request) {
                     checkin_date: checkIn,
                     checkout_date: checkOut,
                     page_number: page,
-                    order_by: sortOrder,
+                    order_by: apiOrderBy,
+                    ...(filterByCountry && { filter_by_country: filterByCountry }),
                     adults_number: adults,
                     ...(Number(children) > 0 && { children_number: children }),
                     room_number: rooms,
@@ -161,7 +194,8 @@ export async function GET(request: Request) {
                     checkin_date: checkIn,
                     checkout_date: checkOut,
                     page_number: page,
-                    order_by: sortOrder,
+                    order_by: apiOrderBy,
+                    ...(filterByCountry && { filter_by_country: filterByCountry }),
                     adults_number: adults,
                     ...(Number(children) > 0 && { children_number: children }),
                     room_number: rooms,
@@ -237,6 +271,16 @@ export async function GET(request: Request) {
         if (hotelName) {
             const nameLc = hotelName.toLowerCase();
             hotels = hotels.filter((h: any) => h.name.toLowerCase().includes(nameLc));
+        }
+
+        // Post-filter: when searching Addis Ababa/Ethiopia, keep only hotels actually in Ethiopia
+        if (isEthiopiaQuery && hotels.length > 0) {
+            const ethiopiaIndicators = ['ethiopia', 'addis ababa', 'addis', 'ethiopian', 'bole', 'kirkos', 'yeka', 'piassa', 'merkato'];
+            const filtered = hotels.filter((h: any) => {
+                const loc = ((h.location || '') + ' ' + (h.name || '')).toLowerCase();
+                return ethiopiaIndicators.some((term) => loc.includes(term));
+            });
+            if (filtered.length > 0) hotels = filtered;
         }
 
         // The external API already handles pagination via page_number parameter

@@ -59,7 +59,7 @@ export const Header: React.FC = () => {
                 <div className="flex justify-between items-center">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <Logo light={isTransparentPage && !showSolidHeader} />
+                        <Logo light={showSolidHeader} />
                     </Link>
 
                     {/* Desktop Navigation - modern active tab: subtle teal underline */}

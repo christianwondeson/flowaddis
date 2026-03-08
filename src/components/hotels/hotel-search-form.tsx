@@ -24,6 +24,8 @@ interface HotelSearchFormProps {
     /** When true on mobile, shows the detailed panel by default */
     initialOpen?: boolean;
     onLocationSelect?: (location: any) => void;
+    /** When provided, search runs automatically when user selects a location (easier UX) */
+    onLocationSelectAndSearch?: (location: any) => void;
 }
 
 export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
@@ -34,6 +36,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     isLoading,
     onDestinationChange,
     onLocationSelect,
+    onLocationSelectAndSearch,
     onCheckInChange,
     onCheckOutChange,
     onGuestsChange,
@@ -114,7 +117,10 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                         placeholder="Destination"
                                         value={destination}
                                         onChange={onDestinationChange}
-                                        onSelectLocation={onLocationSelect}
+                                        onSelectLocation={(loc) => {
+                                          onLocationSelect?.(loc);
+                                          onLocationSelectAndSearch?.(loc);
+                                        }}
                                         api="hotels"
                                     />
                                 </div>
@@ -196,10 +202,13 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                 <div className="md:col-span-4">
                     <LocationInput
                         label="Destination"
-                        placeholder="Where are you going?"
+                        placeholder="e.g. Addis Ababa, Ethiopia"
                         value={destination}
                         onChange={onDestinationChange}
-                        onSelectLocation={onLocationSelect}
+                        onSelectLocation={(loc) => {
+                          onLocationSelect?.(loc);
+                          onLocationSelectAndSearch?.(loc);
+                        }}
                         api="hotels"
                     />
                 </div>

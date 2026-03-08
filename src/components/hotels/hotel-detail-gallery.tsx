@@ -8,9 +8,11 @@ interface HotelDetailGalleryProps {
 }
 
 export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, loading = false }) => {
-    const safeImages = useMemo(() => (images && images.length ? images : [
-        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
-    ]), [images]);
+    const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80';
+    const safeImages = useMemo(() => {
+        const list = images && images.length ? images.filter((url): url is string => typeof url === 'string' && url.length > 0) : [];
+        return list.length ? list : [PLACEHOLDER_IMG];
+    }, [images]);
 
     const [current, setCurrent] = useState(0);
     const total = safeImages.length;
@@ -60,6 +62,9 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                     className="w-full h-full object-cover"
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
+                    onError={(e) => {
+                        e.currentTarget.src = PLACEHOLDER_IMG;
+                    }}
                 />
 
                 {/* Left/Right controls (bottom aligned) */}
@@ -86,12 +91,15 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                             src={safeImages[current]}
                             alt={`Hotel main ${current + 1}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                                e.currentTarget.src = PLACEHOLDER_IMG;
+                            }}
                         />
                     </div>
 
                     {/* Two stacked previews on the right */}
                     <div className="grid grid-rows-2 gap-3 min-h-0">
-                        {safeImages.slice(1, 3).map((img, i) => (
+                                {safeImages.slice(1, 3).map((img, i) => (
                             <button
                                 key={i}
                                 onClick={() => setCurrent(i + 1)}
@@ -99,7 +107,14 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                                 aria-label={`Show image ${i + 2}`}
                             >
                                 {img ? (
-                                    <img src={img} alt={`Preview ${i + 2}`} className="w-full h-full object-cover" />
+                                    <img
+                                        src={img}
+                                        alt={`Preview ${i + 2}`}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.src = PLACEHOLDER_IMG;
+                                        }}
+                                    />
                                 ) : (
                                     <div className="w-full h-full bg-gray-200" />
                                 )}
@@ -144,7 +159,14 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                                         className={`relative rounded-xl overflow-hidden h-24 w-40 flex-shrink-0 border ${idx === current ? 'border-brand-primary' : 'border-transparent'}`}
                                         aria-label={`Show image ${idx + 1}`}
                                     >
-                                        <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                                        <img
+                                            src={img}
+                                            alt={`Thumb ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.src = PLACEHOLDER_IMG;
+                                            }}
+                                        />
                                     </button>
                                 ))}
                             </div>
@@ -161,7 +183,14 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                         onClick={() => setCurrent(idx)}
                         className={`relative overflow-hidden rounded-md h-14 border ${idx === current ? 'border-brand-primary' : 'border-transparent'}`}
                     >
-                        <img src={img} alt={`Thumb ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img
+                            src={img}
+                            alt={`Thumb ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                e.currentTarget.src = PLACEHOLDER_IMG;
+                            }}
+                        />
                     </button>
                 ))}
             </div>

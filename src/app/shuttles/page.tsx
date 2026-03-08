@@ -12,11 +12,22 @@ import { formatCurrency } from '@/lib/currency';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
 
-// One advertisement on the right per mockup (matches hotels page pattern)
+// Left sidebar ads (sticky when scrolling)
+const SHUTTLE_ADS_LEFT: AdConfig[] = [
+    {
+        id: 'shuttle-left-1',
+        imageUrl: '/ads/hotel-ad-sample.png',
+        altText: 'Luxury Stays in Addis Ababa',
+        linkUrl: '/hotels',
+        targetBlank: false
+    }
+];
+
+// Right sidebar ads (sticky when scrolling)
 const SHUTTLE_ADS_RIGHT: AdConfig[] = [
     {
         id: 'shuttle-promo-1',
-        imageUrl: '/ads/partnership-ad.png',
+        imageUrl: '/ads/partnership-mobile-ad.png',
         altText: 'Airport & City Shuttles - Advertise Your Service',
         linkUrl: '/contact',
         targetBlank: false
@@ -70,7 +81,7 @@ export default function ShuttlesPage() {
     };
 
     return (
-        <AdContainer leftAds={[]} rightAds={SHUTTLE_ADS_RIGHT}>
+        <AdContainer leftAds={SHUTTLE_ADS_LEFT} rightAds={SHUTTLE_ADS_RIGHT}>
         <div className="min-h-screen bg-brand-gray/30 pb-24 pt-0">
             {/* Header Section */}
             <div className="bg-teal-600 text-white py-12 md:py-16">

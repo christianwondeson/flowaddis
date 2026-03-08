@@ -17,7 +17,18 @@ import { Preloader } from '@/components/ui/preloader';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
 
-// One advertisement on the right per mockup
+// Left sidebar ads (sticky with filters)
+const HOTEL_ADS_LEFT: AdConfig[] = [
+    {
+        id: 'hotel-left-1',
+        imageUrl: '/ads/partnership-mobile-ad.png',
+        altText: 'Partnership Opportunities - Advertise Your Brand',
+        linkUrl: '/contact',
+        targetBlank: false
+    }
+];
+
+// Right sidebar ads (sticky when scrolling)
 const HOTEL_ADS_RIGHT: AdConfig[] = [
     {
         id: 'hotel-promo-1',
@@ -28,7 +39,7 @@ const HOTEL_ADS_RIGHT: AdConfig[] = [
     },
     {
         id: 'partnership-opportunity-2',
-        imageUrl: '/ads/partnership-ad.png',
+        imageUrl: '/ads/partnership-mobile-ad.png',
         altText: 'Partnership Opportunities - Advertise Your Brand',
         linkUrl: '/contact',
         targetBlank: false
@@ -48,7 +59,8 @@ function HotelsPageContent() {
     const defaultCheckout = urlCheckOut ? new Date(urlCheckOut) : new Date(defaultCheckin.getTime() + 86400000);
     const initialCheckInStr = formatDateLocal(defaultCheckin);
     const initialCheckOutStr = formatDateLocal(defaultCheckout);
-    const initialSortOrder = (search.get('sortOrder') as any) || 'popularity';
+    // Default to showing highest class / highly rated hotels first
+    const initialSortOrder = (search.get('sortOrder') as any) || 'class_descending';
     const initialStars = (search.get('stars') || '')
         .split(',')
         .map(s => Number(s))
@@ -148,7 +160,8 @@ function HotelsPageContent() {
         // Update filters from URL
         const urlParams = new URLSearchParams(search.toString());
         setFilters({
-            sortOrder: (urlParams.get('sortOrder') as any) || 'popularity',
+            // If no explicit sort in URL, prefer highest class / highly rated by default
+            sortOrder: (urlParams.get('sortOrder') as any) || 'class_descending',
             stars: (urlParams.get('stars') || '').split(',').map(Number).filter(Boolean),
             minPrice: urlParams.get('minPrice') ? Number(urlParams.get('minPrice')) : undefined,
             maxPrice: urlParams.get('maxPrice') ? Number(urlParams.get('maxPrice')) : undefined,
@@ -356,6 +369,19 @@ function HotelsPageContent() {
         }
     };
 
+    /** Run search immediately when user selects a location (auto-search for easier UX) */
+    const handleLocationSelectAndSearch = (location: { name?: string; label?: string; dest_id?: string; dest_type?: string }) => {
+        const name = (location.name ?? location.label ?? destination).toString().trim() || 'Addis Ababa';
+        const destId = location.dest_id;
+        const destType = location.dest_type;
+        setDestination(name);
+        setPendingLocation({ destId, destType });
+        sessionStorage.removeItem(STORAGE_KEY);
+        setInitialTotalCount(null);
+        setPage(0);
+        router.push(buildUrlWithState({ query: name, destId, destType }));
+    };
+
     const handleFilterChange = (newFilters: FilterType) => {
         sessionStorage.removeItem(STORAGE_KEY); // Clear state on filter change
         setPage(0); // Reset page on filter change
@@ -375,14 +401,18 @@ function HotelsPageContent() {
         router.push(nextUrl);
     };
 
+    const displayLocation = searchParams.query === 'Addis Ababa'
+        ? 'Addis Ababa, Ethiopia'
+        : (searchParams.query || 'Addis Ababa');
+
     return (
-        <AdContainer leftAds={[]} rightAds={HOTEL_ADS_RIGHT}>
+        <AdContainer leftAds={HOTEL_ADS_LEFT} rightAds={HOTEL_ADS_RIGHT}>
             <div className="min-h-screen pt-0 pb-24 md:pb-20" style={{ backgroundColor: '#F1F5F9' }}>
                 {/* Header Section - compact per mockup */}
                 <div className="bg-teal-600 text-white py-4 sm:py-5 md:py-6">
                     <div className="container mx-auto px-4 sm:px-6 lg:px-6">
                         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2 tracking-tight">
-                            Luxury Stays in Addis Ababa
+                            Luxury Stays in {displayLocation}
                         </h1>
                         <p className="text-teal-100/90 text-sm sm:text-base max-w-2xl">
                             Discover the perfect accommodation for your trip.
@@ -399,6 +429,7 @@ function HotelsPageContent() {
                         isLoading={isLoading && page === 0}
                         onDestinationChange={handleDestinationChange}
                         onLocationSelect={handleLocationSelect}
+                        onLocationSelectAndSearch={handleLocationSelectAndSearch}
                         onCheckInChange={setCheckIn}
                         onCheckOutChange={setCheckOut}
                         onGuestsChange={setGuests}
@@ -434,9 +465,10 @@ function HotelsPageContent() {
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-8 mt-4">
-                        {/* Filters Sidebar (visible on lg and above) */}
-                        <div className="hidden lg:block lg:w-1/4">
-                            <HotelFilters
+                        {/* Filters Sidebar (visible on lg and above, sticky when scrolling) */}
+                        <div className="hidden lg:block lg:w-1/4 shrink-0">
+                            <div className="sticky top-24 self-start">
+                                <HotelFilters
                                 hotels={allHotels}
                                 filters={filters}
                                 onFilterChange={handleFilterChange}
@@ -459,6 +491,7 @@ function HotelsPageContent() {
                                     hotelName: filters.hotelName || undefined,
                                 }}
                             />
+                            </div>
                         </div>
 
                         {/* Results Content */}

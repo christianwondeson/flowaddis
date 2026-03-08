@@ -9,9 +9,9 @@ const CACHE_TTL_MS = 1000 * 60 * 5; // 5 minutes
 // Enhanced curated fallback with reliable dest_ids for common cities
 // Note: Booking.com's dest_ids can change; maintain these carefully if you expand.
 const FALLBACK_PRESETS = [
-    // Ethiopian cities
-    { name: 'Addis Ababa', dest_id: '-553173', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Addis Ababa', country: 'Ethiopia', label: 'Addis Ababa, Ethiopia' },
-    { name: 'Bishoftu', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Bishoftu', country: 'Ethiopia', label: 'Bishoftu, Ethiopia' },
+    // Ethiopian cities (dest_id -603097 = Addis Ababa, Ethiopia - verified)
+    { name: 'Addis Ababa', dest_id: '-603097', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Addis Ababa', country: 'Ethiopia', label: 'Addis Ababa, Ethiopia' },
+    { name: 'Bishoftu', dest_id: '-603094', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Bishoftu', country: 'Ethiopia', label: 'Bishoftu, Ethiopia' },
     { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Hawassa', country: 'Ethiopia', label: 'Hawassa, Ethiopia' },
     { name: 'Bahir Dar', dest_id: '-603098', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Bahir Dar', country: 'Ethiopia', label: 'Bahir Dar, Ethiopia' },
     { name: 'Gondar', dest_id: '-603099', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Gondar', country: 'Ethiopia', label: 'Gondar, Ethiopia' },

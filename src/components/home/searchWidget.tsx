@@ -28,7 +28,7 @@ const TABS: { id: TabType; icon: typeof Plane; label: string; available: boolean
 
 export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => void }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>('flights');
+  const [activeTab, setActiveTab] = useState<TabType>('hotels');
   const [isSearching, setIsSearching] = useState(false);
 
   const handleTabChange = (tab: TabType) => {
@@ -59,8 +59,8 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
   const [orderBy, setOrderBy] = useState<'BEST' | 'CHEAPEST' | 'FASTEST'>('BEST');
 
   // Hotel State
-  const [hotelDestination, setHotelDestination] = useState('Addis Ababa');
-  const [hotelLocation, setHotelLocation] = useState<{ dest_id?: string; dest_type?: string }>({ dest_id: '-553173', dest_type: 'city' });
+  const [hotelDestination, setHotelDestination] = useState('Addis Ababa, Ethiopia');
+  const [hotelLocation, setHotelLocation] = useState<{ dest_id?: string; dest_type?: string }>({ dest_id: '-603097', dest_type: 'city' });
   const [hotelCheckIn, setHotelCheckIn] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
   const [hotelCheckOut, setHotelCheckOut] = useState<string>(formatDateLocal(new Date(Date.now() + 172800000)));
   const [hotelGuests, setHotelGuests] = useState({ adults: 2, children: 0, rooms: 1 });
@@ -93,15 +93,20 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       router.push(`/flights?${params.toString()}`);
     } else if (activeTab === 'hotels') {
       const params = new URLSearchParams();
-      if (hotelDestination) params.append('query', hotelDestination);
-      if (hotelLocation.dest_id) params.append('destId', hotelLocation.dest_id);
-      if (hotelLocation.dest_type) params.append('destType', hotelLocation.dest_type);
+      const rawQuery = hotelDestination.trim();
+      const queryForApi = rawQuery === 'Addis Ababa, Ethiopia' ? 'Addis Ababa' : rawQuery;
+      if (queryForApi) params.append('query', queryForApi);
+      // When user typed but didn't select from dropdown, hotelLocation is empty - use known destId so results match (Addis Ababa)
+      const destId = hotelLocation.dest_id ?? (queryForApi.toLowerCase() === 'addis ababa' ? '-603097' : undefined);
+      const destType = hotelLocation.dest_type ?? (queryForApi.toLowerCase() === 'addis ababa' ? 'city' : undefined);
+      if (destId) params.append('destId', destId);
+      if (destType) params.append('destType', destType);
       if (hotelCheckIn) params.append('checkIn', hotelCheckIn);
       if (hotelCheckOut) params.append('checkOut', hotelCheckOut);
       params.append('adults', hotelGuests.adults.toString());
       params.append('children', hotelGuests.children.toString());
       params.append('rooms', hotelGuests.rooms.toString());
-      params.append('sortOrder', 'popularity');
+      params.append('sortOrder', 'class_descending');
       router.push(`/hotels?${params.toString()}`);
     } else if (activeTab === 'conferences') {
       const params = new URLSearchParams();
@@ -292,13 +297,32 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
             <div className="md:col-span-4">
               <LocationInput
                 label="Destination"
-                placeholder="Where are you going?"
+                placeholder="e.g. Addis Ababa, Ethiopia"
                 value={hotelDestination}
                 onChange={(val) => {
                   setHotelDestination(val);
                   setHotelLocation({});
                 }}
-                onSelectLocation={(loc) => setHotelLocation({ dest_id: loc.dest_id, dest_type: loc.dest_type })}
+                onSelectLocation={(loc) => {
+                  setHotelLocation({ dest_id: loc.dest_id, dest_type: loc.dest_type });
+                  setHotelDestination(loc.name ?? loc.label ?? hotelDestination);
+                  // Auto-navigate to hotels with correct location so results match selected city
+                  if (activeTab === 'hotels' && loc.dest_id != null && loc.dest_type != null) {
+                    const params = new URLSearchParams();
+                    params.set('query', (loc.name ?? loc.label ?? hotelDestination).trim() || 'Addis Ababa');
+                    params.set('destId', String(loc.dest_id));
+                    params.set('destType', String(loc.dest_type));
+                    params.set('checkIn', hotelCheckIn);
+                    params.set('checkOut', hotelCheckOut);
+                    params.append('adults', String(hotelGuests.adults));
+                    params.append('children', String(hotelGuests.children));
+                    params.append('rooms', String(hotelGuests.rooms));
+                    params.append('sortOrder', 'class_descending');
+                    setIsSearching(true);
+                    router.push(`/hotels?${params.toString()}`);
+                    setTimeout(() => setIsSearching(false), 800);
+                  }
+                }}
                 api="hotels"
                 icon={<MapPin className="w-4 h-4 text-gray-400 shrink-0" />}
                 className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"

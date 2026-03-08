@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: "BookAddis - Your Gateway to Ethiopia",
   description: "Hotels, Flights, Events, Car Rentals – Secure Payments & Bookings",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: "/assets/images/logo.png",
+    shortcut: "/assets/images/logo.png",
+    apple: "/assets/images/logo.png",
   },
 };
 

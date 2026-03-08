@@ -18,6 +18,14 @@ interface HotelCardProps {
 
 export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStart, onHoverEnd, variant = 'horizontal' }) => {
     const [showFullDescription, setShowFullDescription] = React.useState(false);
+    const [imgError, setImgError] = React.useState(false);
+    const imgSrc = imgError
+        ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'
+        : hotel.image;
+
+    React.useEffect(() => {
+        setImgError(false);
+    }, [hotel.id, hotel.image]);
 
     if (variant === 'vertical') {
         return (
@@ -25,13 +33,14 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                 className="w-full overflow-hidden hover:shadow-lg active:scale-[0.99] transition-all duration-300 border border-gray-100 bg-white cursor-pointer group rounded-2xl"
                 onClick={() => onBook(hotel)}
             >
-                <div className="aspect-[4/3] sm:h-36 md:h-48 overflow-hidden relative">
+                <div className="relative w-full aspect-[4/3] overflow-hidden">
                     <Image
-                        src={hotel.image}
+                        src={imgSrc}
                         alt={hotel.name}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transform group-hover:scale-105 transition-transform duration-500"
+                        onError={() => setImgError(true)}
                     />
                     {hotel.discountPercentage && (
                         <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">
@@ -90,11 +99,12 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                 {/* Column 1: Image */}
                 <div className="w-full sm:w-[220px] md:w-[240px] lg:w-[260px] h-48 sm:h-auto relative overflow-hidden shrink-0">
                     <Image
-                        src={hotel.image}
+                        src={imgSrc}
                         alt={hotel.name}
                         fill
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transform group-hover:scale-105 transition-transform duration-500"
+                        onError={() => setImgError(true)}
                     />
                     {hotel.discountPercentage && (
                         <div className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm">

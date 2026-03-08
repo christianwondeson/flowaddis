@@ -8,7 +8,18 @@ import { toast } from 'sonner';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
 
-// One advertisement on the right per mockup (matches hotels page pattern)
+// Left sidebar ads (sticky when scrolling)
+const CONFERENCE_ADS_LEFT: AdConfig[] = [
+    {
+        id: 'conference-left-1',
+        imageUrl: '/ads/partnership-mobile-ad.png',
+        altText: 'Partnership Opportunities - Advertise Your Brand',
+        linkUrl: '/contact',
+        targetBlank: false
+    }
+];
+
+// Right sidebar ads (sticky when scrolling)
 const CONFERENCE_ADS_RIGHT: AdConfig[] = [
     {
         id: 'conference-venue-1',
@@ -19,7 +30,7 @@ const CONFERENCE_ADS_RIGHT: AdConfig[] = [
     },
     {
         id: 'partnership-conference',
-        imageUrl: '/ads/partnership-ad.png',
+        imageUrl: '/ads/partnership-mobile-ad.png',
         altText: 'Partnership Opportunities - Advertise Your Brand',
         linkUrl: '/contact',
         targetBlank: false
@@ -126,7 +137,7 @@ export default function ConferencesPage() {
     };
 
     return (
-        <AdContainer leftAds={[]} rightAds={CONFERENCE_ADS_RIGHT}>
+        <AdContainer leftAds={CONFERENCE_ADS_LEFT} rightAds={CONFERENCE_ADS_RIGHT}>
             <ServicePageWrapper
                 icon={Briefcase}
                 title="Conference & Event Venues"

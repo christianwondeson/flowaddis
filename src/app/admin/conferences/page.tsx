@@ -20,7 +20,7 @@ const CONFERENCE_ADS_LEFT: AdConfig[] = [
     },
     {
         id: 'partnership-opportunity',
-        imageUrl: '/ads/partnership-ad.png',
+        imageUrl: '/ads/partnership-mobile-ad.png',
         altText: 'Partnership Opportunities - Advertise Your Brand',
         linkUrl: '/contact',
         targetBlank: false
@@ -37,7 +37,7 @@ const CONFERENCE_ADS_RIGHT: AdConfig[] = [
     },
     {
         id: 'partnership-opportunity-2',
-        imageUrl: '/ads/partnership-ad.png',
+        imageUrl: '/ads/partnership-mobile-ad.png',
         altText: 'Partnership Opportunities - Advertise Your Brand',
         linkUrl: '/contact',
         targetBlank: false

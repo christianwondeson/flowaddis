@@ -24,7 +24,18 @@ import { FlightDetails } from '@/components/flights/flight-details';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
 
-// One advertisement on the right per mockup (matches hotels page pattern)
+// Left sidebar ads (sticky with filters)
+const FLIGHT_ADS_LEFT: AdConfig[] = [
+    {
+        id: 'flight-left-1',
+        imageUrl: '/ads/partnership-mobile-ad.png',
+        altText: 'Partnership Opportunities - Advertise Your Brand',
+        linkUrl: '/contact',
+        targetBlank: false
+    }
+];
+
+// Right sidebar ads (sticky when scrolling)
 const FLIGHT_ADS_RIGHT: AdConfig[] = [
     {
         id: 'ethiopian-airlines-1',
@@ -35,7 +46,7 @@ const FLIGHT_ADS_RIGHT: AdConfig[] = [
     },
     {
         id: 'partnership-opportunity-2',
-        imageUrl: '/ads/partnership-ad.png',
+        imageUrl: '/ads/partnership-mobile-ad.png',
         altText: 'Partnership Opportunities - Advertise Your Brand',
         linkUrl: '/contact',
         targetBlank: false
@@ -209,7 +220,7 @@ function FlightsPageContent() {
     const displayFlights = flights && flights.length > 0 ? flights : [];
 
     return (
-        <AdContainer leftAds={[]} rightAds={FLIGHT_ADS_RIGHT}>
+        <AdContainer leftAds={FLIGHT_ADS_LEFT} rightAds={FLIGHT_ADS_RIGHT}>
             <div className="min-h-screen pb-24 md:pb-20" style={{ backgroundColor: '#F1F5F9' }}>
                 {/* Header Section - compact on mobile */}
                 <div className="bg-teal-600 text-white py-6 sm:py-8 md:py-12 lg:py-16">

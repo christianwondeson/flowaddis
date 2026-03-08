@@ -106,9 +106,10 @@ export default function HotelDetailPage() {
                 ]);
 
                 const photos = photosRes.data?.photos || photosRes.data || [];
-                const images = Array.isArray(photos)
+                const rawImages = Array.isArray(photos)
                     ? photos.map((p: any) => p.url_max || p.url_1440 || p.url_square600 || p.photo_url).filter(Boolean)
-                    : hotel.images;
+                    : [];
+                const images = rawImages.filter((url: string) => typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://')));
 
                 const desc = descRes.data?.description || descRes.data?.data?.description || descRes.data?.data?.[0]?.description || '';
 
@@ -129,7 +130,7 @@ export default function HotelDetailPage() {
 
                 setHotel((prev: any) => ({
                     ...prev,
-                    images: images && images.length > 0 ? images : prev.images,
+                    images: images && images.length > 0 ? images : (prev.images && prev.images.length > 0 ? prev.images : [prev.image].filter(Boolean)),
                     description: desc || prev.description,
                     amenities: mappedAmenities && mappedAmenities.length > 0 ? mappedAmenities : prev.amenities,
                     name: mappedName || prev.name,
