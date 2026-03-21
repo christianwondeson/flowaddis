@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card"
 
 export function FlightCardSkeleton() {
     return (
-        <Card className="overflow-hidden border-gray-100">
+        <Card className="overflow-hidden">
             <div className="flex flex-col md:flex-row">
                 {/* Main Info */}
                 <div className="flex-1 p-5 md:p-6">
@@ -39,7 +39,7 @@ export function FlightCardSkeleton() {
                 </div>
 
                 {/* Price Section */}
-                <div className="md:w-56 bg-gray-50/50 border-t md:border-t-0 md:border-l border-gray-100 p-5 md:p-6 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4">
+                <div className="md:w-56 bg-gray-50/50 dark:bg-slate-800/50 border-t md:border-t-0 md:border-l border-gray-100 dark:border-slate-700 p-5 md:p-6 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4">
                     <div className="space-y-2 text-center">
                         <Skeleton className="h-3 w-16 mx-auto" />
                         <Skeleton className="h-9 w-28 mx-auto" />

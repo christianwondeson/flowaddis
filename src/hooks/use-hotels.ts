@@ -3,6 +3,7 @@ import { Hotel, HotelFilters } from '@/types';
 import { queryKeys } from '@/lib/react-query';
 import { apiClient } from '@/lib/api-client';
 import { APP_CONSTANTS } from '@/lib/constants';
+import { mergeHotelSearchLocation } from '@/lib/hotel-search-location';
 
 interface UseHotelsParams {
     query: string;
@@ -20,22 +21,54 @@ interface UseHotelsParams {
     longitude?: number;
 }
 
-export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1, latitude, longitude }: UseHotelsParams, options?: { enabled?: boolean }) {
+type UseHotelsQueryOptions = {
+    enabled?: boolean;
+    /** Override default hotel list caching (use staleTime: 0 + refetchOnMount: true on map page). */
+    staleTime?: number;
+    refetchOnMount?: boolean | 'always';
+    gcTime?: number;
+};
+
+export function useHotels(
+    { query, destId, destType, checkIn, checkOut, page = 0, pageSize = 10, filters, adults = 2, children = 0, rooms = 1, latitude, longitude }: UseHotelsParams,
+    options?: UseHotelsQueryOptions,
+) {
+    const { query: effectiveQuery, destId: effectiveDestId, destType: effectiveDestType, filterRest } = mergeHotelSearchLocation(
+        query,
+        destId,
+        destType,
+        filters,
+    );
+
     return useQuery({
-        queryKey: queryKeys.hotels.list({ query, destId, destType, checkIn, checkOut, page, pageSize, filters, adults, children, rooms, latitude, longitude }),
+        queryKey: queryKeys.hotels.list({
+            query: effectiveQuery,
+            destId: effectiveDestId,
+            destType: effectiveDestType,
+            checkIn,
+            checkOut,
+            page,
+            pageSize,
+            filters: filterRest,
+            adults,
+            children,
+            rooms,
+            latitude,
+            longitude,
+        }),
         queryFn: async (): Promise<{ hotels: Hotel[], hasNextPage: boolean, totalCount: number, destId?: string }> => {
             const params: Record<string, any> = {
-                query,
+                query: effectiveQuery,
                 page,
                 pageSize,
                 adults,
                 children,
                 rooms,
-                ...filters,
+                ...filterRest,
                 checkIn: checkIn?.toISOString().split('T')[0],
                 checkOut: checkOut?.toISOString().split('T')[0],
-                destId,
-                destType,
+                destId: effectiveDestId,
+                destType: effectiveDestType,
                 latitude,
                 longitude,
             };
@@ -62,9 +95,10 @@ export function useHotels({ query, destId, destType, checkIn, checkOut, page = 0
             }
         },
         refetchOnWindowFocus: false,
-        refetchOnMount: false,
+        refetchOnMount: options?.refetchOnMount ?? false,
         refetchOnReconnect: false,
-        staleTime: 60_000,
+        staleTime: options?.staleTime ?? 60_000,
+        gcTime: options?.gcTime,
         enabled: options?.enabled ?? true,
     });
 }

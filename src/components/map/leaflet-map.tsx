@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -10,8 +9,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 
 if (typeof window !== 'undefined') {
-  // Fix default icon paths in Next.js
-  // @ts-ignore
+  // @ts-expect-error leaflet default icon
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -22,107 +20,166 @@ if (typeof window !== 'undefined') {
 
 import { PriceMarker } from '@/types';
 
-interface LeafletMapProps {
+export interface LeafletMapProps {
   center: [number, number];
   zoom?: number;
   markers?: PriceMarker[];
   className?: string;
   height?: string;
+  /** Fit all markers (ignored when routeSelectedId is set — we fly to that hotel instead) */
   fitToMarkers?: boolean;
   scrollWheelZoom?: boolean;
-  highlightedId?: string;
+  /** List hover */
+  hoveredId?: string;
+  /** Deep-linked hotel from detail page — zoom + bounce */
+  routeSelectedId?: string | null;
 }
 
-// Helper to update map view when center changes
-const ChangeView: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
+const ChangeView: React.FC<{ center: [number, number]; zoom: number; enabled: boolean }> = ({
+  center,
+  zoom,
+  enabled,
+}) => {
   const map = useMap();
   useEffect(() => {
+    if (!enabled) return;
     map.setView(center, zoom);
-  }, [center, zoom, map]);
+  }, [center, zoom, map, enabled]);
   return null;
 };
 
-// Helper to fit bounds after markers render
-const FitBounds: React.FC<{ markers: PriceMarker[] }> = ({ markers }) => {
+const FitAllMarkers: React.FC<{ markers: PriceMarker[] }> = ({ markers }) => {
   const map = useMap();
   useEffect(() => {
-    if (!map || !markers.length) return;
-    const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng] as [number, number]));
-    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+    if (!map || markers.length === 0) return;
+    if (markers.length === 1) {
+      const m = markers[0];
+      map.setView([m.lat, m.lng], 14, { animate: true });
+      return;
+    }
+    const bounds = L.latLngBounds(markers.map((m) => [m.lat, m.lng] as [number, number]));
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 15, animate: true });
   }, [map, markers]);
   return null;
 };
 
-export const LeafletMap: React.FC<LeafletMapProps> = ({ center, zoom = 12, markers = [], className = '', height = '300px', fitToMarkers = false, scrollWheelZoom = false, highlightedId }) => {
-  const router = useRouter();
+/** Zoom map to the hotel the user opened from the detail page */
+const FlyToRouteSelected: React.FC<{ markers: PriceMarker[]; routeSelectedId: string | null | undefined }> = ({
+  markers,
+  routeSelectedId,
+}) => {
+  const map = useMap();
+  const flownForIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // no-op, ensures client-side
-  }, []);
+    flownForIdRef.current = null;
+  }, [routeSelectedId]);
 
-  const createPriceIcon = (price: number, highlighted: boolean) =>
-    L.divIcon({
-      className: 'price-marker',
-      html: `
-        <style>
-          .price-marker-tag {
-            background: ${highlighted ? '#0f766e' : '#0D9488'};
-            color: #fff;
-            border-radius: 6px;
-            padding: 6px 10px;
-            font-weight: 700;
-            font-size: 13px;
-            white-space: nowrap;
-            border: 2px solid #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            user-select: none;
-          }
-          .price-marker-tag:hover {
-            transform: scale(1.15) translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-            background: ${highlighted ? '#0f766e' : '#0f766e'};
-            z-index: 1000 !important;
-          }
-          .price-marker-arrow {
-            width: 0;
-            height: 0;
-            border-left: 7px solid transparent;
-            border-right: 7px solid transparent;
-            border-top: 7px solid ${highlighted ? '#0f766e' : '#0D9488'};
-            margin-top: -2px;
-            transition: border-top-color 0.2s ease-in-out;
-          }
-          .price-marker-container:hover .price-marker-arrow {
-            border-top-color: #0f766e;
-          }
-        </style>
-        <div class="price-marker-container" style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
-          <div class="price-marker-tag">
-            US$${Math.round(price)}
-          </div>
-          <div class="price-marker-arrow"></div>
+  useEffect(() => {
+    if (!routeSelectedId) return;
+    const m = markers.find((x) => x.id === routeSelectedId);
+    if (!m) return;
+    if (flownForIdRef.current === routeSelectedId) return;
+    flownForIdRef.current = routeSelectedId;
+    map.flyTo([m.lat, m.lng], 16, { duration: 0.85, easeLinearity: 0.25 });
+  }, [map, markers, routeSelectedId]);
+
+  return null;
+};
+
+function createPriceIcon(m: PriceMarker): L.DivIcon {
+  const hovered = Boolean(m.isHovered);
+  const route = Boolean(m.isRouteSelected);
+  const bg = route ? '#0f766e' : hovered ? '#0f766e' : '#0D9488';
+  const arrow = route ? '#0f766e' : hovered ? '#0f766e' : '#0D9488';
+  const bounceStyle = route
+    ? 'animation: map-marker-bounce 0.85s ease-in-out infinite;'
+    : '';
+  const pulseStyle = route
+    ? 'animation: map-marker-pulse-ring 2s ease-out infinite;'
+    : '';
+  const scale = route ? 'scale(1.08)' : hovered ? 'scale(1.05)' : 'scale(1)';
+  const zIndex = route ? 2000 : hovered ? 1500 : 1;
+
+  return L.divIcon({
+    className: 'price-marker',
+    html: `
+      <div class="price-marker-wrap" style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);z-index:${zIndex};${bounceStyle}">
+        <div class="price-marker-tag" style="
+          background:${bg};
+          color:#fff;
+          border-radius:10px;
+          padding:7px 12px;
+          font-weight:800;
+          font-size:13px;
+          white-space:nowrap;
+          border:3px solid #fff;
+          box-shadow:0 3px 14px rgba(0,0,0,0.35);
+          cursor:pointer;
+          transform:${scale};
+          transition:transform 0.2s ease;
+          ${pulseStyle}
+        ">
+          US$${Math.round(m.price)}
         </div>
-      `,
-      iconSize: [0, 0],
-      iconAnchor: [0, 0],
-      popupAnchor: [0, -30],
-    });
+        <div style="
+          width:0;height:0;
+          border-left:8px solid transparent;
+          border-right:8px solid transparent;
+          border-top:8px solid ${arrow};
+          margin-top:-2px;
+        "></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+    popupAnchor: [0, -32],
+  });
+}
+
+export const LeafletMap: React.FC<LeafletMapProps> = ({
+  center,
+  zoom = 12,
+  markers = [],
+  className = '',
+  height = '300px',
+  fitToMarkers = false,
+  scrollWheelZoom = false,
+  hoveredId,
+  routeSelectedId,
+}) => {
+  const router = useRouter();
+  const showFitAll = fitToMarkers && markers.length > 0 && !routeSelectedId;
+  const useProgrammaticCenter = !routeSelectedId && !showFitAll;
 
   if (typeof window === 'undefined') return null;
 
   return (
     <div className={className} style={{ height }}>
-      <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%', borderRadius: '12px', zIndex: 10 }} scrollWheelZoom={scrollWheelZoom}>
-        <ChangeView center={center} zoom={zoom} />
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        style={{ height: '100%', width: '100%', borderRadius: '12px', zIndex: 10 }}
+        scrollWheelZoom={scrollWheelZoom}
+      >
+        <ChangeView center={center} zoom={zoom} enabled={useProgrammaticCenter} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {fitToMarkers && <FitBounds markers={markers} />}
+        {showFitAll && <FitAllMarkers markers={markers} />}
+        {routeSelectedId && <FlyToRouteSelected markers={markers} routeSelectedId={routeSelectedId} />}
         {markers.map((m) => (
-          <Marker position={[m.lat, m.lng]} key={m.id} icon={createPriceIcon(m.price, m.id === highlightedId)}>
+          <Marker
+            position={[m.lat, m.lng]}
+            key={m.id}
+            icon={createPriceIcon({
+              ...m,
+              isHovered: hoveredId === m.id,
+              isRouteSelected: routeSelectedId === m.id,
+            })}
+            zIndexOffset={routeSelectedId === m.id ? 1000 : hoveredId === m.id ? 500 : 0}
+          >
             <Popup>
               <div className="flex flex-col gap-3 min-w-[200px]">
                 <div className="flex items-start gap-3">

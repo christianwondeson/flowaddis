@@ -26,6 +26,8 @@ interface HotelSearchFormProps {
     onLocationSelect?: (location: any) => void;
     /** When provided, search runs automatically when user selects a location (easier UX) */
     onLocationSelectAndSearch?: (location: any) => void;
+    /** If true, open location dropdown immediately so user picks exact match first */
+    locationAutoOpen?: boolean;
 }
 
 export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
@@ -42,8 +44,10 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     onGuestsChange,
     onSearch,
     initialOpen = false,
+    locationAutoOpen = false,
 }) => {
-    const [mobileOpen, setMobileOpen] = React.useState<boolean>(initialOpen);
+    const [mobileOpen, setMobileOpen] = React.useState<boolean>(initialOpen || locationAutoOpen);
+    const [isDesktop, setIsDesktop] = React.useState(false);
     const [showCI, setShowCI] = React.useState(false);
     const [showCO, setShowCO] = React.useState(false);
     const ciRef = React.useRef<HTMLDivElement | null>(null);
@@ -67,6 +71,21 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
         setShowCO(false);
     };
 
+    // Ensure we only auto-open ONE LocationInput (mobile or desktop) to avoid duplicate portals.
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mq = window.matchMedia('(min-width: 768px)'); // tailwind md breakpoint
+        const apply = () => setIsDesktop(mq.matches);
+        apply();
+        mq.addEventListener?.('change', apply);
+        return () => mq.removeEventListener?.('change', apply);
+    }, []);
+
+    // If we are on desktop, keep mobile panel closed even though it's mounted (md:hidden).
+    React.useEffect(() => {
+        if (isDesktop && mobileOpen) setMobileOpen(false);
+    }, [isDesktop, mobileOpen]);
+
     // Close inline calendars when clicking outside
     React.useEffect(() => {
         const onDocClick = (e: MouseEvent) => {
@@ -79,14 +98,14 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     }, [showCI, showCO]);
 
     return (
-        <Card className="p-4 sm:p-5 md:p-6 shadow-lg mb-4 md:mb-6 bg-white rounded-2xl border border-gray-100 overflow-visible relative z-50">
+        <Card className="p-4 sm:p-5 md:p-6 shadow-lg mb-4 md:mb-6 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700 overflow-visible relative z-50">
             {/* Mobile compact bar - app-like tap target */}
             <div className="md:hidden">
                 {!mobileOpen && (
                     <button
                         type="button"
                         onClick={() => setMobileOpen(true)}
-                        className="w-full text-left bg-white border-2 border-teal-600/30 rounded-2xl px-4 py-3.5 shadow-sm active:bg-gray-50 transition-colors min-h-[56px]"
+                        className="w-full text-left bg-white dark:bg-slate-900 border-2 border-teal-600/30 rounded-2xl px-4 py-3.5 shadow-sm active:bg-gray-50 dark:active:bg-slate-800 transition-colors min-h-[56px]"
                         aria-label="Open hotel search"
                     >
                         <div className="flex items-center gap-3">
@@ -94,24 +113,24 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                 <Search className="w-5 h-5 text-teal-600" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="text-base font-bold text-gray-900 truncate">{destination || 'Addis Ababa'}</div>
-                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 truncate">
+                                <div className="text-base font-bold text-gray-900 dark:text-slate-100 truncate">{destination || 'Addis Ababa'}</div>
+                                <div className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 truncate">
                                     <span>{datesSummary}</span>
                                     <span>·</span>
                                     <span>{guestsSummary}</span>
                                 </div>
                             </div>
-                            <span className="text-gray-400 text-sm">Edit</span>
+                            <span className="text-gray-400 dark:text-slate-500 text-sm">Edit</span>
                         </div>
                     </button>
                 )}
 
                 {mobileOpen && (
                     <div className="mt-3 relative z-[80] animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="w-full bg-white rounded-2xl p-4 border border-gray-200 shadow-lg">
+                        <div className="w-full bg-white dark:bg-slate-900 rounded-2xl p-4 border border-gray-200 dark:border-slate-600 shadow-lg">
                             <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-2 py-2 flex-1 border border-gray-200">
-                                    <Search className="w-4 h-4 text-gray-500" />
+                                <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 rounded-xl px-2 py-2 flex-1 border border-gray-200 dark:border-slate-600">
+                                    <Search className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                                     <LocationInput
                                         label={undefined as any}
                                         placeholder="Destination"
@@ -122,6 +141,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                           onLocationSelectAndSearch?.(loc);
                                         }}
                                         api="hotels"
+                                        autoOpen={locationAutoOpen && !isDesktop && mobileOpen}
                                     />
                                 </div>
                             </div>
@@ -129,14 +149,14 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                             <div className="grid grid-cols-2 gap-1 mb-2">
                                 <div className="w-full relative" ref={ciRef}>
                                     <button type="button" onClick={() => { setShowCI((s) => !s); setShowCO(false); }} className="w-full text-left">
-                                        <div className="text-[11px] font-bold text-gray-800 mb-1">Check-in date</div>
-                                        <div className="flex items-center gap-2 w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                                            <CalendarIcon className="w-4 h-4 text-gray-400" />
-                                            <span className="text-gray-900 text-[13px] truncate">{checkIn ? formatDateEnglishStr(checkIn) : 'Select Date'}</span>
+                                        <div className="text-[11px] font-bold text-gray-800 dark:text-slate-200 mb-1">Check-in date</div>
+                                        <div className="flex items-center gap-2 w-full px-2 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg">
+                                            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                                            <span className="text-gray-900 dark:text-slate-100 text-[13px] truncate">{checkIn ? formatDateEnglishStr(checkIn) : 'Select Date'}</span>
                                         </div>
                                     </button>
                                     {showCI && (
-                                        <div className="absolute mt-1 z-[100] bg-white border border-gray-200 rounded-xl shadow-xl p-2 max-h-[60vh] overflow-auto 
+                                        <div className="absolute mt-1 z-[100] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl shadow-xl p-2 max-h-[60vh] overflow-auto 
                                                     left-1/2 -translate-x-1/2 transform w-[min(100vw-2rem,22rem)] sm:left-0 sm:translate-x-0 sm:w-auto">
                                             <Calendar
                                                 selected={checkIn ? parseDateLocal(checkIn) : undefined}
@@ -153,14 +173,14 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                 </div>
                                 <div className="w-full relative" ref={coRef}>
                                     <button type="button" onClick={() => { setShowCO((s) => !s); setShowCI(false); }} className="w-full text-left">
-                                        <div className="text-[11px] font-bold text-gray-800 mb-1">Check-out date</div>
-                                        <div className="flex items-center gap-2 w-full px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                                            <CalendarIcon className="w-4 h-4 text-gray-400" />
-                                            <span className="text-gray-900 text-[13px] truncate">{checkOut ? formatDateEnglishStr(checkOut) : 'Select Date'}</span>
+                                        <div className="text-[11px] font-bold text-gray-800 dark:text-slate-200 mb-1">Check-out date</div>
+                                        <div className="flex items-center gap-2 w-full px-2 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg">
+                                            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                                            <span className="text-gray-900 dark:text-slate-100 text-[13px] truncate">{checkOut ? formatDateEnglishStr(checkOut) : 'Select Date'}</span>
                                         </div>
                                     </button>
                                     {showCO && (
-                                        <div className="absolute mt-1 z-[100] bg-white border border-gray-200 rounded-xl shadow-xl p-2 max-h-[60vh] overflow-auto 
+                                        <div className="absolute mt-1 z-[100] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl shadow-xl p-2 max-h-[60vh] overflow-auto 
                                                     left-1/2 -translate-x-1/2 transform w-[min(100vw-2rem,22rem)] sm:left-0 sm:translate-x-0 sm:w-auto">
                                             <Calendar
                                                 selected={checkOut ? parseDateLocal(checkOut) : undefined}
@@ -210,6 +230,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                           onLocationSelectAndSearch?.(loc);
                         }}
                         api="hotels"
+                        autoOpen={locationAutoOpen && isDesktop}
                     />
                 </div>
                 <div className="md:col-span-4">
@@ -217,10 +238,10 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                         <Popover
                             trigger={
                                 <div className="w-full cursor-pointer">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
-                                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                        <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                        <span className="text-gray-900 font-medium text-sm truncate">{checkIn ? formatDateEnglishStr(checkIn) : 'Select Date'}</span>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
+                                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
+                                        <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                                        <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{checkIn ? formatDateEnglishStr(checkIn) : 'Select Date'}</span>
                                     </div>
                                 </div>
                             }
@@ -237,10 +258,10 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                         <Popover
                             trigger={
                                 <div className="w-full cursor-pointer">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
-                                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                        <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                        <span className="text-gray-900 font-medium text-sm truncate">{checkOut ? formatDateEnglishStr(checkOut) : 'Select Date'}</span>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
+                                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
+                                        <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                                        <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{checkOut ? formatDateEnglishStr(checkOut) : 'Select Date'}</span>
                                     </div>
                                 </div>
                             }

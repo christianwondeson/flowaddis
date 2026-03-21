@@ -44,7 +44,9 @@ export const Logo: React.FC<LogoProps> = ({
                 className={clsx(
                     'object-contain',
                     'object-center',
-                    light && 'brightness-0 invert'
+                    // NOTE: This logo asset is multi-color; inverting it makes it an all-white block.
+                    // For "light" contexts (transparent header over hero), keep colors and add contrast.
+                    light && 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
                 )}
             />
             {showText && (

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Hotel, Plane, Bus, LogOut, Users, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Hotel, Plane, Bus, LogOut, Users, CreditCard, LifeBuoy } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -22,6 +22,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigat
         { name: 'Manage Hotels', path: '/admin/hotels', icon: Hotel },
         { name: 'Manage Flights', path: '/admin/flights', icon: Plane },
         { name: 'Manage Shuttles', path: '/admin/shuttles', icon: Bus },
+        { name: 'Support & Disputes', path: '/admin/support', icon: LifeBuoy },
         { name: 'User Management', path: '/admin/users', icon: Users },
         { name: 'Transactions', path: '/admin/transactions', icon: CreditCard },
     ];
@@ -35,7 +36,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigat
     return (
         <aside className={clsx("w-64 bg-brand-dark text-white flex flex-col", className)}>
             <div className="p-6 border-b border-white/10">
-                <Logo light={true} />
+                <Logo light={false} />
             </div>
 
             <nav className="flex-1 p-4 space-y-2">

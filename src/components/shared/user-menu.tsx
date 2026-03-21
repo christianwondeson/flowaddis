@@ -25,7 +25,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     if (loading) {
-        return <div className="h-8 w-20 bg-gray-100 animate-pulse rounded-md"></div>;
+        return <div className="h-8 w-20 bg-gray-100 dark:bg-slate-800 animate-pulse rounded-md" />;
     }
 
     if (!user) {
@@ -36,7 +36,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
             <div className="flex items-center gap-3">
                 <Link href={`/signin?${redirectQuery}`}>
                     <Button variant="ghost" size="sm" className={clsx(
-                        isHomePage && !scrolled ? "text-white hover:bg-white/20" : "text-brand-dark hover:bg-white/50"
+                        isHomePage && !scrolled
+                            ? "text-white hover:bg-white/20"
+                            : "text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                     )}>Sign In</Button>
                 </Link>
                 <Link href={`/signup?${redirectQuery}`}>
@@ -53,24 +55,29 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     variant="ghost"
                     className={clsx(
                         "flex items-center gap-2 px-2 hover:bg-transparent focus:ring-0",
-                        isHomePage && !scrolled ? "text-white hover:text-white/80" : "text-brand-dark"
+                        isHomePage && !scrolled
+                            ? "text-white hover:text-white/80"
+                            : "text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-slate-200"
                     )}
                 >
-                    <div className="h-8 w-8 rounded-full bg-teal-100 flex items-center justify-center border border-teal-200">
-                        <span className="text-sm font-bold text-teal-600">
+                    <div className="h-8 w-8 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center border border-teal-200 dark:border-teal-700">
+                        <span className="text-sm font-bold text-teal-600 dark:text-teal-300">
                             {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
                         </span>
                     </div>
                     <div className="hidden md:block text-left">
-                        <p className="text-sm font-medium leading-none">{user.name}</p>
+                        <p className="text-sm font-medium leading-none text-inherit">{user.name}</p>
                     </div>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-xl shadow-lg border border-gray-100 p-2 bg-white">
+            <DropdownMenuContent
+                align="end"
+                className="z-[10020] w-56 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl"
+            >
                 <DropdownMenuLabel className="font-normal px-3 py-2">
                     <div className="flex flex-col space-y-0.5">
-                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-sm font-semibold text-popover-foreground">{user.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
                             {user.email}
                         </p>
                     </div>
@@ -78,7 +85,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                 <DropdownMenuSeparator className="my-1" />
 
                 {user.role === 'admin' && (
-                    <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-gray-50">
+                    <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                         <Link href="/admin" className="flex items-center w-full gap-2">
                             <LayoutDashboard className="h-4 w-4 shrink-0" />
                             <span>Admin Dashboard</span>
@@ -86,14 +93,14 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     </DropdownMenuItem>
                 )}
 
-                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-gray-50">
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/profile" className="flex items-center w-full gap-2">
                         <User className="h-4 w-4 shrink-0" />
                         <span>Profile</span>
                     </Link>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-gray-50">
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/settings" className="flex items-center w-full gap-2">
                         <Settings className="h-4 w-4 shrink-0" />
                         <span>Settings</span>
@@ -103,7 +110,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                 <DropdownMenuSeparator className="my-1" />
 
                 <DropdownMenuItem
-                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 rounded-lg px-3 py-2"
+                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/40 rounded-lg px-3 py-2"
                     onClick={() => logout()}
                 >
                     <LogOut className="mr-2 h-4 w-4 shrink-0" />

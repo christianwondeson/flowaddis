@@ -1,14 +1,19 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from 'react';
+import { APP_CONSTANTS } from '@/lib/constants';
 
 interface HotelDetailGalleryProps {
     images: string[];
     loading?: boolean;
+    /** Fallback when API returns 500 or image fails. Generic hotel room/bed image shared by all hotels. */
+    placeholderImage?: string;
 }
 
-export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, loading = false }) => {
-    const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80';
+const DEFAULT_PLACEHOLDER = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+
+export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, loading = false, placeholderImage }) => {
+    const PLACEHOLDER_IMG = placeholderImage || DEFAULT_PLACEHOLDER;
     const safeImages = useMemo(() => {
         const list = images && images.length ? images.filter((url): url is string => typeof url === 'string' && url.length > 0) : [];
         return list.length ? list : [PLACEHOLDER_IMG];
@@ -39,12 +44,12 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
     if (loading) {
         return (
             <div className="space-y-3">
-                <div className="md:hidden h-[280px] rounded-xl overflow-hidden bg-gray-200 animate-pulse" />
+                <div className="md:hidden h-[280px] rounded-xl overflow-hidden bg-gray-200 dark:bg-slate-800 animate-pulse" />
                 <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-3 h-[420px]">
-                    <div className="md:col-span-3 rounded-xl bg-gray-200 animate-pulse" />
+                    <div className="md:col-span-3 rounded-xl bg-gray-200 dark:bg-slate-800 animate-pulse" />
                     <div className="hidden md:flex md:flex-col gap-3">
                         {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="h-24 rounded-lg bg-gray-200 animate-pulse" />
+                            <div key={i} className="h-24 rounded-lg bg-gray-200 dark:bg-slate-800 animate-pulse" />
                         ))}
                     </div>
                 </div>
@@ -68,10 +73,10 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                 />
 
                 {/* Left/Right controls (bottom aligned) */}
-                <button onClick={prev} aria-label="Previous image" className="absolute left-2 bottom-3 bg-white/80 hover:bg-white text-gray-700 w-8 h-8 rounded-full grid place-items-center shadow">
+                <button onClick={prev} aria-label="Previous image" className="absolute left-2 bottom-3 bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 w-8 h-8 rounded-full grid place-items-center shadow border border-gray-200/80 dark:border-slate-600">
                     ‹
                 </button>
-                <button onClick={next} aria-label="Next image" className="absolute right-2 bottom-3 bg-white/80 hover:bg-white text-gray-700 w-8 h-8 rounded-full grid place-items-center shadow">
+                <button onClick={next} aria-label="Next image" className="absolute right-2 bottom-3 bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 w-8 h-8 rounded-full grid place-items-center shadow border border-gray-200/80 dark:border-slate-600">
                     ›
                 </button>
 
@@ -86,7 +91,7 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                 {/* Top row: main + two stacked previews */}
                 <div className="grid grid-cols-3 gap-3 h-[400px]">
                     {/* Main image */}
-                    <div className="col-span-2 relative rounded-xl overflow-hidden bg-gray-100">
+                    <div className="col-span-2 relative rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800">
                         <img
                             src={safeImages[current]}
                             alt={`Hotel main ${current + 1}`}
@@ -103,7 +108,7 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                             <button
                                 key={i}
                                 onClick={() => setCurrent(i + 1)}
-                                className="relative rounded-xl overflow-hidden bg-gray-100 h-full w-full"
+                                className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 h-full w-full"
                                 aria-label={`Show image ${i + 2}`}
                             >
                                 {img ? (
@@ -116,7 +121,7 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                                         }}
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-gray-200" />
+                                    <div className="w-full h-full bg-gray-200 dark:bg-slate-700" />
                                 )}
                             </button>
                         ))}
@@ -132,7 +137,7 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                                     const el = document.getElementById('thumb-strip');
                                     if (el) el.scrollBy({ left: -400, behavior: 'smooth' });
                                 }}
-                                className="w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow grid place-items-center"
+                                className="w-9 h-9 rounded-full bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 shadow grid place-items-center text-gray-800 dark:text-slate-200 border border-gray-200/80 dark:border-slate-600"
                                 aria-label="Scroll thumbnails left"
                             >
                                 ‹
@@ -144,7 +149,7 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
                                     const el = document.getElementById('thumb-strip');
                                     if (el) el.scrollBy({ left: 400, behavior: 'smooth' });
                                 }}
-                                className="w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow grid place-items-center"
+                                className="w-9 h-9 rounded-full bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 shadow grid place-items-center text-gray-800 dark:text-slate-200 border border-gray-200/80 dark:border-slate-600"
                                 aria-label="Scroll thumbnails right"
                             >
                                 ›

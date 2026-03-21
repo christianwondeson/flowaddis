@@ -124,7 +124,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
         return (
           <div className="col-span-full space-y-4">
             <div className="flex items-center gap-4 mb-4">
-              <div className="inline-flex rounded-xl bg-gray-100 p-1" role="group" aria-label="Trip type">
+              <div className="inline-flex rounded-xl bg-gray-100 dark:bg-slate-800 p-1" role="group" aria-label="Trip type">
                 {(['ROUNDTRIP', 'ONEWAY', 'MULTISTOP'] as const).map((type) => (
                   <button
                     key={type}
@@ -134,8 +134,8 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                     className={cn(
                       'px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2',
                       flightType === type
-                        ? 'bg-white text-brand-primary shadow-sm'
-                        : 'text-gray-600 hover:text-brand-primary',
+                        ? 'bg-white dark:bg-slate-900 text-brand-primary shadow-sm'
+                        : 'text-gray-600 dark:text-slate-300 hover:text-brand-primary',
                     )}
                   >
                     {type === 'ROUNDTRIP' ? 'Round trip' : type === 'ONEWAY' ? 'One way' : 'Multi-city'}
@@ -148,7 +148,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
                 <div className="grid grid-cols-1 gap-3">
                   {segments.map((segment, index) => (
-                    <div key={index} className="flex flex-col md:flex-row items-end gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-100 relative group transition-all hover:border-brand-primary/20">
+                    <div key={index} className="flex flex-col md:flex-row items-end gap-3 p-3 bg-gray-50/50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-700 relative group transition-all hover:border-brand-primary/20">
                       <div className="flex-1 w-full">
                         <FlightRouteSelect
                           fromCode={segment.from}
@@ -169,10 +169,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                         <Popover
                           trigger={
                             <div className="w-full cursor-pointer">
-                              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Date</label>
-                              <div className="flex items-center gap-2 w-full px-3 py-3 bg-white border border-gray-200 rounded-xl hover:border-brand-primary/40 hover:bg-gray-50/50 transition-all focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary">
-                                <CalendarIcon className="w-4 h-4 text-gray-400 shrink-0" aria-hidden />
-                                <span className="text-gray-900 font-medium text-sm truncate">{segment.date ? formatDateEnglishStr(segment.date) : 'Select date'}</span>
+                              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
+                              <div className="flex items-center gap-2 w-full px-3 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl hover:border-brand-primary/40 hover:bg-gray-50/50 dark:hover:bg-slate-800/80 transition-all focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary">
+                                <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
+                                <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{segment.date ? formatDateEnglishStr(segment.date) : 'Select date'}</span>
                               </div>
                             </div>
                           }
@@ -194,7 +194,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                       {segments.length > 2 && (
                         <button
                           type="button"
-                          className="h-11 w-11 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl mb-1 transition-colors"
+                          className="h-11 w-11 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl mb-1 transition-colors"
                           onClick={() => setSegments(segments.filter((_, i) => i !== index))}
                         >
                           <span className="text-xl">×</span>
@@ -226,7 +226,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-white rounded-xl relative z-50">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-white dark:bg-slate-900 rounded-xl relative z-50">
                 <div className="md:col-span-5">
                   <FlightRouteSelect
                     fromCode={flightFromCode}
@@ -243,10 +243,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                       align="center"
                       trigger={
                         <div className="w-full cursor-pointer">
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Departure</label>
-                          <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/40 transition-all">
-                            <CalendarIcon className="w-4 h-4 text-gray-400 shrink-0" aria-hidden />
-                            <span className="text-gray-900 font-medium text-sm truncate">{flightDate ? formatDateEnglishStr(flightDate) : 'Select date'}</span>
+                          <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Departure</label>
+                          <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
+                            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
+                            <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{flightDate ? formatDateEnglishStr(flightDate) : 'Select date'}</span>
                           </div>
                         </div>
                       }
@@ -263,10 +263,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                     <Popover
                       trigger={
                         <div className={cn('w-full cursor-pointer', flightType === 'ONEWAY' && 'opacity-50 pointer-events-none')}>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Return</label>
-                          <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/40 transition-all">
-                            <CalendarIcon className="w-4 h-4 text-gray-400 shrink-0" aria-hidden />
-                            <span className="text-gray-900 font-medium text-sm truncate">{flightReturnDate ? formatDateEnglishStr(flightReturnDate) : 'Select date'}</span>
+                          <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Return</label>
+                          <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
+                            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
+                            <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{flightReturnDate ? formatDateEnglishStr(flightReturnDate) : 'Select date'}</span>
                           </div>
                         </div>
                       }
@@ -283,7 +283,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                   </div>
                 </div>
                 <div className="md:col-span-4">
-                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Travelers & Class</label>
+                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Travelers & Class</label>
                   <TravelerCabinSelector value={trav as any} onChange={setTrav as any} />
                 </div>
               </div>
@@ -324,8 +324,8 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                   }
                 }}
                 api="hotels"
-                icon={<MapPin className="w-4 h-4 text-gray-400 shrink-0" />}
-                className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
+                icon={<MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />}
+                className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:dark:text-slate-400 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
               />
             </div>
             {/* Dates - single field "Oct 25 - Nov 1" per mockup */}
@@ -334,10 +334,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 align="center"
                 trigger={
                   <div className="w-full cursor-pointer">
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Dates</label>
-                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-500/40 transition-all group">
-                      <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0 group-hover:text-teal-600" aria-hidden />
-                      <span className="text-gray-900 font-medium text-sm truncate">
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Dates</label>
+                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-500/40 transition-all group">
+                      <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0 group-hover:text-teal-600" aria-hidden />
+                      <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">
                         {formatDateRangeShort(hotelCheckIn, hotelCheckOut)}
                       </span>
                     </div>
@@ -346,7 +346,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 content={
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 sm:p-4 min-w-[280px] sm:min-w-[520px]">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Check-in</label>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-2">Check-in</label>
                       <Calendar
                         selected={hotelCheckIn ? parseDateLocal(hotelCheckIn) : undefined}
                         onSelect={(date) => {
@@ -359,7 +359,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Check-out</label>
+                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-2">Check-out</label>
                       <Calendar
                         selected={hotelCheckOut ? parseDateLocal(hotelCheckOut) : undefined}
                         onSelect={(date) => setHotelCheckOut(formatDateLocal(date))}
@@ -372,12 +372,12 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
             </div>
             {/* Guests - "1 Room, 2 Guests" format per mockup */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Guests</label>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Guests</label>
               <Popover
                 trigger={
-                  <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-500/40 transition-all cursor-pointer group">
-                    <User className="w-5 h-5 text-gray-400 shrink-0 group-hover:text-teal-600" aria-hidden />
-                    <span className="text-gray-900 font-medium text-sm truncate">
+                  <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-500/40 transition-all cursor-pointer group">
+                    <User className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0 group-hover:text-teal-600" aria-hidden />
+                    <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">
                       {hotelGuests.rooms} Room{hotelGuests.rooms !== 1 ? 's' : ''}, {hotelGuests.adults + hotelGuests.children} Guest{(hotelGuests.adults + hotelGuests.children) !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -407,7 +407,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 value={confLocation}
                 onChange={setConfLocation}
                 api="hotels"
-                className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
+                className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:dark:text-slate-400 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
               />
             </div>
             <div className="sm:col-span-2 md:col-span-4">
@@ -415,10 +415,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 align="center"
                 trigger={
                   <div className="w-full cursor-pointer">
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Event date</label>
-                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/40 transition-all">
-                      <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0" aria-hidden />
-                      <span className="text-gray-900 font-medium text-sm truncate">{confDate ? formatDateEnglishStr(confDate) : 'Select date'}</span>
+                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Event date</label>
+                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
+                      <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
+                      <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{confDate ? formatDateEnglishStr(confDate) : 'Select date'}</span>
                     </div>
                   </div>
                 }
@@ -434,19 +434,19 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               />
             </div>
             <div className="sm:col-span-2 md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Attendees</label>
-              <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/40 transition-all">
-                <Users className="w-5 h-5 text-gray-400 shrink-0" aria-hidden />
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Attendees</label>
+              <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
+                <Users className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
                 <input
                   type="number"
                   min={10}
                   max={5000}
                   value={confAttendees}
                   onChange={(e) => setConfAttendees(Math.min(5000, Math.max(10, parseInt(e.target.value) || 10)))}
-                  className="flex-1 min-w-0 bg-transparent text-gray-900 font-medium text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   aria-label="Number of attendees"
                 />
-                <span className="text-gray-500 text-sm shrink-0">guests</span>
+                <span className="text-gray-500 dark:text-slate-400 text-sm shrink-0">guests</span>
               </div>
             </div>
           </>
@@ -455,19 +455,19 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
         return (
           <>
             <div className="sm:col-span-1 md:col-span-3">
-              <Input label="Pick-up" placeholder="Location" icon={<MapPin className="w-4 h-4" />} className="bg-gray-50 border-transparent focus:bg-white" />
+              <Input label="Pick-up" placeholder="Location" icon={<MapPin className="w-4 h-4" />} className="bg-gray-50 dark:bg-slate-800/90 border-transparent dark:border-slate-600 focus:bg-white dark:focus:bg-slate-900" />
             </div>
             <div className="sm:col-span-1 md:col-span-3">
-              <Input label="Drop-off" placeholder="Destination" icon={<MapPin className="w-4 h-4" />} className="bg-gray-50 border-transparent focus:bg-white" />
+              <Input label="Drop-off" placeholder="Destination" icon={<MapPin className="w-4 h-4" />} className="bg-gray-50 dark:bg-slate-800/90 border-transparent dark:border-slate-600 focus:bg-white dark:focus:bg-slate-900" />
             </div>
             <div className="sm:col-span-1 md:col-span-2">
               <Popover
                 trigger={
                   <div className="w-full cursor-pointer">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Date</label>
-                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                      <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                      <span className="text-gray-900 font-medium">Select Date</span>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Date</label>
+                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
+                      <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                      <span className="text-gray-900 dark:text-slate-100 font-medium">Select Date</span>
                     </div>
                   </div>
                 }
@@ -475,7 +475,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               />
             </div>
             <div className="sm:col-span-1 md:col-span-2">
-              <Input label="Time" type="time" icon={<Clock className="w-4 h-4" />} className="bg-gray-50 border-transparent focus:bg-white" />
+              <Input label="Time" type="time" icon={<Clock className="w-4 h-4" />} className="bg-gray-50 dark:bg-slate-800/90 border-transparent dark:border-slate-600 focus:bg-white dark:focus:bg-slate-900" />
             </div>
           </>
         );
@@ -496,10 +496,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       <div
         role="search"
         aria-label="Search for flights and hotels"
-        className="bg-white/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100/80 overflow-hidden"
+        className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-gray-100/80 dark:border-slate-700 overflow-hidden"
       >
         {/* Tabs */}
-        <div className="flex items-center gap-1 md:gap-2 px-4 md:px-6 pt-4 md:pt-5 overflow-x-auto no-scrollbar border-b border-gray-100">
+        <div className="flex items-center gap-1 md:gap-2 px-4 md:px-6 pt-4 md:pt-5 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-slate-700">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -513,14 +513,14 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 activeTab === tab.id
                   ? 'text-white bg-teal-600'
                   : tab.available
-                    ? 'text-gray-600 hover:text-brand-primary hover:bg-gray-50/80'
-                    : 'text-gray-400 cursor-not-allowed',
+                    ? 'text-gray-600 dark:text-slate-300 hover:text-brand-primary hover:bg-gray-50/80 dark:hover:bg-slate-800'
+                    : 'text-gray-400 dark:text-slate-500 cursor-not-allowed',
               )}
             >
-              <tab.icon className={cn('w-4 h-4 shrink-0', activeTab === tab.id ? 'text-white' : tab.available ? 'text-gray-500' : 'text-gray-400')} />
+              <tab.icon className={cn('w-4 h-4 shrink-0', activeTab === tab.id ? 'text-white' : tab.available ? 'text-gray-500 dark:text-slate-400' : 'text-gray-400 dark:text-slate-500')} />
               <span>{tab.label}</span>
               {!tab.available && (
-                <span className="hidden sm:inline text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                <span className="hidden sm:inline text-[10px] font-medium text-gray-400 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                   Soon
                 </span>
               )}

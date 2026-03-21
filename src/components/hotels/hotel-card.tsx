@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { MapPin, Star, Wifi, Coffee, Car, ArrowRight } from 'lucide-react';
+import { MapPin, Star, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency';
@@ -14,9 +14,12 @@ interface HotelCardProps {
     onHoverStart?: (id: string) => void;
     onHoverEnd?: (id: string) => void;
     variant?: 'horizontal' | 'vertical';
+    staySummary?: string;
+    /** Highlight card when opened from map deep-link / detail route */
+    featured?: boolean;
 }
 
-export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStart, onHoverEnd, variant = 'horizontal' }) => {
+export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStart, onHoverEnd, variant = 'horizontal', staySummary, featured }) => {
     const [showFullDescription, setShowFullDescription] = React.useState(false);
     const [imgError, setImgError] = React.useState(false);
     const imgSrc = imgError
@@ -30,7 +33,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
     if (variant === 'vertical') {
         return (
             <Card
-                className="w-full overflow-hidden hover:shadow-lg active:scale-[0.99] transition-all duration-300 border border-gray-100 bg-white cursor-pointer group rounded-2xl"
+                className="w-full overflow-hidden hover:shadow-lg active:scale-[0.99] transition-all duration-300 border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer group rounded-2xl"
                 onClick={() => onBook(hotel)}
             >
                 <div className="relative w-full aspect-[4/3] overflow-hidden">
@@ -49,10 +52,10 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                     )}
                 </div>
                 <div className="p-3 sm:p-4 flex flex-col gap-2">
-                    <h3 className="text-sm md:text-base font-bold text-gray-900 line-clamp-2 group-hover:text-teal-600 transition-colors leading-tight">
+                    <h3 className="text-sm md:text-base font-bold text-gray-900 dark:text-slate-100 line-clamp-2 group-hover:text-teal-600 transition-colors leading-tight">
                         {hotel.name}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                    <div className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400 text-xs">
                         <MapPin className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{hotel.location}</span>
                     </div>
@@ -63,21 +66,21 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                                 {hotel.rating != null ? Number(hotel.rating).toFixed(1) : '—'}
                             </div>
                             <div className="text-xs">
-                                <span className="font-semibold text-gray-900">{hotel.reviewWord || 'Exceptional'}</span>
-                                <span className="text-gray-500 ml-1">· {hotel.reviews} reviews</span>
+                                <span className="font-semibold text-gray-900 dark:text-slate-100">{hotel.reviewWord || 'Exceptional'}</span>
+                                <span className="text-gray-500 dark:text-slate-400 ml-1">· {hotel.reviews} reviews</span>
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-[10px] text-gray-500">From</div>
-                            <div className="text-sm font-bold text-gray-900">
-                                {formatCurrency(hotel.price)}<span className="text-xs font-normal text-gray-500">/night</span>
+                            <div className="text-[10px] text-gray-500 dark:text-slate-400">From</div>
+                            <div className="text-sm font-bold text-gray-900 dark:text-slate-100">
+                                {formatCurrency(hotel.price)}<span className="text-xs font-normal text-gray-500 dark:text-slate-400">/night</span>
                             </div>
                         </div>
                     </div>
                     {hotel.badges && hotel.badges.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                             {hotel.badges.slice(0, 2).map((badge, idx) => (
-                                <span key={idx} className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] rounded-md font-medium">
+                                <span key={idx} className="px-2 py-0.5 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[10px] rounded-md font-medium">
                                     {badge}
                                 </span>
                             ))}
@@ -90,11 +93,21 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
 
     return (
         <Card
-            className="overflow-hidden hover:shadow-md transition-all duration-300 border border-gray-200 group bg-white w-full cursor-pointer"
+            id={featured ? `map-hotel-${hotel.id}` : undefined}
+            className={`overflow-hidden hover:shadow-md transition-all duration-300 border group bg-white dark:bg-slate-900 w-full cursor-pointer ${
+                featured
+                    ? 'relative border-brand-primary ring-2 ring-brand-primary/40 ring-offset-2 dark:ring-offset-background shadow-lg z-[1]'
+                    : 'border-gray-200 dark:border-slate-700'
+            }`}
             onMouseEnter={() => onHoverStart?.(hotel.id)}
             onMouseLeave={() => onHoverEnd?.(hotel.id)}
             onClick={() => onBook(hotel)}
         >
+            {featured && (
+                <span className="absolute top-2 left-2 z-20 bg-brand-primary text-white text-[10px] font-extrabold uppercase tracking-wide px-2.5 py-1 rounded-lg shadow-md">
+                    Your hotel
+                </span>
+            )}
             <div className="flex flex-col sm:flex-row h-full">
                 {/* Column 1: Image */}
                 <div className="w-full sm:w-[220px] md:w-[240px] lg:w-[260px] h-48 sm:h-auto relative overflow-hidden shrink-0">
@@ -114,7 +127,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                 </div>
 
                 {/* Column 2: Info (Center) */}
-                <div className="flex-1 p-3 flex flex-col min-w-0 border-r border-gray-100">
+                <div className="flex-1 p-3 flex flex-col min-w-0 border-r border-gray-100 dark:border-slate-700">
                     <div className="flex items-start justify-between gap-2 mb-0.5">
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-0.5">
@@ -127,17 +140,40 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                                     ))}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 text-gray-600 text-[10px] mb-1.5">
-                                <MapPin className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                            <div className="flex items-center gap-1 text-gray-600 dark:text-slate-400 text-[10px] mb-1.5">
+                                <MapPin className="w-2.5 h-2.5 text-gray-400 dark:text-slate-500 shrink-0" />
                                 <span className="truncate underline cursor-pointer">{hotel.location}</span>
-                                {hotel.distance && <span className="text-gray-400 whitespace-nowrap">• {hotel.distance}</span>}
+                                {hotel.distance && <span className="text-gray-400 dark:text-slate-500 whitespace-nowrap">• {hotel.distance}</span>}
                             </div>
                         </div>
                     </div>
 
                     <div className="flex-1">
+                        {hotel.roomType && (
+                            <div className="text-[11px] font-semibold text-gray-900 dark:text-slate-100 mb-1">
+                                {hotel.roomType}
+                            </div>
+                        )}
+
+                        {(hotel.paymentPolicy || hotel.cancellationPolicy) && (
+                            <div className="space-y-1 mb-2">
+                                {hotel.paymentPolicy && (
+                                    <div className="flex items-start gap-1.5 text-[10px] text-gray-700 dark:text-slate-300">
+                                        <Check className="w-3 h-3 text-green-600 mt-0.5 shrink-0" />
+                                        <span className="line-clamp-2">{hotel.paymentPolicy}</span>
+                                    </div>
+                                )}
+                                {hotel.cancellationPolicy && (
+                                    <div className="flex items-start gap-1.5 text-[10px] text-gray-700 dark:text-slate-300">
+                                        <Check className="w-3 h-3 text-green-600 mt-0.5 shrink-0" />
+                                        <span className="line-clamp-2">{hotel.cancellationPolicy}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {hotel.description && (
-                            <div className="text-[10px] text-gray-700 leading-normal mb-2">
+                            <div className="text-[10px] text-gray-700 dark:text-slate-300 leading-normal mb-2">
                                 <p className={showFullDescription ? "" : "line-clamp-2"}>
                                     {hotel.description}
                                 </p>
@@ -156,7 +192,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                         {/* Amenities/Badges */}
                         <div className="flex flex-wrap gap-1">
                             {hotel.badges?.slice(0, 2).map((badge, idx) => (
-                                <span key={idx} className="px-1 py-0.5 bg-green-50 text-green-700 text-[8px] rounded-sm font-bold border border-green-100">
+                                <span key={idx} className="px-1 py-0.5 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[8px] rounded-sm font-bold border border-green-100 dark:border-green-900/50">
                                     {badge}
                                 </span>
                             ))}
@@ -165,11 +201,11 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                 </div>
 
                 {/* Column 3: Review & Price (Right) */}
-                <div className="w-full sm:w-[140px] md:w-[160px] lg:w-[180px] p-3 flex flex-col justify-between items-end bg-gray-50/20 shrink-0">
+                <div className="w-full sm:w-[140px] md:w-[160px] lg:w-[180px] p-3 flex flex-col justify-between items-end bg-gray-50/20 dark:bg-slate-800/50 shrink-0">
                     <div className="flex items-center gap-2 text-right">
                         <div>
-                            <div className="text-[11px] font-bold text-gray-900 leading-tight">{hotel.reviewWord || 'Exceptional'}</div>
-                            <div className="text-[9px] text-gray-500">{hotel.reviews || 0} reviews</div>
+                            <div className="text-[11px] font-bold text-gray-900 dark:text-slate-100 leading-tight">{hotel.reviewWord || 'Exceptional'}</div>
+                            <div className="text-[9px] text-gray-500 dark:text-slate-400">{hotel.reviews || 0} reviews</div>
                         </div>
                         <div className="w-6 h-6 bg-brand-dark text-white rounded-t-md rounded-br-md flex items-center justify-center font-bold text-[10px]">
                             {hotel.rating}
@@ -177,17 +213,22 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                     </div>
 
                     <div className="text-right w-full mt-2">
-                        <div className="text-[9px] text-gray-500 mb-0.5">Price from</div>
+                        <div className="text-[9px] text-gray-500 dark:text-slate-400 mb-0.5">Price from</div>
                         <div className="flex flex-col items-end">
                             {hotel.originalPrice && hotel.originalPrice > hotel.price && (
                                 <span className="text-[9px] text-red-600 line-through leading-none mb-0.5">
                                     {formatCurrency(hotel.originalPrice)}
                                 </span>
                             )}
-                            <div className="text-base font-bold text-gray-900 leading-none">
+                            <div className="text-base font-bold text-gray-900 dark:text-slate-100 leading-none">
                                 {formatCurrency(hotel.price)}
                             </div>
-                            <div className="text-[8px] text-gray-500 mt-0.5">1 night, 2 adults</div>
+                            <div className="text-[8px] text-gray-500 dark:text-slate-400 mt-0.5">
+                                {staySummary || '1 night, 2 adults'}
+                            </div>
+                            {hotel.priceIncludesTaxes && (
+                                <div className="text-[8px] text-gray-500 dark:text-slate-400 mt-0.5">Includes taxes and fees</div>
+                            )}
                         </div>
                         <Button
                             onClick={(e) => { e.stopPropagation(); onBook(hotel); }}

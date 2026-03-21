@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { X, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    saveFlightBookingDraftForAuthRedirect,
+    consumeMatchedFlightDraft,
+} from '@/lib/booking-draft-storage';
 
 interface FlightBookingModalProps {
     isOpen: boolean;
@@ -63,6 +68,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
     flightData,
     isLocal = true,
 }) => {
+    const pathname = usePathname();
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
     const { user, requireAuth } = useAuth();
     const [step, setStep] = useState<'form' | 'payment' | 'receipt'>('form');
@@ -95,18 +101,53 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         setValue('phone', e164, { shouldValidate: true });
     };
 
+    const persistDraftAndRequireAuth = (data: FlightBookingFormData) => {
+        saveFlightBookingDraftForAuthRedirect({
+            pathname,
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            countryCode,
+            nationalNumber,
+        });
+        requireAuth();
+    };
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const draft = consumeMatchedFlightDraft(pathname);
+        if (!draft) return;
+        reset({
+            name: draft.name,
+            email: draft.email,
+            phone: draft.phone,
+        });
+        setCountryCode(draft.countryCode || 'ET');
+        setNationalNumber(draft.nationalNumber || '');
+        toast.success('Your booking details were restored. Continue where you left off.');
+    }, [isOpen, pathname, reset]);
+
+    useEffect(() => {
+        if (!isOpen || !user?.email) return;
+        setValue('email', user.email, { shouldValidate: true });
+    }, [isOpen, user?.email, setValue]);
+
+    const resolveBookingEmail = (data: FlightBookingFormData) =>
+        user?.email?.trim() ? user.email.trim() : data.email;
+
     const handleAddToTrip = (data: FlightBookingFormData) => {
         if (!user) {
-            requireAuth();
+            persistDraftAndRequireAuth(data);
             return;
         }
+        const email = resolveBookingEmail(data);
         addToTrip({
             type: 'flight',
             price,
             details: {
                 serviceName,
                 customerName: data.name,
-                email: data.email,
+                email,
                 phone: data.phone,
                 flightDetails: flightData,
             },
@@ -118,7 +159,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
 
     const handleFormSubmit = (data: FlightBookingFormData) => {
         if (!user) {
-            requireAuth();
+            persistDraftAndRequireAuth(data);
             return;
         }
         // Additional country-based length validation
@@ -127,14 +168,15 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
             setError('phone', { type: 'validate', message: `Phone number length should be ${selectedCountry.min === selectedCountry.max ? selectedCountry.min : `${selectedCountry.min}-${selectedCountry.max}`} digits for ${selectedCountry.name}` });
             return;
         }
-        setBookingData(data); // Store form data
+        setBookingData({ ...data, email: resolveBookingEmail(data) });
         setStep('payment');
     };
 
-    const handlePaymentSuccess = async () => {
+    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
         if (!bookingData) return;
 
-        const formData = bookingData;
+        const formData = bookingData as FlightBookingFormData;
+        const email = user?.email?.trim() ? user.email.trim() : formData.email;
 
         if (currentTrip.length === 0) {
             addToTrip({
@@ -143,7 +185,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                 details: {
                     serviceName,
                     customerName: formData.name,
-                    email: formData.email,
+                    email,
                     phone: formData.phone,
                     flightDetails: flightData,
                 },
@@ -156,15 +198,16 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         const newBooking = {
             id: tripId,
             clientName: formData.name,
-            email: formData.email,
+            email,
             service: serviceName,
             date: new Date().toLocaleDateString(),
             amount: price,
             status: 'Confirmed' as const,
+            paymentMethod,
         };
         setBookingData(newBooking);
         setStep('receipt');
-        toast.success('Payment successful! Your booking is confirmed.');
+        toast.success(paymentMethod === 'pay_on_site' ? 'Booking reserved. Pay on site.' : 'Payment successful! Your booking is confirmed.');
     };
 
     const handleClose = () => {
@@ -181,15 +224,15 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="bg-white rounded-3xl shadow-2xl w-full max-w-md sm:max-w-lg md:max-w-xl overflow-hidden max-h-[90vh] overflow-y-auto z-[10001]"
+                    className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-transparent dark:border-slate-700 w-full max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide overscroll-contain z-10001"
                 >
-                    <div className="flex justify-between items-center p-6 border-b border-gray-100">
-                        <h2 className="text-xl font-bold text-brand-dark">
+                    <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
+                        <h2 className="text-xl font-bold text-brand-dark dark:text-foreground">
                             {step === 'form'
                                 ? 'Complete Your Flight Booking'
                                 : step === 'payment'
@@ -229,9 +272,18 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                                     id="email"
                                     label="Email Address"
                                     type="email"
+                                    readOnly={!!user?.email}
+                                    title={user?.email ? 'Bookings use your signed-in account email' : undefined}
+                                    className={user?.email ? 'bg-gray-50 text-gray-800 cursor-not-allowed' : undefined}
                                     {...register('email')}
                                     error={errors.email?.message}
                                 />
+                                {user?.email && (
+                                    <p className="text-xs text-gray-500 -mt-2">
+                                        Confirmations are sent to your account email. To use another address, sign out and
+                                        book as a guest or use a different account.
+                                    </p>
+                                )}
 
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Phone Number</label>
@@ -297,14 +349,14 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                         {step === 'payment' && (
                             <PaymentForm
                                 amount={price}
-                                onSuccess={handlePaymentSuccess}
+                                onSuccess={handlePaymentSuccess as any}
                                 onCancel={() => setStep('form')}
                                 isLocal={isLocal}
                             />
                         )}
 
                         {step === 'receipt' && bookingData && (
-                            <Receipt booking={bookingData} onClose={handleClose} />
+                            <Receipt booking={bookingData} onClose={handleClose} kind={bookingData.paymentMethod === 'pay_on_site' ? 'reservation' : 'paid'} />
                         )}
                     </div>
                 </motion.div>

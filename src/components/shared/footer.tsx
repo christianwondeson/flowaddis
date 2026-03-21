@@ -1,7 +1,15 @@
 import React from 'react';
 import Link from 'next/link';
-import { Facebook, Instagram, Mail, Phone, MessageCircle } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Mail, Phone, MessageCircle } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
+
+function TikTokIcon({ className }: { className?: string }) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64v-3.4a6.34 6.34 0 1 0 5.46 6.26V8.12a8.16 8.16 0 0 0 4.65 1.48V6.69h-.01z" />
+        </svg>
+    );
+}
 
 export const Footer: React.FC = () => {
     return (
@@ -37,7 +45,9 @@ export const Footer: React.FC = () => {
                             </li>
                             <li className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-brand-primary" />
-                                <span>bookaddiso@gmail.com</span>
+                                <a href="mailto:info@flowaddis.com" className="hover:text-teal-400 transition-colors">
+                                    info@flowaddis.com
+                                </a>
                             </li>
                             <li className="flex items-center gap-3">
                                 <MessageCircle className="w-4 h-4 text-green-500" />
@@ -63,9 +73,11 @@ export const Footer: React.FC = () => {
                     {/* Newsletter */}
                     <div>
                         <h3 className="text-lg font-bold mb-6 text-white">Follow Us</h3>
-                        <div className="flex gap-3 mb-6">
-                            <a href="https://facebook.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors"><Facebook className="w-5 h-5" /></a>
-                            <a href="https://instagram.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors"><Instagram className="w-5 h-5" /></a>
+                        <div className="flex flex-wrap gap-3 mb-6">
+                            <a href="https://facebook.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="Facebook"><Facebook className="w-5 h-5" /></a>
+                            <a href="https://instagram.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="Instagram"><Instagram className="w-5 h-5" /></a>
+                            <a href="https://www.tiktok.com/@flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="TikTok"><TikTokIcon className="w-5 h-5" /></a>
+                            <a href="https://www.linkedin.com/company/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="LinkedIn"><Linkedin className="w-5 h-5" /></a>
                         </div>
                         <p className="text-gray-400 text-sm mb-4">Subscribe to our newsletter</p>
                         <div className="flex gap-2">
@@ -83,7 +95,7 @@ export const Footer: React.FC = () => {
 
                 <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                        <p className="text-gray-500 text-sm">© 2025 BookAddis. All rights reserved.</p>
+                        <p className="text-gray-500 text-sm">© 2025 FlowAddis. All rights reserved.</p>
                         <div className="flex gap-6">
                             <Link href="/privacy" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">Privacy Policy</Link>
                             <Link href="/terms" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">Terms of Service</Link>

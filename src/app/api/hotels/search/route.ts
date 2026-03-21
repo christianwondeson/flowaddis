@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         let destId = urlDestId;
         let destType = urlDestType || 'city';
         let searchType = urlDestType || 'city';
+        const hadUrlDestId = !!urlDestId;
 
         if (!destId) {
             // 1. Resolve Location to get dest_id
@@ -62,10 +63,30 @@ export async function GET(request: Request) {
                 }
             }
 
-            // Curated fallback – use first so "Addis Ababa" always means Addis Ababa, Ethiopia (no wrong country from API)
-            // dest_id -603097 = Addis Ababa, Ethiopia (verified – returns Haile Grand, Sheraton, Hilton, Radisson Blu, etc.)
+            // Curated fallback – attractions map to nearest city with hotels
             const FALLBACK_DESTS: Record<string, { dest_id: string; dest_type: string; search_type: string; cc?: string }> = {
                 'addis ababa': { dest_id: '-603097', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'bishoftu': { dest_id: '-603094', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'hawassa': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'bahir dar': { dest_id: '-603098', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'gondar': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'gonder': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'dire dawa': { dest_id: '-603100', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'adama': { dest_id: '-603094', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'debre zeit': { dest_id: '-603094', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'lalibela': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'axum': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'harar': { dest_id: '-603100', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'arba minch': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'mekele': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'mekelle': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'sof omar': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'wenchi': { dest_id: '-603094', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'bale': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'langano': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'omo valley': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'omo': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'danakil': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
                 'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
                 'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
                 'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
@@ -73,10 +94,12 @@ export async function GET(request: Request) {
                 'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
             };
             const fallbackKey = searchQuery.toLowerCase().replace(/,?\s*ethiopia$/i, '').trim();
-            if (FALLBACK_DESTS[fallbackKey]) {
-                destId = FALLBACK_DESTS[fallbackKey].dest_id;
-                searchType = FALLBACK_DESTS[fallbackKey].search_type;
-                destType = FALLBACK_DESTS[fallbackKey].dest_type;
+            // Try exact match first, then partial (e.g. "sof omar caves" → "sof omar")
+            const fallbackMatch = FALLBACK_DESTS[fallbackKey] ?? Object.entries(FALLBACK_DESTS).find(([k]) => fallbackKey.includes(k) || k.includes(fallbackKey))?.[1];
+            if (fallbackMatch) {
+                destId = fallbackMatch.dest_id;
+                searchType = fallbackMatch.search_type;
+                destType = fallbackMatch.dest_type;
             } else {
                 const locationOptions = {
                     method: 'GET',
@@ -104,20 +127,13 @@ export async function GET(request: Request) {
                     searchType = targetLocation.search_type;
                     destType = targetLocation.dest_type;
                 } else {
-                    // Curated fallback dest_ids (maintain as needed)
-                    const FALLBACK_DESTS_API: Record<string, { dest_id: string; dest_type: string; search_type: string }> = {
-                        'addis ababa': { dest_id: '-603097', dest_type: 'city', search_type: 'city' },
-                        'dubai': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
-                        'london': { dest_id: '-2601889', dest_type: 'city', search_type: 'city' },
-                        'frankfurt/main': { dest_id: '-1771148', dest_type: 'city', search_type: 'city' },
-                        'istanbul': { dest_id: '-755070', dest_type: 'city', search_type: 'city' },
-                        'new york': { dest_id: '20088325', dest_type: 'city', search_type: 'city' },
-                    };
-                    const key = searchQuery.toLowerCase();
-                    if (FALLBACK_DESTS_API[key]) {
-                        destId = FALLBACK_DESTS_API[key].dest_id;
-                        searchType = FALLBACK_DESTS_API[key].search_type;
-                        destType = FALLBACK_DESTS_API[key].dest_type;
+                    // Locations API returned empty – use same fallback as above
+                    const key = searchQuery.toLowerCase().replace(/,?\s*ethiopia$/i, '').trim();
+                    const apiFallback = FALLBACK_DESTS[key] ?? Object.entries(FALLBACK_DESTS).find(([k]) => key.includes(k) || k.includes(key))?.[1];
+                    if (apiFallback) {
+                        destId = apiFallback.dest_id;
+                        searchType = apiFallback.search_type;
+                        destType = apiFallback.dest_type;
                     }
                 }
             }
@@ -125,17 +141,19 @@ export async function GET(request: Request) {
 
         // Resolve fallback country code for Ethiopia queries
         const queryLower = query.toLowerCase().trim();
-        const isEthiopiaQuery = /addis\s*ababa|ethiopia|bahir\s*dar|gonder|lalibela|hawassa|bishoftu/.test(queryLower);
+        const isEthiopiaQuery = /addis\s*ababa|ethiopia|bahir\s*dar|gonder|gondar|lalibela|hawassa|bishoftu|harar|arba\s*minch|mekele|sof\s*omar|wenchi|bale|langano|omo|danakil|dire\s*dawa/.test(queryLower);
         const filterByCountry = isEthiopiaQuery ? 'et' : undefined;
 
         // 2. Build Filter IDs
-        const categoriesFilterIds = [];
+        const categoriesFilterIds: string[] = [];
         if (stars) {
             const starList = stars.split(',');
             categoriesFilterIds.push(...starList.map(s => `class::${s}`));
         }
         if (minRating) {
-            categoriesFilterIds.push(`review_score::${parseInt(minRating) / 10}`); // e.g. 80 -> 8
+            // UI passes 60/70/80/90 (meaning 6+/7+/8+/9+). Booking filter id uses reviewscorebuckets.
+            const bucket = Math.max(0, Math.min(100, parseInt(minRating, 10) || 0));
+            categoriesFilterIds.push(`reviewscorebuckets::${bucket}`);
         }
         if (amenities) {
             if (amenities.includes('breakfast')) categoriesFilterIds.push('meal_plan::1');
@@ -143,57 +161,51 @@ export async function GET(request: Request) {
         }
 
         // 3. Search Hotels
-        let searchOptions;
-        const latitude = searchParams.get('latitude');
-        const longitude = searchParams.get('longitude');
-
-        const ORDER_MAP: Record<string, string> = {
-            class_descending: 'class_descending',
-            review_score: 'review_score',
-            review_score_descending: 'review_score_descending',
-            popularity: 'popularity',
-            price: 'price',
-            distance: 'distance',
-        };
-        const apiOrderBy = ORDER_MAP[sortOrder] || sortOrder || 'class_descending';
-
-        if (latitude && longitude) {
-            // Search by coordinates
-            searchOptions = {
-                method: 'GET',
-                url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH_BY_COORDINATES}`,
-                params: {
-                    latitude,
-                    longitude,
-                    checkin_date: checkIn,
-                    checkout_date: checkOut,
-                    page_number: page,
-                    order_by: apiOrderBy,
-                    ...(filterByCountry && { filter_by_country: filterByCountry }),
-                    adults_number: adults,
-                    ...(Number(children) > 0 && { children_number: children }),
-                    room_number: rooms,
-                    units: 'metric',
-                    locale: 'en-gb',
-                    filter_by_currency: currency,
-                    ...(categoriesFilterIds.length > 0 && { categories_filter_ids: categoriesFilterIds.join(',') }),
-                    ...(minPrice && { price_min: minPrice }),
-                    ...(maxPrice && { price_max: maxPrice }),
-                },
-                headers: getApiHeaders(),
-            };
-        } else {
-            // Standard search by dest_id
-            searchOptions = {
+        const buildSearchOptions = (args: {
+            destId?: string | null;
+            destType?: string | null;
+            searchType?: string | null;
+            latitude?: string | null;
+            longitude?: string | null;
+        }) => {
+            const { destId: dId, destType: dType, searchType: sType, latitude: lat, longitude: lng } = args;
+            if (lat && lng) {
+                return {
+                    method: 'GET',
+                    url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH_BY_COORDINATES}`,
+                    params: {
+                        latitude: lat,
+                        longitude: lng,
+                        checkin_date: checkIn,
+                        checkout_date: checkOut,
+                        page_number: page,
+                        rows: String(pageSize),
+                        order_by: apiOrderBy,
+                        ...(filterByCountry && { filter_by_country: filterByCountry }),
+                        adults_number: adults,
+                        ...(Number(children) > 0 && { children_number: children }),
+                        room_number: rooms,
+                        units: 'metric',
+                        locale: 'en-gb',
+                        filter_by_currency: currency,
+                        ...(categoriesFilterIds.length > 0 && { categories_filter_ids: categoriesFilterIds.join(',') }),
+                        ...(minPrice && { price_min: minPrice }),
+                        ...(maxPrice && { price_max: maxPrice }),
+                    },
+                    headers: getApiHeaders(),
+                };
+            }
+            return {
                 method: 'GET',
                 url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.SEARCH}`,
                 params: {
-                    dest_id: destId,
-                    search_type: searchType || 'city',
-                    dest_type: destType || 'city',
+                    dest_id: dId,
+                    search_type: sType || 'city',
+                    dest_type: dType || 'city',
                     checkin_date: checkIn,
                     checkout_date: checkOut,
                     page_number: page,
+                    rows: String(pageSize),
                     order_by: apiOrderBy,
                     ...(filterByCountry && { filter_by_country: filterByCountry }),
                     adults_number: adults,
@@ -209,11 +221,61 @@ export async function GET(request: Request) {
                 },
                 headers: getApiHeaders(),
             };
+        };
+
+        const latitude = searchParams.get('latitude');
+        const longitude = searchParams.get('longitude');
+
+        const ORDER_MAP: Record<string, string> = {
+            class_descending: 'class_descending',
+            review_score: 'review_score',
+            review_score_descending: 'review_score_descending',
+            popularity: 'popularity',
+            price: 'price',
+            distance: 'distance',
+        };
+        const apiOrderBy = ORDER_MAP[sortOrder] || sortOrder || 'class_descending';
+
+        let response = await axios.request(buildSearchOptions({ destId, destType, searchType, latitude, longitude }));
+        let results = response.data.result || response.data.results || [];
+
+        // If a destId came from the URL (home cards / deep links) and it yields 0 hotels,
+        // retry once by resolving a fresh destination from the query using the locations endpoint.
+        // This fixes cases where dest_id differs across providers/versions or was hardcoded incorrectly.
+        if (!latitude && !longitude && hadUrlDestId && Array.isArray(results) && results.length === 0) {
+            try {
+                const searchQuery = query.trim();
+                const locationResponse = await axios.request({
+                    method: 'GET',
+                    url: `https://${API_CONFIG.RAPIDAPI_HOST}${API_ENDPOINTS.HOTELS.LOCATIONS}`,
+                    params: { name: searchQuery, locale: 'en-gb' },
+                    headers: getApiHeaders(),
+                });
+                const locations = locationResponse.data;
+                if (Array.isArray(locations) && locations.length > 0) {
+                    const et = locations.find((loc: any) => loc.cc1 === 'et');
+                    const target = et || locations[0];
+                    const resolvedDestId = target?.dest_id;
+                    const resolvedSearchType = target?.search_type;
+                    const resolvedDestType = target?.dest_type;
+                    if (resolvedDestId && resolvedSearchType) {
+                        response = await axios.request(buildSearchOptions({
+                            destId: resolvedDestId,
+                            destType: resolvedDestType,
+                            searchType: resolvedSearchType,
+                            latitude: null,
+                            longitude: null,
+                        }));
+                        results = response.data.result || response.data.results || [];
+                        destId = resolvedDestId;
+                        destType = resolvedDestType;
+                        searchType = resolvedSearchType;
+                    }
+                }
+            } catch (e) {
+                // ignore retry errors; fall through with empty results
+            }
         }
-
-
-        const response = await axios.request(searchOptions);
-        const results = response.data.result || response.data.results || [];
 
         // Robust total count detection
         const totalCount = (
@@ -249,6 +311,31 @@ export async function GET(request: Request) {
                 item.url_square600 ||
                 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80';
 
+            const roomType =
+                item.unit_configuration_label ||
+                item.room_name ||
+                item.accommodation_type_name ||
+                item.block?.[0]?.room_name ||
+                null;
+
+            const paymentPolicy =
+                item.payment_terms?.summary ||
+                item.payment_terms?.description ||
+                item.paymentterms?.summary ||
+                item.paymentterms?.description ||
+                (item.is_prepayment_needed === 0 || item.is_prepayment_needed === false ? 'No prepayment needed – pay at property' : null);
+
+            const cancellationPolicy =
+                (item.is_free_cancellable === 1 || item.free_cancellation === 1 ? 'Free cancellation' : null) ||
+                item.cancellation?.policy ||
+                item.cancellation_policy ||
+                null;
+
+            const priceIncludesTaxes =
+                Boolean(priceBreakdown?.grossPrice?.value) ||
+                Boolean(priceBreakdown?.gross_amount_per_night?.value) ||
+                Boolean(item.price_breakdown?.all_inclusive_price);
+
             return {
                 id: (item.id || item.hotel_id)?.toString(),
                 name: item.name || item.hotel_name || 'Unknown Hotel',
@@ -265,6 +352,10 @@ export async function GET(request: Request) {
                 coordinates: (item.latitude && item.longitude) ? { lat: item.latitude, lng: item.longitude } : undefined,
                 amenities: item.hotel_facilities ? item.hotel_facilities.split(',').slice(0, 5) : ['Free WiFi'],
                 description: item.unit_configuration_label || `Stay at ${item.name || item.hotel_name || 'this hotel'}`,
+                roomType: roomType || undefined,
+                paymentPolicy: paymentPolicy || undefined,
+                cancellationPolicy: cancellationPolicy || undefined,
+                priceIncludesTaxes,
             };
         });
 

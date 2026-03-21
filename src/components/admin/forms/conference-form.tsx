@@ -20,7 +20,7 @@ export const ConferenceForm: React.FC<ConferenceFormProps> = ({ onCancel, onSubm
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Event Details</h3>
+                <h3 className="text-sm font-extrabold text-brand-dark uppercase tracking-wider">Event Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">Event Name</label>
@@ -57,7 +57,7 @@ export const ConferenceForm: React.FC<ConferenceFormProps> = ({ onCancel, onSubm
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Banner Image</h3>
+                <h3 className="text-sm font-extrabold text-brand-dark uppercase tracking-wider">Banner Image</h3>
                 <label className="aspect-video rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-all group">
                     <Upload className="w-8 h-8 text-gray-400 group-hover:text-brand-primary mb-2" />
                     <span className="text-xs font-bold text-gray-500 group-hover:text-brand-primary">Upload Banner</span>
@@ -67,7 +67,7 @@ export const ConferenceForm: React.FC<ConferenceFormProps> = ({ onCancel, onSubm
 
             <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
                 <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                <Button type="submit" className="bg-brand-primary text-white">Create Event</Button>
+                <Button type="submit" className="bg-brand-primary hover:bg-brand-secondary text-white">Create Event</Button>
             </div>
         </form>
     );

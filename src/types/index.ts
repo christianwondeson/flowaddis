@@ -17,6 +17,10 @@ export interface Hotel {
     image: string;
     amenities?: string[];
     description?: string;
+    roomType?: string;
+    paymentPolicy?: string;
+    cancellationPolicy?: string;
+    priceIncludesTaxes?: boolean;
 }
 
 export interface HotelFilters {
@@ -27,7 +31,11 @@ export interface HotelFilters {
     minRating?: number;
     amenities?: string[];
     hotelName?: string;
+    /** Destination text (city / region label) — same as home SearchWidget */
     query?: string;
+    /** From LocationInput / URL — pins search to Booking.com destination */
+    destId?: string;
+    destType?: string;
 }
 
 export interface TripItem {
@@ -53,6 +61,10 @@ export interface PriceMarker {
     lat: number;
     lng: number;
     image?: string;
+    /** Hotel opened from detail page — bounce + fly-to on map */
+    isRouteSelected?: boolean;
+    /** List hover */
+    isHovered?: boolean;
 }
 
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
@@ -78,7 +90,7 @@ export interface Booking {
     payment: {
         amount: number;
         currency: string;
-        method: 'stripe' | 'paypal' | 'revolut' | 'telebirr' | 'cbebirr';
+        method: 'stripe' | 'paypal' | 'revolut' | 'telebirr' | 'cbebirr' | 'pay_on_site';
         status: PaymentStatus;
         transactionId?: string;
     };

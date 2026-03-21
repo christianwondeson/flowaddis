@@ -115,7 +115,7 @@ export default function UsersPage() {
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+                    <h1 className="text-3xl font-extrabold text-brand-dark">User Management</h1>
                     <p className="text-gray-500 mt-1">Manage user accounts and permissions</p>
                 </div>
                 <div className="relative w-full sm:w-64">
@@ -150,7 +150,7 @@ export default function UsersPage() {
                                                 {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
                                             </div>
                                             <div>
-                                                <div className="font-bold text-gray-900">{user.name || 'Unknown'}</div>
+                                                <div className="font-extrabold text-brand-dark">{user.name || 'Unknown'}</div>
                                                 <div className="text-sm text-gray-500 flex items-center gap-1">
                                                     <Mail className="w-3 h-3" />
                                                     {user.email}
@@ -160,8 +160,8 @@ export default function UsersPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${user.role === 'admin'
-                                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                            : 'bg-teal-50 text-teal-700 border-teal-200'
+                                            ? 'bg-brand-dark/5 text-brand-dark border-brand-dark/10'
+                                            : 'bg-brand-primary/10 text-brand-primary border-brand-primary/20'
                                             }`}>
                                             {user.role === 'admin' ? <Shield className="w-3 h-3" /> : <UserIcon className="w-3 h-3" />}
                                             {user.role === 'admin' ? 'Administrator' : 'User'}

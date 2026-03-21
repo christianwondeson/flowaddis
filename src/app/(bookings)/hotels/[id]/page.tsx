@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { HotelDetailHeader } from '@/components/hotels/hotel-detail-header';
 import { HotelDetailGallery } from '@/components/hotels/hotel-detail-gallery';
@@ -14,10 +14,12 @@ import { BookingModal } from '@/components/booking/booking-modal';
 import { formatDateLocal } from '@/lib/date-utils';
 import { Preloader } from '@/components/ui/preloader';
 import { Button } from '@/components/ui/button';
+import { APP_CONSTANTS } from '@/lib/constants';
 
 export default function HotelDetailPage() {
     const { id } = useParams();
     const [activeTab, setActiveTab] = useState('overview');
+    const HOTEL_PLACEHOLDER = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || '/assets/images/addis-view.jpg';
     const [hotel, setHotel] = useState<any>({
         id,
         name: '',
@@ -26,13 +28,8 @@ export default function HotelDetailPage() {
         reviews: 0,
         reviewWord: '',
         price: 0,
-        image: '/images/hotel-placeholder.jpg',
-        images: [
-            '/images/hotel-placeholder.jpg',
-            '/images/hotel-placeholder.jpg',
-            '/images/hotel-placeholder.jpg',
-            '/images/hotel-placeholder.jpg',
-        ]
+        image: HOTEL_PLACEHOLDER,
+        images: [HOTEL_PLACEHOLDER],
     });
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedPrice, setSelectedPrice] = useState<number>(0);
@@ -40,6 +37,8 @@ export default function HotelDetailPage() {
     const [selectedExternalItemId, setSelectedExternalItemId] = useState<string>('');
     const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
     const [facilities, setFacilities] = useState<any[]>([]);
+    const [apiError, setApiError] = useState<{ message: string; isRateLimit?: boolean } | null>(null);
+    const [reviewsList, setReviewsList] = useState<any[]>([]);
 
     // Manage dates
     const [checkInDate, setCheckInDate] = useState<string>('');
@@ -91,75 +90,122 @@ export default function HotelDetailPage() {
         }
     }, [id, data]);
 
-    // Fetch photos, reviews, description, and details for this hotel
-    useEffect(() => {
-        const fetchDetails = async () => {
-            try {
-                if (!id) return;
-                const hotelId = Array.isArray(id) ? id[0] : id;
+    const fetchDetails = useCallback(async () => {
+        if (!id) return;
+        setApiError(null);
+        setIsGalleryLoading(true);
+        const hotelId = Array.isArray(id) ? id[0] : id;
+        const placeholder = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || '/assets/images/addis-view.jpg';
 
-                const [photosRes, reviewsRes, descRes, detailsRes] = await Promise.all([
-                    axios.get(`/api/hotels/photos?hotelId=${encodeURIComponent(hotelId)}`),
-                    axios.get(`/api/hotels/reviews?hotelId=${encodeURIComponent(hotelId)}`),
-                    axios.get(`/api/hotels/description?hotelId=${encodeURIComponent(hotelId)}&locale=en-gb`),
-                    axios.get(`/api/hotels/data?hotelId=${encodeURIComponent(hotelId)}`),
-                ]);
+        try {
+            const [photosRes, reviewsRes, descRes, detailsRes] = await Promise.allSettled([
+                axios.get(`/api/hotels/photos?hotelId=${encodeURIComponent(hotelId)}`),
+                axios.get(`/api/hotels/reviews?hotelId=${encodeURIComponent(hotelId)}`),
+                axios.get(`/api/hotels/description?hotelId=${encodeURIComponent(hotelId)}&locale=en-gb`),
+                axios.get(`/api/hotels/data?hotelId=${encodeURIComponent(hotelId)}`),
+            ]);
 
-                const photos = photosRes.data?.photos || photosRes.data || [];
-                const rawImages = Array.isArray(photos)
-                    ? photos.map((p: any) => p.url_max || p.url_1440 || p.url_square600 || p.photo_url).filter(Boolean)
-                    : [];
-                const images = rawImages.filter((url: string) => typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://')));
+            const isRateLimited = (r: PromiseSettledResult<any>) =>
+                r.status === 'rejected' && r.reason?.response?.status === 429;
+            const isServerError = (r: PromiseSettledResult<any>) =>
+                r.status === 'rejected' && (r.reason?.response?.status === 500 || r.reason?.response?.status === 429);
+            const hasCriticalError = [photosRes, detailsRes].some((r) => r.status === 'rejected');
+            const anyRateLimit = [photosRes, reviewsRes, descRes, detailsRes].some(isRateLimited);
 
-                const desc = descRes.data?.description || descRes.data?.data?.description || descRes.data?.data?.[0]?.description || '';
-
-                // Map details endpoint (varies by API). Try common fields safely.
-                const details = detailsRes.data?.data || detailsRes.data || {};
-                const mappedAmenities: string[] = Array.isArray(details?.facilities)
-                    ? details.facilities.map((f: any) => f.name || f)
-                    : (Array.isArray(details?.amenities) ? details.amenities : []);
-                const mappedName = details?.name || details?.hotel_name || undefined;
-                const mappedAddress = details?.address || details?.location || undefined;
-                const mappedRating = details?.review_score || details?.reviewScore || undefined;
-                const mappedReviewCount = details?.review_nr || details?.reviewCount || undefined;
-                const mappedCoordinates = details?.coordinates || details?.location_coordinates || undefined;
-
-                // Extract facilities data
-                const facilitiesData = details?.facility_groups || details?.facilities || [];
-                setFacilities(facilitiesData);
-
-                setHotel((prev: any) => ({
-                    ...prev,
-                    images: images && images.length > 0 ? images : (prev.images && prev.images.length > 0 ? prev.images : [prev.image].filter(Boolean)),
-                    description: desc || prev.description,
-                    amenities: mappedAmenities && mappedAmenities.length > 0 ? mappedAmenities : prev.amenities,
-                    name: mappedName || prev.name,
-                    location: mappedAddress || prev.location,
-                    rating: mappedRating != null ? mappedRating : prev.rating,
-                    reviews: mappedReviewCount != null ? mappedReviewCount : prev.reviews,
-                    coordinates: mappedCoordinates || prev.coordinates,
-                }));
-                setIsGalleryLoading(false);
-            } catch (e) {
-                // Silent fail; keep mock data
-                console.warn('Failed to fetch extra hotel details');
-                setIsGalleryLoading(false);
+            if (hasCriticalError || anyRateLimit) {
+                setApiError({
+                    message: anyRateLimit
+                        ? "We're experiencing high demand. Hotel photos and details are temporarily limited. Please try again in a moment."
+                        : "We couldn't load some hotel details. Please try again.",
+                    isRateLimit: anyRateLimit,
+                });
             }
-        };
-        fetchDetails();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+            const photos = photosRes.status === 'fulfilled' ? (photosRes.value.data?.photos || photosRes.value.data || []) : [];
+            const rawImages = Array.isArray(photos)
+                ? photos.map((p: any) => p.url_max || p.url_1440 || p.url_square60 || p.photo_url).filter(Boolean)
+                : [];
+            let images = rawImages.filter((url: string) => typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://')));
+
+            const details = detailsRes.status === 'fulfilled' ? (detailsRes.value.data?.data || detailsRes.value.data || {}) : {};
+            const mainPhotoUrl = details?.main_photo_url && typeof details.main_photo_url === 'string'
+                ? details.main_photo_url
+                : null;
+            if (images.length === 0 && mainPhotoUrl && (mainPhotoUrl.startsWith('http://') || mainPhotoUrl.startsWith('https://'))) {
+                images = [mainPhotoUrl];
+            }
+            if (images.length === 0) {
+                images = [placeholder];
+            }
+
+            const desc = descRes.status === 'fulfilled'
+                ? (descRes.value.data?.description || descRes.value.data?.data?.description || descRes.value.data?.data?.[0]?.description || '')
+                : (Array.isArray(details?.description_translations) && details.description_translations[0]?.description
+                    ? details.description_translations[0].description
+                    : '');
+            const mappedAmenities: string[] = Array.isArray(details?.facilities)
+                ? details.facilities.map((f: any) => f.name || f)
+                : (Array.isArray(details?.amenities) ? details.amenities : []);
+            const mappedName = details?.name || details?.hotel_name || undefined;
+            const mappedAddress = (typeof details?.address === 'string' ? details.address : null) || undefined;
+            const mappedRating = details?.review_score ?? details?.reviewScore;
+            const mappedReviewCount = details?.review_nr ?? details?.reviewCount;
+            const mappedCoordinates = details?.coordinates || details?.location_coordinates || (details?.location && (details.location.longitude != null || details.location.latitude != null) ? details.location : undefined);
+            const facilitiesData = details?.facility_groups || details?.facilities || [];
+            const ct = details?.checkin_checkout_times;
+            let checkin: string | null = null;
+            let checkout: string | null = null;
+            if (ct) {
+                checkin = ct.checkin_from ? `From ${String(ct.checkin_from).replace(/:\d{2}$/, '')}` : (ct.checkin_to ? `Until ${String(ct.checkin_to).replace(/:\d{2}$/, '')}` : null);
+                checkout = ct.checkout_to ? `Until ${String(ct.checkout_to).replace(/:\d{2}$/, '')}` : (ct.checkout_from ? `From ${String(ct.checkout_from).replace(/:\d{2}$/, '')}` : null);
+            }
+            if (!checkin && details?.checkin) checkin = details.checkin.from ? `From ${details.checkin.from}` : details.checkin.to ? `Until ${details.checkin.to}` : null;
+            if (!checkout && details?.checkout) checkout = details.checkout.to ? `Until ${details.checkout.to}` : details.checkout.from ? `From ${details.checkout.from}` : null;
+
+            const reviewsData = reviewsRes.status === 'fulfilled'
+                ? (reviewsRes.value.data?.result || reviewsRes.value.data?.reviews || [])
+                : [];
+            setReviewsList(Array.isArray(reviewsData) ? reviewsData : []);
+
+            setFacilities(facilitiesData);
+            setHotel((prev: any) => ({
+                ...prev,
+                images,
+                description: desc || prev.description,
+                amenities: mappedAmenities?.length ? mappedAmenities : prev.amenities,
+                name: mappedName ?? prev.name,
+                location: mappedAddress ?? prev.location,
+                rating: mappedRating != null ? mappedRating : prev.rating,
+                reviews: mappedReviewCount != null ? mappedReviewCount : prev.reviews,
+                coordinates: mappedCoordinates ?? prev.coordinates,
+                checkin: checkin ?? prev.checkin,
+                checkout: checkout ?? prev.checkout,
+            }));
+        } catch (e) {
+            setApiError({ message: "We couldn't load hotel details. Please try again." });
+            setHotel((prev: any) => ({
+                ...prev,
+                images: [placeholder],
+            }));
+        } finally {
+            setIsGalleryLoading(false);
+        }
     }, [id]);
+
+    useEffect(() => {
+        fetchDetails();
+    }, [fetchDetails]);
 
     if (isLoading && !hotel.name) {
         return (
-            <div className="min-h-screen bg-brand-gray flex items-center justify-center">
+            <div className="min-h-screen bg-brand-gray dark:bg-background flex items-center justify-center">
                 <Preloader size="lg" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-brand-gray/30 pb-24 lg:pb-20 pt-16 md:pt-20">
+        <div className="min-h-screen bg-brand-gray/30 dark:bg-background pb-24 lg:pb-20 pt-16 md:pt-20">
             <HotelDetailHeader
                 hotel={hotel}
                 activeTab={activeTab}
@@ -179,7 +225,26 @@ export default function HotelDetailPage() {
                     <div className="w-full lg:w-3/4 space-y-12">
                         {activeTab === 'overview' && (
                             <>
-                                <HotelDetailGallery images={hotel.images || [hotel.image]} loading={isGalleryLoading} />
+                                {apiError && (
+                                    <div className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                                            {apiError.message}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => fetchDetails()}
+                                            className="shrink-0 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                                        >
+                                            Try again
+                                        </Button>
+                                    </div>
+                                )}
+                                <HotelDetailGallery
+                                    images={hotel.images || [hotel.image]}
+                                    loading={isGalleryLoading}
+                                    placeholderImage={HOTEL_PLACEHOLDER}
+                                />
                                 <HotelDetailAbout hotel={hotel} facilities={facilities} loading={isGalleryLoading} />
                             </>
                         )}
@@ -213,36 +278,36 @@ export default function HotelDetailPage() {
                         )}
 
                         {activeTab === 'facilities' && (
-                            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                                <h2 className="text-2xl font-bold text-brand-dark mb-6">Facilities & Amenities</h2>
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">Facilities & Amenities</h2>
                                 <HotelDetailAbout hotel={hotel} facilities={facilities} loading={isGalleryLoading} />
                             </div>
                         )}
 
                         {activeTab === 'rules' && (
-                            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                                <h2 className="text-2xl font-bold text-brand-dark mb-6">House Rules</h2>
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">House Rules</h2>
                                 <div className="space-y-6">
-                                    <div className="flex gap-4 p-4 bg-brand-gray rounded-xl">
+                                    <div className="flex gap-4 p-4 bg-brand-gray dark:bg-slate-800/80 rounded-xl">
                                         <div className="font-bold w-32">Check-in</div>
-                                        <div>From 15:00 to 00:00</div>
+                                        <div>{hotel.checkin || 'From 14:00'}</div>
                                     </div>
-                                    <div className="flex gap-4 p-4 bg-brand-gray rounded-xl">
+                                    <div className="flex gap-4 p-4 bg-brand-gray dark:bg-slate-800/80 rounded-xl">
                                         <div className="font-bold w-32">Check-out</div>
-                                        <div>Until 11:00</div>
+                                        <div>{hotel.checkout || 'Until 12:00'}</div>
                                     </div>
-                                    <div className="flex gap-4 p-4 bg-brand-gray rounded-xl">
+                                    <div className="flex gap-4 p-4 bg-brand-gray dark:bg-slate-800/80 rounded-xl">
                                         <div className="font-bold w-32">Cancellation</div>
-                                        <div>Cancellation and prepayment policies vary according to accommodation type.</div>
+                                        <div>Cancellation and prepayment policies vary according to accommodation type. See each room option for details.</div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'reviews' && (
-                            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                                <h2 className="text-2xl font-bold text-brand-dark mb-6">Guest Reviews</h2>
-                                <HotelDetailSidebar hotel={hotel} onBook={() => setActiveTab('pricing')} />
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">Guest Reviews</h2>
+                                <HotelDetailSidebar hotel={hotel} reviews={reviewsList} onBook={() => setActiveTab('pricing')} />
                             </div>
                         )}
                     </div>
@@ -276,6 +341,7 @@ export default function HotelDetailPage() {
                             />
                             <HotelDetailSidebar
                                 hotel={hotel}
+                                reviews={reviewsList}
                                 onBook={() => {
                                     setActiveTab('pricing');
                                     window.scrollTo({
@@ -301,15 +367,16 @@ export default function HotelDetailPage() {
                 type="hotel"
                 initialCheckIn={checkInDate}
                 initialCheckOut={checkOutDate}
+                isLocal={true}
             />
 
             {/* Mobile bottom bar - fixed, safe-area aware */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 px-4 py-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-                <div className="container mx-auto flex items-center justify-between gap-4 max-w-lg mx-auto">
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 px-4 py-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+                <div className="container mx-auto flex items-center justify-between gap-4 max-w-lg">
                     <div>
-                        <p className="text-xs text-gray-500">From</p>
-                        <p className="text-xl font-bold text-brand-dark">
-                            ${hotel.price}<span className="text-sm font-normal text-gray-500">/night</span>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">From</p>
+                        <p className="text-xl font-bold text-brand-dark dark:text-foreground">
+                            ${hotel.price}<span className="text-sm font-normal text-gray-500 dark:text-slate-400">/night</span>
                         </p>
                     </div>
                     <Button
@@ -320,7 +387,7 @@ export default function HotelDetailPage() {
                                 behavior: 'smooth'
                             });
                         }}
-                        className="bg-brand-primary hover:bg-brand-primary/90 active:scale-[0.98] text-white font-bold px-8 py-3 rounded-2xl flex-shrink-0 shadow-lg shadow-brand-primary/25 min-h-[48px]"
+                        className="bg-brand-primary hover:bg-brand-primary/90 active:scale-[0.98] text-white font-bold px-8 py-3 rounded-2xl shrink-0 shadow-lg shadow-brand-primary/25 min-h-[48px]"
                     >
                         Book now
                     </Button>

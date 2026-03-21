@@ -6,10 +6,12 @@ import { CheckCircle2, ArrowRight, Download, Mail, Home, Loader2 } from 'lucide-
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return-url';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('session_id');
+    const returnUrl = sanitizeCheckoutReturnUrl(searchParams.get('return_url'), BOOKADDIS_HOME);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -63,10 +65,17 @@ function SuccessContent() {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-                <Button asChild className="w-full bg-brand-primary hover:bg-brand-dark text-white rounded-xl h-12 font-bold shadow-lg shadow-brand-primary/20">
-                    <Link href="/">
-                        Return to Home <Home className="ml-2 w-4 h-4" />
-                    </Link>
+                <Button
+                    type="button"
+                    className="w-full bg-brand-primary hover:bg-brand-dark text-white rounded-xl h-12 font-bold shadow-lg shadow-brand-primary/20"
+                    onClick={() => {
+                        window.location.href = returnUrl;
+                    }}
+                >
+                    Back to BookAddis <Home className="ml-2 w-4 h-4" />
+                </Button>
+                <Button asChild variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
+                    <Link href="/">Stay on FlowAddis</Link>
                 </Button>
                 <Button variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
                     View Booking Details <ArrowRight className="ml-2 w-4 h-4" />

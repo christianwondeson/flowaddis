@@ -21,9 +21,10 @@ interface BookingDetails {
 interface ReceiptProps {
     booking: BookingDetails;
     onClose?: () => void;
+    kind?: 'paid' | 'reservation';
 }
 
-export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
+export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose, kind = 'paid' }) => {
     const receiptRef = useRef<HTMLDivElement>(null);
 
     const handleDownload = async () => {
@@ -53,9 +54,12 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
 
     return (
         <div className="flex flex-col items-center gap-6 p-4 max-w-md mx-auto">
-            <div className="bg-green-50 text-green-700 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border border-green-100">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-bold">Booking Confirmed</span>
+            <div className={`px-4 py-2 rounded-full flex items-center gap-2 shadow-sm border ${kind === 'paid'
+                ? 'bg-green-50 text-green-700 border-green-100'
+                : 'bg-brand-primary/10 text-brand-dark border-brand-primary/20'
+                }`}>
+                <CheckCircle className={`w-5 h-5 ${kind === 'paid' ? 'text-green-600' : 'text-brand-primary'}`} />
+                <span className="font-bold">{kind === 'paid' ? 'Booking Confirmed' : 'Reservation Confirmed'}</span>
             </div>
 
             {/* Receipt Card */}
@@ -64,13 +68,15 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
                 className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 w-full relative overflow-hidden"
             >
                 {/* Decorative Top Border */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-primary to-brand-secondary" />
+                <div className="absolute top-0 left-0 w-full h-2 bg-linear-to-r from-brand-primary to-brand-secondary" />
 
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-2">
                         <Logo size="lg" />
                     </div>
-                    <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Official Digital Receipt</p>
+                    <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">
+                        {kind === 'paid' ? 'Official Digital Receipt' : 'Reservation Confirmation'}
+                    </p>
                 </div>
 
                 <div className="space-y-6">
@@ -93,27 +99,29 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
                             <span className="font-bold text-brand-dark">{booking.date}</span>
                         </div>
                         <div className="flex justify-between items-center pt-2">
-                            <span className="text-gray-500">Amount Paid</span>
+                            <span className="text-gray-500">{kind === 'paid' ? 'Amount Paid' : 'Amount (pay on site)'}</span>
                             <span className="font-extrabold text-2xl text-brand-primary">${booking.amount.toFixed(2)}</span>
                         </div>
                     </div>
 
-                    <div className="flex flex-col items-center justify-center pt-8 border-t border-gray-100">
-                        <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm">
-                            <QRCodeSVG
-                                value={JSON.stringify({
-                                    id: booking.id,
-                                    client: booking.clientName,
-                                    service: booking.service,
-                                    date: booking.date,
-                                })}
-                                size={120}
-                                level="H"
-                                includeMargin={false}
-                            />
+                    {kind === 'paid' && (
+                        <div className="flex flex-col items-center justify-center pt-8 border-t border-gray-100">
+                            <div className="p-2 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                <QRCodeSVG
+                                    value={JSON.stringify({
+                                        id: booking.id,
+                                        client: booking.clientName,
+                                        service: booking.service,
+                                        date: booking.date,
+                                    })}
+                                    size={120}
+                                    level="H"
+                                    includeMargin={false}
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 mt-3 font-medium">Scan to verify booking</p>
                         </div>
-                        <p className="text-xs text-gray-400 mt-3 font-medium">Scan to verify booking</p>
-                    </div>
+                    )}
 
                     <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-50 mt-4">
                         <p>Generated on {new Date().toLocaleDateString()}</p>
@@ -124,12 +132,14 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose }) => {
 
             {/* Actions */}
             <div className="flex gap-4 w-full">
-                <Button onClick={handleDownload} className="flex-1 flex items-center justify-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                </Button>
+                {kind === 'paid' && (
+                    <Button onClick={handleDownload} className="flex-1 flex items-center justify-center gap-2">
+                        <Download className="w-4 h-4" />
+                        Download PDF
+                    </Button>
+                )}
                 {onClose && (
-                    <Button variant="outline" onClick={onClose} className="flex-1">
+                    <Button variant="outline" onClick={onClose} className={kind === 'paid' ? 'flex-1' : 'w-full'}>
                         Close
                     </Button>
                 )}

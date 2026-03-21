@@ -22,7 +22,7 @@ export default function AdminDashboard() {
             icon: Users,
             change: '+12%',
             trend: 'up',
-            color: 'teal',
+            badgeClass: 'bg-brand-primary/10 text-brand-primary',
             subtext: '+148 this month'
         },
         {
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
             icon: Calendar,
             change: '+25%',
             trend: 'up',
-            color: 'green',
+            badgeClass: 'bg-brand-secondary/10 text-brand-secondary',
             subtext: '+214 this month'
         },
         {
@@ -40,7 +40,7 @@ export default function AdminDashboard() {
             icon: DollarSign,
             change: '+8%',
             trend: 'up',
-            color: 'purple',
+            badgeClass: 'bg-brand-dark/5 text-brand-dark',
             subtext: '+ETB 310K this month'
         },
         {
@@ -49,17 +49,17 @@ export default function AdminDashboard() {
             icon: Activity,
             change: '-5%',
             trend: 'down',
-            color: 'orange',
+            badgeClass: 'bg-brand-gray text-gray-700',
             subtext: 'Real-time'
         },
     ];
 
     // Booking breakdown
     const bookingStats = [
-        { type: 'Hotels', count: 456, percentage: 53, color: 'bg-teal-500' },
-        { type: 'Flights', count: 289, percentage: 34, color: 'bg-green-500' },
-        { type: 'Conferences', count: 78, percentage: 9, color: 'bg-purple-500' },
-        { type: 'Shuttles', count: 33, percentage: 4, color: 'bg-orange-500' },
+        { type: 'Hotels', count: 456, percentage: 53, color: 'bg-brand-primary' },
+        { type: 'Flights', count: 289, percentage: 34, color: 'bg-brand-secondary' },
+        { type: 'Conferences', count: 78, percentage: 9, color: 'bg-brand-dark' },
+        { type: 'Shuttles', count: 33, percentage: 4, color: 'bg-gray-400' },
     ];
 
     // Recent bookings
@@ -112,13 +112,13 @@ export default function AdminDashboard() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+                    <h1 className="text-3xl font-extrabold text-brand-dark">Dashboard Overview</h1>
                     <p className="text-gray-500 mt-1">Welcome back! Here's what's happening today.</p>
                 </div>
                 <select
                     value={timeRange}
                     onChange={(e) => setTimeRange(e.target.value)}
-                    className="bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl px-4 py-2.5 cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                    className="bg-white border border-gray-200 text-sm font-semibold text-gray-700 rounded-xl px-4 py-2.5 cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                 >
                     <option value="7days">Last 7 Days</option>
                     <option value="30days">Last 30 Days</option>
@@ -135,8 +135,8 @@ export default function AdminDashboard() {
                 {stats.map((stat, idx) => (
                     <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between mb-4">
-                            <div className={`w-12 h-12 rounded-xl bg-${stat.color}-50 flex items-center justify-center`}>
-                                <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.badgeClass}`}>
+                                <stat.icon className="w-6 h-6" />
                             </div>
                             <div className={`flex items-center gap-1 text-sm font-bold px-2.5 py-1 rounded-lg ${stat.trend === 'up' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                                 }`}>
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <h3 className="text-gray-500 text-sm font-medium">{stat.label}</h3>
-                        <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                        <p className="text-3xl font-extrabold text-brand-dark mt-1">{stat.value}</p>
                         <p className="text-xs text-gray-400 mt-2">{stat.subtext}</p>
                     </div>
                 ))}
@@ -157,7 +157,7 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Booking Trends</h2>
+                            <h2 className="text-lg font-extrabold text-brand-dark">Booking Trends</h2>
                             <p className="text-sm text-gray-500 mt-1">Monthly booking volume</p>
                         </div>
                         <TrendingUp className="w-5 h-5 text-brand-primary" />
@@ -175,7 +175,7 @@ export default function AdminDashboard() {
                                     </div>
                                     {/* Bar */}
                                     <div
-                                        className="w-full bg-gradient-to-t from-brand-primary to-brand-secondary rounded-t-lg transition-all duration-500 group-hover:from-brand-secondary group-hover:to-brand-primary"
+                                        className="w-full bg-linear-to-t from-brand-primary to-brand-secondary rounded-t-lg transition-all duration-500 group-hover:from-brand-secondary group-hover:to-brand-primary"
                                         style={{ height: `${(data.bookings / maxBookings) * 100}%` }}
                                     />
                                 </div>
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
 
                 {/* Booking Breakdown */}
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-6">Booking Breakdown</h2>
+                    <h2 className="text-lg font-extrabold text-brand-dark mb-6">Booking Breakdown</h2>
                     <div className="space-y-4">
                         {bookingStats.map((item, idx) => (
                             <div key={idx}>
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Financial Overview</h2>
+                            <h2 className="text-lg font-extrabold text-brand-dark">Financial Overview</h2>
                             <p className="text-sm text-gray-500 mt-1">Transaction status & health</p>
                         </div>
                         <DollarSign className="w-5 h-5 text-brand-primary" />
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
 
                 {/* Payment Methods */}
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 mb-6">Payment Methods</h2>
+                    <h2 className="text-lg font-extrabold text-brand-dark mb-6">Payment Methods</h2>
                     <div className="space-y-6">
                         {[
                             { name: 'Telebirr', percent: 45, color: 'bg-green-500', icon: '📱' },
@@ -310,9 +310,9 @@ export default function AdminDashboard() {
                         ))}
                     </div>
 
-                    <div className="mt-8 p-4 bg-teal-50 rounded-xl border border-teal-100">
-                        <h4 className="text-sm font-bold text-teal-800 mb-1">Payment Health</h4>
-                        <p className="text-xs text-teal-600">All payment gateways are operational. Telebirr success rate is up 2% from last week.</p>
+                    <div className="mt-8 p-4 bg-brand-primary/10 rounded-xl border border-brand-primary/20">
+                        <h4 className="text-sm font-extrabold text-brand-dark mb-1">Payment Health</h4>
+                        <p className="text-xs text-gray-600">All payment gateways are operational. Telebirr success rate is up 2% from last week.</p>
                     </div>
                 </div>
             </div>
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
                 <div className="p-6 border-b border-gray-100">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Recent Bookings</h2>
+                            <h2 className="text-lg font-extrabold text-brand-dark">Recent Bookings</h2>
                             <p className="text-sm text-gray-500 mt-1">Latest booking activity</p>
                         </div>
                         <Link href="/admin/hotels">
@@ -379,25 +379,25 @@ export default function AdminDashboard() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Link href="/admin/hotels" className="bg-gradient-to-br from-teal-500 to-teal-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
+                <Link href="/admin/hotels" className="bg-linear-to-br from-brand-primary to-brand-secondary p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
                     <Hotel className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-lg">Manage Hotels</h3>
-                    <p className="text-teal-100 text-sm mt-1">View and edit hotel listings</p>
+                    <p className="text-white/80 text-sm mt-1">View and edit hotel listings</p>
                 </Link>
-                <Link href="/admin/flights" className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
+                <Link href="/admin/flights" className="bg-linear-to-br from-brand-secondary to-brand-primary p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
                     <Plane className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-lg">Manage Flights</h3>
-                    <p className="text-green-100 text-sm mt-1">View and edit flight listings</p>
+                    <p className="text-white/80 text-sm mt-1">View and edit flight listings</p>
                 </Link>
-                <Link href="/admin/conferences" className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
+                <Link href="/admin/conferences" className="bg-linear-to-br from-brand-dark to-brand-primary p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
                     <Calendar className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-lg">Conferences</h3>
-                    <p className="text-purple-100 text-sm mt-1">Manage conference venues</p>
+                    <p className="text-white/80 text-sm mt-1">Manage conference venues</p>
                 </Link>
-                <Link href="/admin/users" className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
-                    <Users className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
-                    <h3 className="font-bold text-lg">User Management</h3>
-                    <p className="text-orange-100 text-sm mt-1">View and manage users</p>
+                <Link href="/admin/support" className="bg-linear-to-br from-gray-700 to-brand-dark p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group">
+                    <CreditCard className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
+                    <h3 className="font-bold text-lg">Support & Disputes</h3>
+                    <p className="text-white/80 text-sm mt-1">Resolve conflicts & transaction issues</p>
                 </Link>
             </div>
         </div>

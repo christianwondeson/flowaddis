@@ -182,31 +182,19 @@ export function TrendingDestinations() {
     );
 }
 
-// Known local images for Ethiopian cities
-const CITY_IMAGE_MAP: Record<string, string> = {
-    'bahir dar': '/assets/images/wnchi-lake-crater.png',
-    'hawassa': '/assets/images/sofomar-cave.png',
-    'gondar': '/assets/images/benuna.jpg',
-};
-
-const imageForCity = (name: string, fallback?: string) => {
-    const key = name.toLowerCase();
-    return CITY_IMAGE_MAP[key] || fallback || '/assets/images/addis-ababa-night.jpg';
-};
-
-const MANUAL_CITIES = [
-    { name: 'Lalibela', dest_id: '900040142', nr_hotels: 25, image: '/assets/images/benuna.jpg' },
-    { name: 'Bahir Dar', dest_id: '900040143', nr_hotels: 40, image: '/assets/images/wnchi-lake-crater.png' },
-    { name: 'Mekelle', dest_id: '900040144', nr_hotels: 30, image: '/assets/images/benuna.jpg' },
-    { name: 'Axum', dest_id: '900040145', nr_hotels: 15, image: '/assets/images/benuna.jpg' },
-    { name: 'Harar', dest_id: '900040146', nr_hotels: 20, image: '/assets/images/addis-view.jpg' },
-    { name: 'Arba Minch', dest_id: '900040147', nr_hotels: 18, image: '/assets/images/sofomar-cave.png' },
-    { name: 'Debre Zeit', dest_id: '900040149', nr_hotels: 10, image: '/assets/images/addis-view.jpg' },
-    { name: 'Omo Valley', dest_id: '900040150', nr_hotels: 12, image: '/assets/images/wnchi-lake-crater.png' },
+// Unique Unsplash images per Ethiopian destination (no duplicates)
+const EXPLORE_ETHIOPIA_DESTINATIONS = [
+    { name: 'Lalibela', destId: '-603099', destType: 'city', image: 'https://images.unsplash.com/photo-1518079562269-53db1e4433b8?auto=format&fit=crop&w=600&q=80', searchQuery: 'Lalibela' },
+    { name: 'Bahir Dar', destId: '-603098', destType: 'city', image: 'https://images.unsplash.com/photo-1668939581252-470c103ac7da?auto=format&fit=crop&w=600&q=80', searchQuery: 'Bahir Dar' },
+    { name: 'Mekelle', destId: '-603099', destType: 'city', image: 'https://images.unsplash.com/photo-1573403092240-26095e118918?auto=format&fit=crop&w=600&q=80', searchQuery: 'Mekelle' },
+    { name: 'Axum', destId: '-603099', destType: 'city', image: 'https://images.unsplash.com/photo-1662894312546-667d7698a1f7?auto=format&fit=crop&w=600&q=80', searchQuery: 'Axum' },
+    { name: 'Harar', destId: '-603097', destType: 'city', image: 'https://images.unsplash.com/photo-1597709324959-38e0ac50bd4b?auto=format&fit=crop&w=600&q=80', searchQuery: 'Harar' },
+    { name: 'Arba Minch', destId: '-603014', destType: 'city', image: 'https://images.unsplash.com/photo-1658823235938-c424fa0875d6?auto=format&fit=crop&w=600&q=80', searchQuery: 'Arba Minch' },
+    { name: 'Debre Zeit', destId: '-603094', destType: 'city', image: 'https://images.unsplash.com/photo-1625141569599-fa40fc7301b6?auto=format&fit=crop&w=600&q=80', searchQuery: 'Bishoftu' },
+    { name: 'Hawassa', destId: '-603014', destType: 'city', image: 'https://images.unsplash.com/photo-1768383206344-dfeb4a00b18d?auto=format&fit=crop&w=600&q=80', searchQuery: 'Hawassa' },
 ];
 
 export function ExploreEthiopia() {
-    const [cities, setCities] = React.useState<any[]>(MANUAL_CITIES);
     const [loading, setLoading] = React.useState(false);
 
     const defaultParams = new URLSearchParams({
@@ -224,20 +212,24 @@ export function ExploreEthiopia() {
                 title="Explore Ethiopia"
                 subtitle="These popular destinations have a lot to offer"
             />
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-                {cities.map((city, idx) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {EXPLORE_ETHIOPIA_DESTINATIONS.map((city, idx) => {
+                    const hotelParams = new URLSearchParams(defaultParams.toString());
+                    hotelParams.set('query', city.searchQuery || city.name);
+                    hotelParams.set('pickLocation', '1');
+                    return (
                     <Link
-                        href={`/hotels?query=${city.name}&${defaultParams.toString()}`}
+                        href={`/hotels?${hotelParams.toString()}`}
                         key={idx}
                         className="group block"
                     >
                         <div className="aspect-square rounded-2xl overflow-hidden relative bg-gray-100 border border-gray-100 shadow-sm group-hover:shadow-md transition-all duration-300">
                             <img
-                                src={city.image || `/assets/images/addis-view.jpg`}
+                                src={city.image}
                                 alt={city.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/assets/images/addis-view.jpg';
+                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80';
                                 }}
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -246,7 +238,8 @@ export function ExploreEthiopia() {
                             </div>
                         </div>
                     </Link>
-                ))}
+                );
+                })}
             </div>
         </div>
     );

@@ -16,7 +16,7 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = React.useState('flights');
 
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ backgroundColor: '#F1F5F9' }}>
+    <div className="min-h-screen overflow-x-hidden page-muted">
       {/* Hero Section with Slider */}
       <section className="relative min-h-[500px] md:h-[540px] lg:h-[600px] xl:h-[640px] flex items-center justify-center pt-20 md:pt-24 lg:pt-28 no-scrollbar">
         <HeroSlider>
@@ -48,7 +48,7 @@ export default function HomePage() {
         </section>
 
         {/* Popular with travelers */}
-        <section className="pb-16 md:pb-20">
+        <section className="pb-8 md:pb-20">
           <SectionHeading
             title="Popular with travelers"
             subtitle="Top picks for your next trip"
@@ -60,32 +60,37 @@ export default function HomePage() {
   );
 }
 
-// Use project's local Ethiopian images + correct Unsplash for international cities
+// Unique Unsplash images per destination – no duplicates, location-specific
 const DESTINATION_IMAGES: Record<string, string> = {
-  // Ethiopian cities - local assets (Addis, Wenchi Crater/Bishoftu, Sof Omar, Gonder area)
-  'Addis Ababa': '/assets/images/addis-ababa-night.jpg',
-  'Bishoftu': '/assets/images/wnchi-lake-crater.png',
-  'Hawassa': '/assets/images/wnchi-lake-crater.png',
-  'Bahir Dar': '/assets/images/wnchi-lake-crater.png',
-  'Gonder': '/assets/images/benuna.jpg',
-  'Lalibela': '/assets/images/benuna.jpg',
-  'Adama': '/assets/images/addis-view.jpg',
-  'Mekele': '/assets/images/benuna.jpg',
-  // International cities - city-specific Unsplash images
-  'Dubai': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=400',
-  'Nairobi': 'https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=80&w=400',
-  'Johannesburg': 'https://images.unsplash.com/photo-1549944850-84e00be4203b?auto=format&fit=crop&q=80&w=400',
-  'Istanbul': 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&q=80&w=400',
-  'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&q=80&w=400',
-  'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=400',
-  // Ethiopian regions
-  'Oromia': '/assets/images/wnchi-lake-crater.png',
-  'Amhara': '/assets/images/benuna.jpg',
-  'Tigray': '/assets/images/benuna.jpg',
-  'Southern Nations': '/assets/images/sofomar-cave.png',
+  // Ethiopian destinations – each has a distinct image
+  'Sof Omar Caves': 'https://images.unsplash.com/photo-1518079562269-53db1e4433b8?auto=format&fit=crop&w=600&q=80',
+  'Wenchi Crater': 'https://images.unsplash.com/photo-1662186567737-b2ddea11e547?auto=format&fit=crop&w=600&q=80',
+  'Simien Mountains': 'https://images.unsplash.com/photo-1615963644057-838b0829d95b?auto=format&fit=crop&w=600&q=80',
+  'Omo Valley': 'https://images.unsplash.com/photo-1658823235938-c424fa0875d6?auto=format&fit=crop&w=600&q=80',
+  'Bale Mountains': 'https://images.unsplash.com/photo-1580320209809-a0c51e645872?auto=format&fit=crop&w=600&q=80',
+  'Danakil Depression': 'https://images.unsplash.com/photo-1483671174579-bab2a5293389?auto=format&fit=crop&w=600&q=80',
+  'Lalibela': 'https://images.unsplash.com/photo-1580320209809-a0c51e645872?auto=format&fit=crop&w=600&q=80',
+  'Axum': 'https://images.unsplash.com/photo-1662894312546-667d7698a1f7?auto=format&fit=crop&w=600&q=80',
+  'Gondar': 'https://images.unsplash.com/photo-1573403092240-26095e118918?auto=format&fit=crop&w=600&q=80',
+  'Harar': 'https://images.unsplash.com/photo-1597709324959-38e0ac50bd4b?auto=format&fit=crop&w=600&q=80',
+  'Bahir Dar': 'https://images.unsplash.com/photo-1668939581252-470c103ac7da?auto=format&fit=crop&w=600&q=80',
+  'Addis Ababa': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80',
+  'Hawassa Lake': 'https://images.unsplash.com/photo-1768383206344-dfeb4a00b18d?auto=format&fit=crop&w=600&q=80',
+  'Bishoftu Lakes': 'https://images.unsplash.com/photo-1625141569599-fa40fc7301b6?auto=format&fit=crop&w=600&q=80',
+  'Lake Tana': 'https://images.unsplash.com/photo-1612937373987-b1b7db233867?auto=format&fit=crop&w=600&q=80',
+  'Langano': 'https://images.unsplash.com/photo-1612937373987-b1b7db233867?auto=format&fit=crop&w=600&q=80',
+  'Arba Minch': 'https://images.unsplash.com/photo-1629294563728-9f3f5d98e601?auto=format&fit=crop&w=600&q=80',
+  'Debre Zeyt': 'https://images.unsplash.com/photo-1624781789730-f752a7355510?auto=format&fit=crop&w=600&q=80',
+  // International
+  'Dubai': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=600',
+  'Nairobi': 'https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=80&w=600',
+  'Johannesburg': 'https://images.unsplash.com/photo-1549944850-84e00be4203b?auto=format&fit=crop&q=80&w=600',
+  'Istanbul': 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&q=80&w=600',
+  'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&q=80&w=600',
+  'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&q=80&w=600',
 };
 
-const FALLBACK_IMAGE = '/assets/images/addis-view.jpg';
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80';
 
 function PopularDestinationsTabs() {
   const [activeTab, setActiveTab] = React.useState('adventure');
@@ -94,6 +99,7 @@ function PopularDestinationsTabs() {
     checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
     adults: '2',
+    children: '0',
     rooms: '1'
   });
 
@@ -105,27 +111,27 @@ function PopularDestinationsTabs() {
 
   const content: Record<string, { name: string; query: string }[]> = {
     adventure: [
-      { name: 'Sof Omar Caves', query: 'Southern Nations' },
+      { name: 'Sof Omar Caves', query: 'Sof Omar' },
       { name: 'Wenchi Crater', query: 'Bishoftu' },
       { name: 'Simien Mountains', query: 'Gonder' },
-      { name: 'Omo Valley', query: 'Southern Nations' },
-      { name: 'Bale Mountains', query: 'Oromia' },
-      { name: 'Danakil Depression', query: 'Tigray' },
+      { name: 'Omo Valley', query: 'Arba Minch' },
+      { name: 'Bale Mountains', query: 'Bale' },
+      { name: 'Danakil Depression', query: 'Mekele' },
     ],
     culture: [
       { name: 'Lalibela', query: 'Lalibela' },
-      { name: 'Axum', query: 'Mekele' },
+      { name: 'Axum', query: 'Axum' },
       { name: 'Gondar', query: 'Gonder' },
-      { name: 'Harar', query: 'Addis Ababa' },
+      { name: 'Harar', query: 'Harar' },
       { name: 'Bahir Dar', query: 'Bahir Dar' },
       { name: 'Addis Ababa', query: 'Addis Ababa' },
     ],
     relaxation: [
       { name: 'Hawassa Lake', query: 'Hawassa' },
       { name: 'Bishoftu Lakes', query: 'Bishoftu' },
-      { name: 'Langano', query: 'Oromia' },
-      { name: 'Debre Zeyt', query: 'Adama' },
-      { name: 'Arba Minch', query: 'Southern Nations' },
+      { name: 'Langano', query: 'Langano' },
+      { name: 'Debre Zeyt', query: 'Bishoftu' },
+      { name: 'Arba Minch', query: 'Arba Minch' },
       { name: 'Lake Tana', query: 'Bahir Dar' },
     ],
   };
@@ -140,7 +146,7 @@ function PopularDestinationsTabs() {
             onClick={() => setActiveTab(tab.id)}
             className={`rounded-full px-4 sm:px-6 py-2.5 transition-all text-sm sm:text-base ${activeTab === tab.id
               ? 'bg-teal-600 text-white hover:bg-teal-700 border-0'
-              : 'text-gray-600 hover:bg-gray-50'
+              : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
               }`}
           >
             {tab.label}
@@ -150,13 +156,15 @@ function PopularDestinationsTabs() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
         {content[activeTab].map((item, idx) => {
-          const query = item.query;
-          const image = DESTINATION_IMAGES[query] || FALLBACK_IMAGE;
+          const image = DESTINATION_IMAGES[item.name] || DESTINATION_IMAGES[item.query] || FALLBACK_IMAGE;
+          const hotelParams = new URLSearchParams(defaultParams.toString());
+          hotelParams.set('query', item.query);
+          hotelParams.set('pickLocation', '1');
           return (
             <Link
               key={idx}
-              href={`/hotels?query=${query}&${defaultParams.toString()}`}
-              className="group block rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white"
+              href={`/hotels?${hotelParams.toString()}`}
+              className="group block rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900"
             >
               <div className="aspect-[4/3] sm:aspect-[3/2] relative overflow-hidden bg-gray-100">
                 <img

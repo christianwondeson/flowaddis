@@ -49,6 +49,8 @@ const HOTEL_ADS_RIGHT: AdConfig[] = [
 function HotelsPageContent() {
     // Read initial params from URL synchronously to avoid an extra initial fetch
     const search = useSearchParams();
+    const searchStr = search.toString();
+    const isPickLocationMode = new URLSearchParams(searchStr).get('pickLocation') === '1';
     const initialQuery = search.get('query') || 'Addis Ababa';
     const initialDestId = search.get('destId') || undefined;
     const initialDestType = search.get('destType') || undefined;
@@ -103,12 +105,15 @@ function HotelsPageContent() {
         setPendingLocation({});
     };
 
-    // Controls whether mobile search renders expanded initially (collapse by default since we search on load)
-    const [hasSearched, setHasSearched] = useState(true);
+    // Controls whether mobile search renders expanded initially
+    const [hasSearched, setHasSearched] = useState(!isPickLocationMode);
 
     // Pagination & Filters
     const [page, setPage] = useState(0);
     const [filters, setFilters] = useState<FilterType>({
+        query: initialQuery,
+        destId: initialDestId,
+        destType: initialDestType,
         sortOrder: initialSortOrder,
         stars: initialStars,
         minPrice: initialMinPrice ? Number(initialMinPrice) : undefined,
@@ -120,7 +125,7 @@ function HotelsPageContent() {
 
     // Query State derived from URL (Single Source of Truth)
     const searchParams = useMemo(() => {
-        const urlParams = new URLSearchParams(search.toString());
+        const urlParams = new URLSearchParams(searchStr);
         const q = urlParams.get('query') || 'Addis Ababa';
         const ci = urlParams.get('checkIn');
         const co = urlParams.get('checkOut');
@@ -143,7 +148,7 @@ function HotelsPageContent() {
             children: ch,
             rooms: rm,
         };
-    }, [search]);
+    }, [searchStr]);
 
     // Sync local form state with URL when URL changes
     useEffect(() => {
@@ -158,8 +163,11 @@ function HotelsPageContent() {
         setHasSearched(true);
 
         // Update filters from URL
-        const urlParams = new URLSearchParams(search.toString());
+        const urlParams = new URLSearchParams(searchStr);
         setFilters({
+            query: urlParams.get('query') || 'Addis Ababa',
+            destId: urlParams.get('destId') || undefined,
+            destType: urlParams.get('destType') || undefined,
             // If no explicit sort in URL, prefer highest class / highly rated by default
             sortOrder: (urlParams.get('sortOrder') as any) || 'class_descending',
             stars: (urlParams.get('stars') || '').split(',').map(Number).filter(Boolean),
@@ -169,7 +177,7 @@ function HotelsPageContent() {
             amenities: (urlParams.get('amenities') || '').split(',').filter(Boolean),
             hotelName: urlParams.get('hotelName') || '',
         });
-    }, [searchParams, search]);
+    }, [searchParams, searchStr]);
 
     const { data, isLoading, error, isPlaceholderData } = useHotels({
         query: searchParams.query,
@@ -185,9 +193,10 @@ function HotelsPageContent() {
         page,
         pageSize: 10,
         filters,
-    });
+    }, { enabled: !isPickLocationMode });
 
-    const hotels = data?.hotels || [];
+    const EMPTY_HOTELS: any[] = [];
+    const hotels = data?.hotels ?? EMPTY_HOTELS;
     const hasNextPage = data?.hasNextPage || false;
     const isLoadingMore = isLoading && page > 0;
 
@@ -239,6 +248,7 @@ function HotelsPageContent() {
     }, []);
 
     useEffect(() => {
+        if (isPickLocationMode) return;
         if (isLoading) return;
 
         // Always update total count when on page 0 (fresh search/filter)
@@ -250,7 +260,7 @@ function HotelsPageContent() {
         }
 
         if (page === 0) {
-            setAllHotels(hotels);
+            setAllHotels((prev) => (prev === hotels ? prev : hotels));
         } else if (hotels.length > 0 && !isPlaceholderData) {
             setAllHotels((prev) => {
                 // Avoid duplicates by ID
@@ -324,6 +334,9 @@ function HotelsPageContent() {
         if (filters.amenities && filters.amenities.length > 0) params.set('amenities', filters.amenities.join(','));
         if (filters.hotelName) params.set('hotelName', filters.hotelName);
 
+        // Never persist pick-location mode into actual searches
+        params.delete('pickLocation');
+
         // merge extras
         Object.entries(extra).forEach(([k, v]) => {
             if (v === undefined || v === null) return;
@@ -385,10 +398,9 @@ function HotelsPageContent() {
     const handleFilterChange = (newFilters: FilterType) => {
         sessionStorage.removeItem(STORAGE_KEY); // Clear state on filter change
         setPage(0); // Reset page on filter change
-        // We don't setFilters here, we let the URL update drive the state
+        setInitialTotalCount(null); // Reset total until new data arrives
 
-        // Update URL to persist filters
-        const nextUrl = buildUrlWithState({
+        const extras: Record<string, string | number | undefined> = {
             sortOrder: newFilters.sortOrder,
             stars: newFilters.stars && newFilters.stars.length ? newFilters.stars.join(',') : "",
             minPrice: newFilters.minPrice ?? "",
@@ -396,8 +408,17 @@ function HotelsPageContent() {
             minRating: newFilters.minRating ?? "",
             amenities: newFilters.amenities && newFilters.amenities.length ? newFilters.amenities.join(',') : "",
             hotelName: newFilters.hotelName || "",
-            query: newFilters.query !== undefined ? newFilters.query : undefined,
-        });
+        };
+        if (newFilters.query !== undefined) {
+            extras.query = newFilters.query;
+        }
+        // LocationInput: only touch URL dest when filters payload includes destId (select or typed clear)
+        if (Object.prototype.hasOwnProperty.call(newFilters, 'destId')) {
+            extras.destId = newFilters.destId || '';
+            extras.destType = newFilters.destType || '';
+        }
+
+        const nextUrl = buildUrlWithState(extras);
         router.push(nextUrl);
     };
 
@@ -405,9 +426,22 @@ function HotelsPageContent() {
         ? 'Addis Ababa, Ethiopia'
         : (searchParams.query || 'Addis Ababa');
 
+    const staySummary = useMemo(() => {
+        try {
+            const nights = Math.max(
+                1,
+                Math.round((searchParams.checkOut.getTime() - searchParams.checkIn.getTime()) / 86400000)
+            );
+            const adults = searchParams.adults || 2;
+            return `${nights} night${nights !== 1 ? 's' : ''}, ${adults} adult${adults !== 1 ? 's' : ''}`;
+        } catch {
+            return '1 night, 2 adults';
+        }
+    }, [searchParams.checkIn, searchParams.checkOut, searchParams.adults]);
+
     return (
         <AdContainer leftAds={HOTEL_ADS_LEFT} rightAds={HOTEL_ADS_RIGHT}>
-            <div className="min-h-screen pt-0 pb-24 md:pb-20" style={{ backgroundColor: '#F1F5F9' }}>
+            <div className="min-h-screen pt-0 pb-8 md:pb-20 page-muted">
                 {/* Header Section - compact per mockup */}
                 <div className="bg-teal-600 text-white py-4 sm:py-5 md:py-6">
                     <div className="container mx-auto px-4 sm:px-6 lg:px-6">
@@ -435,6 +469,8 @@ function HotelsPageContent() {
                         onGuestsChange={setGuests}
                         onSearch={handleSearch}
                         initialOpen={!hasSearched}
+                        // When arriving from home cards, open dropdown so user selects exact destination first
+                        locationAutoOpen={isPickLocationMode}
                     />
 
                     {/* Mobile Filter Bar (Sort, Filter, Map) */}
@@ -448,11 +484,13 @@ function HotelsPageContent() {
                             destId={data?.destId}
                             linkParams={{
                                 query: destination,
+                                destId: searchParams.destId,
+                                destType: searchParams.destType,
                                 checkIn: checkIn || undefined,
                                 checkOut: checkOut || undefined,
-                                adults: '2',
-                                children: '0',
-                                rooms: '1',
+                                adults: String(guests.adults),
+                                children: String(guests.children),
+                                rooms: String(guests.rooms),
                                 sortOrder: filters.sortOrder,
                                 minPrice: filters.minPrice,
                                 maxPrice: filters.maxPrice,
@@ -477,11 +515,13 @@ function HotelsPageContent() {
                                 destId={data?.destId}
                                 linkParams={{
                                     query: destination,
+                                    destId: searchParams.destId,
+                                    destType: searchParams.destType,
                                     checkIn: checkIn || undefined,
                                     checkOut: checkOut || undefined,
-                                    adults: '2',
-                                    children: '0',
-                                    rooms: '1',
+                                    adults: String(guests.adults),
+                                    children: String(guests.children),
+                                    rooms: String(guests.rooms),
                                     sortOrder: filters.sortOrder,
                                     minPrice: filters.minPrice,
                                     maxPrice: filters.maxPrice,
@@ -498,8 +538,10 @@ function HotelsPageContent() {
                         <div className="w-full lg:w-3/4 space-y-6">
                             {/* Results Header - mockup: "Addis Ababa - 207 hotels" */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                                <h2 className="text-xl md:text-2xl font-bold text-slate-900">
-                                    {searchParams.query || 'Addis Ababa'} – {initialTotalCount || 0} hotels
+                                <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                                    {searchParams.query || 'Addis Ababa'} – {filters.hotelName
+                                        ? allHotels.filter((h) => h.name.toLowerCase().includes(filters.hotelName!.toLowerCase())).length
+                                        : (initialTotalCount ?? 0)} hotels
                                 </h2>
 
                                 {/* Sorting Tabs - mockup style */}
@@ -512,10 +554,10 @@ function HotelsPageContent() {
                                         return (
                                             <button
                                                 key={tab.value}
-                                                onClick={() => setFilters({ ...filters, sortOrder: tab.value })}
+                                                onClick={() => handleFilterChange({ ...filters, sortOrder: tab.value })}
                                                 className={`px-4 py-2.5 text-sm font-bold rounded-xl border transition-all duration-200 min-h-[44px] ${isActive
                                                     ? "bg-teal-600 border-teal-600 text-white shadow-sm"
-                                                    : "bg-white border-gray-200 text-gray-600 hover:border-teal-600 hover:text-teal-600"
+                                                    : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-teal-600 hover:text-teal-600 dark:hover:text-teal-400"
                                                     }`}
                                             >
                                                 {tab.label}
@@ -533,6 +575,7 @@ function HotelsPageContent() {
                                 isLoading={isLoading && page === 0}
                                 error={error}
                                 onBook={handleBook}
+                                staySummary={staySummary}
                             />
 
                             {/* Infinite scroll sentinel removed */}
@@ -545,7 +588,7 @@ function HotelsPageContent() {
                                         disabled={isLoadingMore}
                                         aria-busy={isLoadingMore}
                                         className={`px-6 py-3 rounded-2xl transition-all duration-300 text-sm font-bold flex items-center gap-3 shadow-sm min-h-[48px] ${isLoadingMore
-                                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            ? 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400 cursor-not-allowed'
                                             : 'bg-teal-600 text-white hover:bg-teal-700 hover:shadow-md active:scale-[0.99]'
                                             }`}
                                     >
@@ -608,6 +651,7 @@ function HotelsPageContent() {
                     serviceName={selectedHotel ? selectedHotel.name : 'Hotel Booking'}
                     price={selectedHotel?.price || 0}
                     type="hotel"
+                    isLocal={true}
                 />
             </div>
         </AdContainer>

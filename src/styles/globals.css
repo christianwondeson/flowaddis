@@ -1,10 +1,33 @@
 @import "tailwindcss";
 
+/* Class-based dark mode for Tailwind `dark:` utilities */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-brand-gray: #F1F5F9;
-  --color-brand-dark: #0F172A;
-  --color-brand-primary: #0D9488;
-  --color-brand-secondary: #14B8A6;
+  /* Resolve at runtime so html.dark can override :root tokens */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand-gray: var(--brand-gray);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
   --color-brand-white: #ffffff;
 
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -19,8 +42,8 @@
 
   body {
     @apply font-sans antialiased;
-    background-color: #F8FAFC;
-    color: #0F172A;
+    background-color: var(--background);
+    color: var(--foreground);
     overflow-x: hidden;
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -67,28 +90,47 @@
   --radius: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #f8fafc;
+/* Dark palette when `dark` class is on <html> (see ThemeProvider + theme-storage) */
+html.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --brand-gray: #1e293b;
 
-    --card: #0f172a;
-    --card-foreground: #f8fafc;
-    --popover: #0f172a;
-    --popover-foreground: #f8fafc;
-    --primary: #14B8A6;
-    --primary-foreground: #0f172a;
-    --secondary: #0D9488;
-    --secondary-foreground: #ffffff;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --accent: #134e4a;
-    --accent-foreground: #5eead4;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #ffffff;
-    --border: #334155;
-    --input: #334155;
-    --ring: #14B8A6;
+  --card: #1e293b;
+  --card-foreground: #f8fafc;
+  --popover: #1e293b;
+  --popover-foreground: #f8fafc;
+  --primary: #14b8a6;
+  --primary-foreground: #0f172a;
+  --secondary: #0d9488;
+  --secondary-foreground: #ffffff;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #134e4a;
+  --accent-foreground: #5eead4;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #ffffff;
+  --border: #334155;
+  --input: #334155;
+  --ring: #14b8a6;
+}
+
+/* Shared dark-mode surfaces (use with Tailwind `dark:` on <html>) */
+@layer components {
+  .page-muted {
+    @apply bg-brand-gray dark:bg-background text-foreground;
+  }
+
+  .surface-card {
+    @apply bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-700 text-foreground;
+  }
+
+  .surface-field {
+    @apply bg-gray-50 dark:bg-slate-800/90 border-gray-200 dark:border-slate-600 text-gray-900 dark:text-slate-100;
+  }
+
+  .surface-field-interactive {
+    @apply bg-gray-50 dark:bg-slate-800/90 border-gray-200 dark:border-slate-600 text-gray-900 dark:text-slate-100 hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 dark:hover:border-teal-500/40 transition-all;
   }
 }
 
@@ -130,4 +172,31 @@
 
 .animate-gradient-xy {
   animation: gradient-xy 15s ease infinite;
+}
+
+/* Hotels map: marker for property opened from detail */
+@keyframes map-marker-bounce {
+
+  0%,
+  100% {
+    transform: translate(-50%, -100%) translateY(0);
+  }
+
+  50% {
+    transform: translate(-50%, -100%) translateY(-10px);
+  }
+}
+
+@keyframes map-marker-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.55);
+  }
+
+  70% {
+    box-shadow: 0 0 0 14px rgba(13, 148, 136, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 148, 136, 0);
+  }
 }

@@ -7,6 +7,20 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { LocationSuggestion } from '@/types/api';
 import { LOCATION_PRESETS } from '@/data/location-presets';
+
+// Hotel-specific presets with verified dest_ids for hotel search (Booking.com)
+const HOTEL_LOCATION_PRESETS: LocationSuggestion[] = [
+    { name: 'Addis Ababa', dest_id: '-603097', dest_type: 'city', cityName: 'Addis Ababa', country: 'Ethiopia', label: 'Addis Ababa, Ethiopia' },
+    { name: 'Bishoftu', dest_id: '-603094', dest_type: 'city', cityName: 'Bishoftu', country: 'Ethiopia', label: 'Bishoftu, Ethiopia' },
+    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', cityName: 'Hawassa', country: 'Ethiopia', label: 'Hawassa, Ethiopia' },
+    { name: 'Bahir Dar', dest_id: '-603098', dest_type: 'city', cityName: 'Bahir Dar', country: 'Ethiopia', label: 'Bahir Dar, Ethiopia' },
+    { name: 'Gondar', dest_id: '-603099', dest_type: 'city', cityName: 'Gondar', country: 'Ethiopia', label: 'Gondar, Ethiopia' },
+    { name: 'Lalibela', dest_id: '-603099', dest_type: 'city', cityName: 'Gondar', country: 'Ethiopia', label: 'Lalibela, Ethiopia' },
+    { name: 'Harar', dest_id: '-603100', dest_type: 'city', cityName: 'Dire Dawa', country: 'Ethiopia', label: 'Harar, Ethiopia' },
+    { name: 'Arba Minch', dest_id: '-603014', dest_type: 'city', cityName: 'Hawassa', country: 'Ethiopia', label: 'Arba Minch, Ethiopia' },
+    { name: 'Dubai', dest_id: '20088325', dest_type: 'city', cityName: 'Dubai', country: 'UAE', label: 'Dubai, UAE' },
+    { name: 'London', dest_id: '-2601889', dest_type: 'city', cityName: 'London', country: 'UK', label: 'London, UK' },
+];
 import axios from 'axios';
 
 interface LocationInputProps {
@@ -20,6 +34,8 @@ interface LocationInputProps {
     icon?: React.ReactNode;
     className?: string;
     dropdownAlign?: 'left' | 'right';
+    /** If true, opens dropdown and fetches suggestions on mount (for card→hotels flow). */
+    autoOpen?: boolean;
 }
 
 export const LocationInput: React.FC<LocationInputProps> = ({
@@ -33,6 +49,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     icon,
     className,
     dropdownAlign = 'left',
+    autoOpen = false,
 }) => {
     const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -43,6 +60,13 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     const inputRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    // Card→hotels flow: open suggestions immediately so user can pick the best match
+    useEffect(() => {
+        if (!autoOpen) return;
+        setHasInteracted(true);
+        setShowSuggestions(true);
+    }, [autoOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -147,7 +171,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     const dropdownContent = showDropdown && (
         <div
             ref={dropdownRef}
-            className="bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto min-w-[280px] w-full max-w-[min(92vw,350px)] animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-600 max-h-[300px] sm:max-h-[350px] md:max-h-[400px] overflow-y-auto min-w-[280px] w-full max-w-[min(92vw,350px)] animate-in fade-in zoom-in-95 duration-200"
             style={{
                 position: 'fixed',
                 top: dropdownCoords?.top ?? 0,
@@ -158,17 +182,17 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             }}
         >
             {isLoading ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-500 dark:text-slate-400">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-primary mx-auto"></div>
                     <p className="mt-2 text-sm">Searching...</p>
                 </div>
             ) : notFound ? (
                 <div className="p-6 text-center">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                        <Search className="w-6 h-6 text-gray-400" />
+                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3">
+                        <Search className="w-6 h-6 text-gray-400 dark:text-slate-500" />
                     </div>
-                    <p className="text-sm font-semibold text-gray-700">Location not found</p>
-                    <p className="text-xs text-gray-500 mt-1">Please try a different search term</p>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-slate-200">Location not found</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">Please try a different search term</p>
                 </div>
             ) : (
                 <div className="py-2">
@@ -176,9 +200,9 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                         <button
                             key={`${item.dest_id || item.code || item.short_code || item.iata_code || item.name}-${idx}`}
                             onClick={() => handleSelect(item)}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors border-b border-gray-50 last:border-0 group"
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center gap-3 transition-colors border-b border-gray-50 dark:border-slate-700 last:border-0 group"
                         >
-                            <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center group-hover:bg-white transition-colors">
+                            <div className="shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-slate-700 transition-colors">
                                 {item.photoUri || item.image_url ? (
                                     <img src={item.photoUri || item.image_url} alt="" className="w-full h-full object-cover" />
                                 ) : (
@@ -192,11 +216,11 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="font-bold text-gray-900 text-[13px] sm:text-sm md:text-base line-clamp-2 sm:truncate">
+                                <div className="font-bold text-gray-900 dark:text-slate-100 text-[13px] sm:text-sm md:text-base line-clamp-2 sm:truncate">
                                     {item.name || item.label}
                                     {(item.short_code || item.iata_code) ? ` (${item.short_code || item.iata_code})` : ''}
                                 </div>
-                                <div className="text-[11px] sm:text-xs text-gray-500 truncate">
+                                <div className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 truncate">
                                     {[item.cityName || item.city_name, item.countryName || item.country].filter(Boolean).join(', ')}
                                     {item.nr_hotels ? ` • ${item.nr_hotels} hotels` : ''}
                                 </div>
@@ -229,7 +253,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                     icon={icon || <MapPin className="w-4 h-4" />}
                     onClick={() => {
                         if (!hasInteracted) {
-                            setSuggestions(LOCATION_PRESETS);
+                            setSuggestions(api === 'hotels' ? HOTEL_LOCATION_PRESETS : LOCATION_PRESETS);
                             setShowSuggestions(true);
                             setHasInteracted(true);
                         }

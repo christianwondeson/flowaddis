@@ -2,11 +2,12 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ChevronDown, X } from "lucide-react"
+import { ChevronDown, X, MapPin } from "lucide-react"
 import { HotelFilters as FilterType } from "@/types"
 import { Input } from "@/components/ui/input"
 import { Hotel } from "@/types"
 import { HotelMapPreview } from "./hotel-map-preview"
+import { LocationInput } from "@/components/search/location-input"
 
 interface HotelFiltersProps {
     filters: FilterType
@@ -62,11 +63,17 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
         }
     }, [filters.hotelName])
 
-    // Debounce Query
+    // Debounce destination text (typed without picking from list) — clear dest_id so API resolves by name
     useEffect(() => {
         const timer = setTimeout(() => {
             if (localQuery !== (filters.query || "")) {
-                onFilterChange({ ...filters, query: localQuery })
+                onFilterChange({
+                    ...filters,
+                    query: localQuery,
+                    // Empty strings so parent can remove destId from URL (see hotels page handleFilterChange)
+                    destId: "",
+                    destType: "",
+                })
             }
         }, 500)
         return () => clearTimeout(timer)
@@ -110,22 +117,23 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
     ].reduce((a, b) => a + b, 0)
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
             {/* Modern Header with Filter Count */}
-            <div className="p-4 md:p-6 border-b border-gray-100">
+            <div className="p-4 md:p-6 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-brand-dark">Refine your search</h2>
+                    <h2 className="text-lg font-bold text-brand-dark dark:text-foreground">Refine your search</h2>
                     {activeFilterCount > 0 && (
                         <button
                             onClick={() =>
                                 onFilterChange({
-                                    ...filters, // Preserve query and sortOrder
+                                    ...filters,
                                     stars: [],
                                     minRating: undefined,
                                     minPrice: undefined,
                                     maxPrice: undefined,
-                                    // query: "", // Don't clear query
                                     hotelName: "",
+                                    destId: undefined,
+                                    destType: undefined,
                                 })
                             }
                             className="text-xs font-bold text-brand-primary hover:text-brand-primary/70 transition-colors flex items-center gap-1"
@@ -140,20 +148,34 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                 {showMapPreview && <HotelMapPreview hotels={hotels} linkParams={linkParams} />}
             </div>
 
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-slate-700">
                 {/* Location Filter - Collapsible */}
                 <FilterSection
                     title="Location"
                     isExpanded={expandedSections.location}
                     onToggle={() => toggleSection("location")}
-                    hasValue={!!filters.query}
+                    hasValue={Boolean(filters.query?.trim() || filters.destId)}
                 >
-                    <Input
-                        type="text"
-                        placeholder="City, region, landmark..."
+                    <LocationInput
+                        label="Destination"
+                        placeholder="e.g. Addis Ababa, Ethiopia"
                         value={localQuery}
-                        onChange={(e) => setLocalQuery(e.target.value)}
-                        className="h-10 text-sm border-brand-primary/20 focus:border-brand-primary"
+                        onChange={(val) => {
+                            setLocalQuery(val)
+                        }}
+                        onSelectLocation={(loc) => {
+                            const label = (loc.name ?? loc.label ?? "").trim()
+                            onFilterChange({
+                                ...filters,
+                                query: label || localQuery,
+                                destId: loc.dest_id != null ? String(loc.dest_id) : undefined,
+                                destType: loc.dest_type != null ? String(loc.dest_type) : undefined,
+                            })
+                            setLocalQuery(label || localQuery)
+                        }}
+                        api="hotels"
+                        icon={<MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />}
+                        className="[&_label]:text-xs [&_label]:font-bold [&_label]:text-brand-dark [&_label]:dark:text-foreground [&_label]:mb-1.5"
                     />
                 </FilterSection>
 
@@ -186,7 +208,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                             return (
                                 <label
                                     key={star}
-                                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                                 >
                                     <input
                                         type="checkbox"
@@ -194,7 +216,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                                         onChange={() => handleStarChange(star)}
                                         className="w-4 h-4 accent-brand-primary rounded border-gray-300 cursor-pointer"
                                     />
-                                    <span className="text-sm text-gray-700 font-medium">
+                                    <span className="text-sm text-gray-700 dark:text-slate-200 font-medium">
                                         {Array.from({ length: star }).map((_, i) => (
                                             <span key={i}>⭐</span>
                                         ))}{" "}
@@ -227,7 +249,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                                     onClick={() => onFilterChange({ ...filters, minRating: isSelected ? undefined : score.value })}
                                     className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${isSelected
                                         ? `${score.color} border-current text-gray-900`
-                                        : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                                        : "border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800"
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -250,7 +272,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                     <div className="space-y-3">
                         <div className="flex gap-2">
                             <div className="flex-1">
-                                <label className="block text-xs font-bold text-gray-600 mb-1">Min</label>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-slate-400 mb-1">Min</label>
                                 <Input
                                     type="number"
                                     placeholder="0"
@@ -260,7 +282,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                                 />
                             </div>
                             <div className="flex-1">
-                                <label className="block text-xs font-bold text-gray-600 mb-1">Max</label>
+                                <label className="block text-xs font-bold text-gray-600 dark:text-slate-400 mb-1">Max</label>
                                 <Input
                                     type="number"
                                     placeholder="999"
@@ -271,7 +293,7 @@ export const HotelFilters: React.FC<HotelFiltersProps> = ({
                             </div>
                         </div>
                         {(filters.minPrice || filters.maxPrice) && (
-                            <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+                            <div className="text-xs text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 p-2 rounded-lg">
                                 ${filters.minPrice || 0} - ${filters.maxPrice || "∞"}
                             </div>
                         )}
@@ -298,7 +320,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({ title, isExpanded, onTogg
                 className="w-full flex items-center justify-between hover:opacity-70 transition-opacity mb-3"
             >
                 <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-brand-dark">{title}</h3>
+                    <h3 className="text-sm font-bold text-brand-dark dark:text-foreground">{title}</h3>
                     {hasValue && (
                         <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-brand-primary text-white rounded-full">
                             ✓
@@ -306,7 +328,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({ title, isExpanded, onTogg
                     )}
                 </div>
                 <ChevronDown
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 text-gray-400 dark:text-slate-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                 />
             </button>
             {isExpanded && <div className="animate-in fade-in duration-200">{children}</div>}

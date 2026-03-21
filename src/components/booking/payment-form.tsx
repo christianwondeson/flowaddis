@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Smartphone, Building2, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +13,11 @@ import Image from 'next/image';
 import { toast } from 'sonner';
 import { auth } from '@/lib/firebase';
 import { getStripe } from '@/lib/stripe';
+import { resolveCheckoutReturnUrlForRequest } from '@/lib/checkout-return-url';
 
 interface PaymentFormProps {
     amount: number;
-    onSuccess: () => void;
+    onSuccess: (method: PaymentMethod) => void;
     onCancel: () => void;
     isLocal?: boolean; // New prop to determine if local methods (Telebirr/CBE) should be shown
     // Optional metadata for Stripe backend spec
@@ -27,7 +28,7 @@ interface PaymentFormProps {
     externalSnapshot?: Record<string, any>;
 }
 
-type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe';
+type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe' | 'pay_on_site';
 
 // Validation schemas
 const telebirrSchema = z.object({
@@ -49,8 +50,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     const [method, setMethod] = useState<PaymentMethod>(isLocal ? 'telebirr' : 'stripe');
     const [loading, setLoading] = useState(false);
 
-    const currency = method === 'stripe' ? 'USD' : 'ETB';
-    const displayAmount = method === 'stripe' ? amount : amount * 55; // Rough USD to ETB conversion
+    // Persist ?returnUrl= from BookAddis embed/link for Stripe cancel/success redirects
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const r = params.get('returnUrl');
+            if (!r) return;
+            const decoded = (() => {
+                try {
+                    return decodeURIComponent(r);
+                } catch {
+                    return r;
+                }
+            })();
+            sessionStorage.setItem('checkout_return_url', decoded);
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    const currency = method === 'telebirr' || method === 'cbebirr' ? 'ETB' : (currencyCode || 'USD');
+    const displayAmount = method === 'telebirr' || method === 'cbebirr' ? amount * 55 : amount; // Rough USD to ETB conversion for local rails
 
     const telebirrForm = useForm({
         resolver: zodResolver(telebirrSchema),
@@ -67,6 +88,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     const handlePayment = async (data: any) => {
         setLoading(true);
 
+        if (method === 'pay_on_site') {
+            setLoading(false);
+            toast.success('Booking reserved. You can pay on site.');
+            onSuccess(method);
+            return;
+        }
+
         if (method === 'stripe') {
             try {
                 // Ensure user is logged in
@@ -78,6 +106,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
                 // Force-refresh Firebase ID token to avoid invalid/expired tokens
                 const token = await auth.currentUser.getIdToken(true);
+                const returnUrl = resolveCheckoutReturnUrlForRequest();
 
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
@@ -93,6 +122,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         displayedPrice: amount,
                         currency: currencyCode || 'USD',
                         external_snapshot: externalSnapshot,
+                        ...(returnUrl ? { returnUrl } : {}),
                     }),
                 });
 
@@ -135,7 +165,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
         // Local payment processing (simulated)
         setTimeout(() => {
             setLoading(false);
-            onSuccess();
+            onSuccess(method);
         }, 2000);
     };
 
@@ -144,10 +174,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 overflow-x-hidden">
             <div className="text-center space-y-2">
-                <h3 className="text-2xl font-bold text-brand-dark">Choose Payment Method</h3>
-                <p className="text-gray-600 text-base">
+                <h3 className="text-2xl font-bold text-brand-dark dark:text-foreground">Choose Payment Method</h3>
+                <p className="text-gray-600 dark:text-slate-300 text-base">
                     Total Amount:{' '}
                     <span className="text-brand-primary font-bold text-2xl">
                         {formatCurrency(displayAmount, currency)}
@@ -163,7 +193,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             onClick={() => setMethod('telebirr')}
                             className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'telebirr'
                                 ? 'border-[#5C2D91] bg-[#5C2D91]/10 shadow-lg ring-2 ring-[#5C2D91]/20'
-                                : 'border-gray-200 hover:border-[#5C2D91]/40 hover:shadow-md bg-white'
+                                : 'border-gray-200 dark:border-slate-600 hover:border-[#5C2D91]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
                                 }`}
                         >
                             <div className="w-12 h-12 md:w-20 md:h-20 relative">
@@ -182,7 +212,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             onClick={() => setMethod('cbebirr')}
                             className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'cbebirr'
                                 ? 'border-[#006838] bg-[#006838]/10 shadow-lg ring-2 ring-[#006838]/20'
-                                : 'border-gray-200 hover:border-[#006838]/40 hover:shadow-md bg-white'
+                                : 'border-gray-200 dark:border-slate-600 hover:border-[#006838]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
                                 }`}
                         >
                             <div className="w-12 h-12 md:w-20 md:h-20 relative">
@@ -198,17 +228,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     </>
                 )}
 
+                {isLocal && (
+                    <button
+                        type="button"
+                        onClick={() => setMethod('pay_on_site')}
+                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'pay_on_site'
+                            ? 'border-brand-primary bg-brand-primary/10 shadow-lg ring-2 ring-brand-primary/20'
+                            : 'border-gray-200 dark:border-slate-600 hover:border-brand-primary/40 hover:shadow-md bg-white dark:bg-slate-800/80'
+                            }`}
+                    >
+                        <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 ${method === 'pay_on_site' ? 'scale-110 shadow-lg bg-brand-primary text-white' : 'opacity-80 bg-brand-gray text-brand-dark dark:text-foreground'
+                            }`}>
+                            <Building2 className="w-6 h-6 md:w-10 md:h-10" />
+                        </div>
+                        <div className="text-center">
+                            <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'pay_on_site' ? 'text-brand-primary' : 'text-gray-600'}`}>Pay on site</span>
+                            <span className="text-[10px] text-gray-500 font-medium mt-1 block">Reserve now, pay later</span>
+                        </div>
+                    </button>
+                )}
+
                 <button
                     type="button"
                     onClick={() => setMethod('stripe')}
                     className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'stripe'
                         ? 'border-[#635BFF] bg-[#635BFF]/10 shadow-lg ring-2 ring-[#635BFF]/20'
-                        : 'border-gray-200 hover:border-[#635BFF]/40 hover:shadow-md bg-white'
+                        : 'border-gray-200 dark:border-slate-600 hover:border-[#635BFF]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
                         } ${!isLocal ? 'w-full' : ''}`}
                 >
                     <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 overflow-hidden relative ${method === 'stripe' ? 'scale-110 shadow-lg' : 'opacity-80'}`}>
                         {/* Colorful Gradient Card Background */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#0061ff] via-[#6033ff] to-[#ff00c6] animate-gradient-xy"></div>
+                        <div className="absolute inset-0 bg-linear-to-br from-[#0061ff] via-[#6033ff] to-[#ff00c6] animate-gradient-xy"></div>
                         {/* Decorative elements to make it look like a card */}
                         <div className="absolute top-2 left-2 w-6 h-4 bg-white/20 rounded-sm blur-[1px]"></div>
                         <div className="absolute bottom-2 right-2 flex gap-1">
@@ -287,7 +337,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     <div className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                             <div className="bg-teal-50 p-4 rounded-xl text-sm text-teal-700 border border-teal-100 flex items-center gap-3">
-                                <CreditCard className="w-5 h-5 flex-shrink-0" />
+                                <CreditCard className="w-5 h-5 shrink-0" />
                                 <div>
                                     <p className="font-bold">Secure Stripe Payment</p>
                                     <p className="text-xs opacity-80">You will be redirected to Stripe's secure checkout page to complete your payment.</p>
@@ -307,6 +357,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
                                     `Pay ${formatCurrency(displayAmount, currency)}`
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {method === 'pay_on_site' && isLocal && (
+                    <div className="space-y-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                            <div className="bg-brand-primary/10 p-4 rounded-xl text-sm text-brand-dark border border-brand-primary/20 flex items-center gap-3">
+                                <Building2 className="w-5 h-5 shrink-0 text-brand-primary" />
+                                <div>
+                                    <p className="font-extrabold">Pay on site</p>
+                                    <p className="text-xs text-gray-600">We’ll reserve your booking now. You’ll pay at the property / venue.</p>
+                                </div>
+                            </div>
+                        </motion.div>
+                        <div className="flex gap-3 pt-4">
+                            <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white"
+                                disabled={loading}
+                                onClick={() => handlePayment({})}
+                                type="button"
+                            >
+                                {loading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    'Confirm reservation'
                                 )}
                             </Button>
                         </div>

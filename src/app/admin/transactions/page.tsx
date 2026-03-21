@@ -117,7 +117,7 @@ export default function TransactionsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
+                    <h1 className="text-3xl font-extrabold text-brand-dark">Transactions</h1>
                     <p className="text-gray-500">Monitor all payments and track potential fraud activity.</p>
                 </div>
                 <Button className="bg-brand-dark hover:bg-black text-white gap-2 rounded-xl">
@@ -131,11 +131,11 @@ export default function TransactionsPage() {
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Volume</span>
-                        <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600">
+                        <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                             <ArrowUpRight className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-extrabold text-brand-dark">
                         ${transactions.reduce((acc, curr) => acc + (curr.status === 'succeeded' ? Number(curr.amount) : 0), 0).toLocaleString()}
                     </div>
                 </div>
@@ -146,7 +146,7 @@ export default function TransactionsPage() {
                             <CheckCircle2 className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-extrabold text-brand-dark">
                         {transactions.length > 0 ? (transactions.filter(t => t.status === 'succeeded').length / transactions.length * 100).toFixed(1) : 0}%
                     </div>
                 </div>
@@ -157,7 +157,7 @@ export default function TransactionsPage() {
                             <XCircle className="w-4 h-4" />
                         </div>
                     </div>
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-extrabold text-brand-dark">
                         {transactions.filter(t => t.status === 'failed').length}
                     </div>
                 </div>
@@ -234,7 +234,7 @@ export default function TransactionsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
+                                                <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                                                     <UserIcon className="w-3 h-3" />
                                                 </div>
                                                 <div className="text-sm text-gray-600 font-medium">#{tx.firebase_uid?.substring(0, 8) || 'Unknown'}</div>

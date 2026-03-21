@@ -56,7 +56,12 @@ export default function ContactPage() {
                                         </div>
                                         <div>
                                             <p className="text-gray-600 font-medium">Email Us</p>
-                                            <p className="text-gray-600">bookaddiso@gmail.com</p>
+                                            <a
+                                                href="mailto:info@flowaddis.com"
+                                                className="text-brand-primary font-medium hover:underline"
+                                            >
+                                                info@flowaddis.com
+                                            </a>
                                             <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
                                         </div>
                                     </div>

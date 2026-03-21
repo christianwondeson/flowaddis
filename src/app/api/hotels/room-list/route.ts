@@ -7,8 +7,8 @@ export async function GET(request: Request) {
     const hotelId = searchParams.get('hotelId');
     const checkinDate = searchParams.get('checkin_date') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const checkoutDate = searchParams.get('checkout_date') || new Date(Date.now() + 172800000).toISOString().split('T')[0];
-    const adults = searchParams.get('adults_number_by_rooms') || '2';
-    const children = searchParams.get('children_number_by_rooms') || '0';
+    const adults = searchParams.get('adults_number_by_rooms') || searchParams.get('adults_number') || '2';
+    const children = searchParams.get('children_number_by_rooms') || searchParams.get('children_number') || '0';
     const childrenAges = searchParams.get('children_ages') || '';
     const currency = searchParams.get('currency') || 'USD';
 

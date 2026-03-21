@@ -63,9 +63,9 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
     const displayPrice = hotelData?.price || venue.price;
 
     return (
-        <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col border border-gray-100 rounded-2xl">
+        <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col rounded-2xl">
             {/* Image Section */}
-            <div className="relative h-48 sm:h-56 overflow-hidden bg-brand-gray">
+            <div className="relative h-48 sm:h-56 overflow-hidden bg-brand-gray dark:bg-slate-800">
                 {isLoading ? (
                     <Skeleton className="w-full h-full" />
                 ) : (
@@ -75,9 +75,9 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
                 )}
-                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                <div className="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200/80 dark:border-slate-600">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-semibold text-brand-dark">{venue.rating}</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{venue.rating}</span>
                 </div>
             </div>
 
@@ -85,24 +85,24 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
             <div className="p-4 sm:p-6 flex flex-col flex-grow space-y-4">
                 {/* Header */}
                 <div>
-                    <h3 className="text-lg sm:text-xl font-bold text-brand-dark line-clamp-2">
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 line-clamp-2">
                         {venue.name}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-gray-500 mt-1.5 text-sm">
+                    <div className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400 mt-1.5 text-sm">
                         <MapPin className="w-4 h-4 flex-shrink-0 text-brand-secondary" />
                         <span className="line-clamp-1">{venue.location}</span>
                     </div>
                 </div>
 
                 {/* Capacity */}
-                <div className="flex items-center gap-2 text-brand-dark text-sm">
+                <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 text-sm">
                     <Users className="w-4 h-4 text-brand-primary flex-shrink-0" />
                     <span className="font-medium">Up to {venue.capacity} people</span>
                 </div>
 
                 {/* Features */}
                 <div className="space-y-2 flex-grow">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Amenities</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Amenities</p>
                     <div className="grid grid-cols-2 gap-2">
                         {isLoading ? (
                             Array(4).fill(0).map((_, i) => (
@@ -110,7 +110,7 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
                             ))
                         ) : (
                             displayFeatures.slice(0, 4).map((feature, idx) => (
-                                <div key={idx} className="flex items-center gap-1.5 text-xs text-brand-dark/80">
+                                <div key={idx} className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300">
                                     <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
                                     <span className="line-clamp-1">{feature}</span>
                                 </div>
@@ -120,9 +120,9 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
                 </div>
 
                 {/* Price & CTA */}
-                <div className="pt-4 border-t border-gray-100 space-y-3 sm:space-y-4">
+                <div className="pt-4 border-t border-border space-y-3 sm:space-y-4">
                     <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">Starting from</p>
                         <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
                             ${displayPrice.toLocaleString()}
                         </p>

@@ -19,7 +19,7 @@ export const ShuttleForm: React.FC<ShuttleFormProps> = ({ onCancel, onSubmit }) 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Service Details</h3>
+                <h3 className="text-sm font-extrabold text-brand-dark uppercase tracking-wider">Service Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">Service Name</label>
@@ -57,7 +57,7 @@ export const ShuttleForm: React.FC<ShuttleFormProps> = ({ onCancel, onSubmit }) 
 
             <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
                 <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                <Button type="submit" className="bg-brand-primary text-white">Create Shuttle</Button>
+                <Button type="submit" className="bg-brand-primary hover:bg-brand-secondary text-white">Create Shuttle</Button>
             </div>
         </form>
     );

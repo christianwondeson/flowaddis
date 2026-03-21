@@ -75,20 +75,23 @@ export interface RoomBlock {
     room_id: string;
     block_id?: string;
     name_without_policy: string;
+    room_name?: string | number;
     nr_adults: number;
     nr_children?: number;
+    room_count?: number;
     extrabed_available?: boolean;
     refundable: number;
-    price_breakdown: {
-        all_inclusive_price: number;
-        currency: string;
-        charges_details?: {
-            translated_copy: string;
-        };
+    price_breakdown?: {
+        all_inclusive_price?: number;
+        currency?: string;
+        charges_details?: { translated_copy?: string };
     };
-    transactional_policy_objects?: Array<{
-        text: string;
-    }>;
+    min_price?: { price?: number; currency?: string };
+    product_price_breakdown?: {
+        gross_amount?: number | { value?: number };
+        charges_details?: { translated_copy?: string };
+    };
+    transactional_policy_objects?: Array<{ text: string }>;
 }
 
 export interface RoomDetails {

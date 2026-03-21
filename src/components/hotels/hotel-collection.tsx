@@ -30,9 +30,9 @@ export const HotelCollection: React.FC<HotelCollectionProps> = ({
     if (!isLoading && hotels.length === 0) return null;
 
     return (
-        <section className="py-6 md:py-8 border-t border-gray-100">
+        <section className="py-6 md:py-8 border-t border-gray-100 dark:border-slate-700">
             <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-lg md:text-xl font-bold text-gray-900">{title}</h2>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-slate-100">{title}</h2>
                 {hotels.length > 3 && (
                     <Button
                         variant="outline"
@@ -41,7 +41,7 @@ export const HotelCollection: React.FC<HotelCollectionProps> = ({
                             setExpanded((e) => !e);
                             onSeeAll?.();
                         }}
-                        className="text-brand-primary border-brand-primary hover:bg-teal-50 text-xs font-bold"
+                        className="text-brand-primary border-brand-primary hover:bg-teal-50 dark:hover:bg-teal-950/30 text-xs font-bold dark:border-teal-600"
                     >
                         {expanded ? 'Show less' : 'See all'}
                     </Button>

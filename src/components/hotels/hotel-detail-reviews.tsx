@@ -28,12 +28,12 @@ export const HotelDetailReviews: React.FC<HotelDetailReviewsProps> = ({ reviews,
         return (
             <div className="space-y-6">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="animate-pulse flex gap-4 p-6 border border-gray-100 rounded-2xl">
-                        <div className="w-12 h-12 bg-gray-200 rounded-full shrink-0" />
+                    <div key={i} className="animate-pulse flex gap-4 p-6 border border-border rounded-2xl">
+                        <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-full shrink-0" />
                         <div className="flex-1 space-y-3">
-                            <div className="h-4 bg-gray-200 rounded w-1/4" />
-                            <div className="h-3 bg-gray-100 rounded w-full" />
-                            <div className="h-3 bg-gray-100 rounded w-5/6" />
+                            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-1/4" />
+                            <div className="h-3 bg-gray-100 dark:bg-slate-800 rounded w-full" />
+                            <div className="h-3 bg-gray-100 dark:bg-slate-800 rounded w-5/6" />
                         </div>
                     </div>
                 ))}
@@ -43,10 +43,10 @@ export const HotelDetailReviews: React.FC<HotelDetailReviewsProps> = ({ reviews,
 
     if (reviews.length === 0) {
         return (
-            <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-brand-dark">No reviews yet</h3>
-                <p className="text-sm text-gray-500">Be the first to share your experience!</p>
+            <div className="text-center py-12 bg-muted/40 dark:bg-slate-800/40 rounded-2xl border border-dashed border-border">
+                <MessageSquare className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-foreground">No reviews yet</h3>
+                <p className="text-sm text-muted-foreground">Be the first to share your experience!</p>
             </div>
         );
     }
@@ -54,7 +54,7 @@ export const HotelDetailReviews: React.FC<HotelDetailReviewsProps> = ({ reviews,
     return (
         <div className="space-y-6">
             {reviews.map((review) => (
-                <div key={review.review_id} className="p-6 border border-gray-100 rounded-2xl hover:border-brand-primary/20 hover:shadow-sm transition-all duration-300 bg-white">
+                <div key={review.review_id} className="p-6 border border-border rounded-2xl hover:border-brand-primary/20 hover:shadow-sm transition-all duration-300 bg-card">
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex gap-4">
                             {review.author.avatar ? (
@@ -65,8 +65,8 @@ export const HotelDetailReviews: React.FC<HotelDetailReviewsProps> = ({ reviews,
                                 </div>
                             )}
                             <div>
-                                <h4 className="font-bold text-brand-dark">{review.author.name}</h4>
-                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                <h4 className="font-bold text-foreground">{review.author.name}</h4>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <span>{review.author.countrycode.toUpperCase()}</span>
                                     <span>•</span>
                                     <span>{review.author.type_string}</span>
@@ -82,16 +82,16 @@ export const HotelDetailReviews: React.FC<HotelDetailReviewsProps> = ({ reviews,
                     </div>
 
                     <div className="space-y-3">
-                        <h5 className="font-bold text-brand-dark text-sm">{review.title}</h5>
+                        <h5 className="font-bold text-foreground text-sm">{review.title}</h5>
                         {review.pros && (
-                            <div className="text-sm text-gray-600 leading-relaxed">
+                            <div className="text-sm text-muted-foreground leading-relaxed">
                                 <span className="font-bold text-green-600 mr-2">Pros:</span>
                                 {review.pros}
                             </div>
                         )}
                         {review.cons && (
-                            <div className="text-sm text-gray-600 leading-relaxed">
-                                <span className="font-bold text-red-600 mr-2">Cons:</span>
+                            <div className="text-sm text-muted-foreground leading-relaxed">
+                                <span className="font-bold text-red-600 dark:text-red-400 mr-2">Cons:</span>
                                 {review.cons}
                             </div>
                         )}

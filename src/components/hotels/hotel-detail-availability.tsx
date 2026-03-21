@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Check, Info, Tag, Ban, Loader2 } from 'lucide-react';
+import { Users, Check, Info, Tag, Ban, Loader2, UtensilsCrossed, Sparkles } from 'lucide-react';
+
+/** Returns a display-safe room name; never returns 0 or "0". */
+function safeRoomName(val: unknown): string | null {
+    if (val == null || val === '' || val === 0 || val === '0') return null;
+    const s = String(val).trim();
+    return s || null;
+}
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatCurrency } from '@/lib/currency';
@@ -30,6 +37,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
 }) => {
     const [rooms, setRooms] = useState<RoomBlock[]>([]);
     const [roomDetails, setRoomDetails] = useState<Record<string, RoomDetails>>({});
+    const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -56,10 +64,13 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                 const response = await axios.get(`/api/hotels/room-list?${params.toString()}`);
                 const data = response.data;
 
-                if (Array.isArray(data) && data.length > 0) {
-                    const hotelData = data[0];
+                const hotelData = Array.isArray(data) && data.length > 0 ? data[0] : (data && typeof data === 'object' && !Array.isArray(data) ? data : null);
+                if (hotelData) {
                     setRooms(hotelData.block || []);
-                    setRoomDetails(hotelData.rooms || {});
+                    const roomsMap = hotelData.rooms || {};
+                    setRoomDetails(typeof roomsMap === 'object' ? roomsMap : {});
+                    // Reset selected counts when new data loads
+                    setSelectedRooms({});
                 }
             } catch (err: any) {
                 console.error('Error fetching rooms:', err);
@@ -76,18 +87,18 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
         return (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
-                <p className="text-gray-500 font-medium">Checking availability...</p>
+                <p className="text-gray-500 dark:text-slate-400 font-medium">Checking availability...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-red-50 border border-red-100 rounded-xl p-8 text-center">
-                <p className="text-red-600 font-medium">{error}</p>
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 rounded-xl p-8 text-center">
+                <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
                 <Button
                     variant="outline"
-                    className="mt-4 border-red-200 text-red-600 hover:bg-red-50"
+                    className="mt-4 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
                     onClick={() => window.location.reload()}
                 >
                     Retry
@@ -97,31 +108,54 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     }
 
     return (
-        <div className="space-y-6 pt-12 border-t border-gray-100">
+        <div className="space-y-6 pt-12 border-t border-border">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-brand-dark">Availability</h2>
+                <h2 className="text-2xl font-bold text-foreground">Availability</h2>
                 <button className="text-brand-primary text-xs font-bold flex items-center gap-1 hover:underline">
                     <Tag className="w-3 h-3" />
                     We Price Match
                 </button>
             </div>
-            <div className="text-xs text-gray-500 mb-6">Prices converted to {rooms[0]?.price_breakdown?.currency || 'USD'} <Info className="w-3 h-3 inline" /></div>
+            <div className="text-xs text-muted-foreground mb-6">Prices converted to {rooms[0]?.price_breakdown?.currency || rooms[0]?.min_price?.currency || 'USD'} <Info className="w-3 h-3 inline" /></div>
 
             {/* Mobile Cards (md:hidden) */}
             <div className="space-y-3 md:hidden">
                 {rooms.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500 border border-gray-100 rounded-xl">No rooms available for the selected dates.</div>
+                    <div className="p-6 text-center text-muted-foreground border border-border rounded-xl">No rooms available for the selected dates.</div>
                 ) : (
                     rooms.map((block, index) => {
-                        const details = roomDetails[block.room_id] || {};
+                        const details = roomDetails[String(block.room_id)] || {};
+                        const roomName = safeRoomName((block as any).room_name) || safeRoomName((block as any).name_without_policy) || safeRoomName(details?.room_name) || 'Standard Room';
+                        const price = block.price_breakdown?.all_inclusive_price ?? block.min_price?.price ?? (typeof block.product_price_breakdown?.gross_amount === 'object' ? block.product_price_breakdown?.gross_amount?.value : block.product_price_breakdown?.gross_amount);
+                        const currency = block.price_breakdown?.currency || block.min_price?.currency || 'USD';
+                        const roomCount = Math.min(Math.max(1, Number(block.room_count) || 1), 10);
+                        const roomOptions = Array.from({ length: roomCount }, (_, i) => i + 1);
+                        const selectionKey = String(block.block_id || block.room_id || index);
+                        const selectedCount = selectedRooms[selectionKey] ?? 1;
+                        const totalPrice = (Number(price) || 0) * selectedCount;
+                        const rateLabel = (block as any).rate_label;
+                        const mealplan = (block as any).mealplan || (block as any).detail_mealplan;
+                        const bundleExtras = (block as any).bundle_extras?.highlighted_text;
                         return (
-                            <div key={index} className="bg-white border border-gray-100 rounded-xl shadow-sm p-4">
+                            <div key={block.block_id || index} className="bg-card border border-border rounded-xl shadow-sm p-4">
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
-                                        <h3 className="text-base font-bold text-brand-dark leading-tight">
-                                            {details.room_name || block.name_without_policy || 'Standard Room'}
+                                        <h3 className="text-base font-bold text-foreground leading-tight">
+                                            {roomName}
                                         </h3>
-                                        <div className="mt-1 text-[11px] text-gray-600">
+                                        {(rateLabel || mealplan) && (
+                                            <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                                                {rateLabel && <span className="font-medium text-brand-primary">{rateLabel}</span>}
+                                                {mealplan && <span className="flex items-center gap-1"><UtensilsCrossed className="w-3 h-3" />{mealplan}</span>}
+                                            </div>
+                                        )}
+                                        {bundleExtras && (
+                                            <div className="mt-1 flex items-center gap-1 text-[11px] text-green-700">
+                                                <Sparkles className="w-3 h-3" />
+                                                <span>{bundleExtras}</span>
+                                            </div>
+                                        )}
+                                        <div className="mt-1 text-[11px] text-muted-foreground">
                                             {details.bed_configurations?.[0]?.bed_types?.map((bed: any, i: number) => (
                                                 <span key={i} className="mr-2 font-medium">{bed.name_with_count}</span>
                                             ))}
@@ -137,11 +171,11 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         )}
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-xl font-extrabold text-brand-dark">
-                                            {formatCurrency(block.price_breakdown?.all_inclusive_price || 0, block.price_breakdown?.currency)}
+                                        <div className="text-xl font-extrabold text-foreground">
+                                            {formatCurrency(totalPrice, currency)}
                                         </div>
                                         <div className="text-[10px] text-gray-400 mt-0.5">
-                                            {block.price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
+                                            {block.price_breakdown?.charges_details?.translated_copy || block.product_price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
                                         </div>
                                     </div>
                                 </div>
@@ -149,7 +183,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 <div className="mt-3 flex items-center justify-between">
                                     <div className="flex items-center gap-1">
                                         {Array.from({ length: block.nr_adults || 2 }).map((_, i) => (
-                                            <Users key={i} className="w-4 h-4 text-brand-dark" />
+                                            <Users key={i} className="w-4 h-4 text-foreground" />
                                         ))}
                                         {(block.nr_children ?? 0) > 0 && Array.from({ length: block.nr_children ?? 0 }).map((_, i) => (
                                             <Users key={i} className="w-3.5 h-3.5 text-gray-400" />
@@ -178,18 +212,24 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                 </div>
 
                                 <div className="mt-4 flex items-center gap-3">
-                                    <Select defaultValue="0">
+                                    <Select
+                                        value={String(selectedCount)}
+                                        onValueChange={(v) => {
+                                            const n = Math.max(1, Math.min(roomCount, Number(v) || 1));
+                                            setSelectedRooms((prev) => ({ ...prev, [selectionKey]: n }));
+                                        }}
+                                    >
                                         <SelectTrigger className="h-10 text-sm border-gray-200 rounded-lg w-[90px]">
                                             <SelectValue placeholder="Rooms" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="0">0</SelectItem>
-                                            <SelectItem value="1">1</SelectItem>
-                                            <SelectItem value="2">2</SelectItem>
+                                            {roomOptions.map((n) => (
+                                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
 
-                                    <Button onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room', block.block_id || block.room_id)} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
+                                    <Button onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id))} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
                                         Book now
                                     </Button>
                                 </div>
@@ -202,35 +242,58 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
 
             {/* Table */}
             {/* Desktop Table View */}
-            <div className="hidden md:block overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ring-1 ring-gray-900/5">
+            <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-card shadow-sm ring-1 ring-gray-900/5 dark:ring-slate-700/50">
                 <table className="w-full text-left border-collapse">
                     <thead>
-                        <tr className="bg-gray-50/50 border-b border-gray-100">
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Accommodation Type</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Guests</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Today's Price</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Your Choices</th>
-                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Select Rooms</th>
+                        <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-border">
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Accommodation Type</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-center">Guests</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Today's Price</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Your Choices</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Rooms</th>
                             <th className="px-6 py-4 bg-brand-primary/5"></th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border">
                         {rooms.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
+                                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground font-medium">
                                     No rooms available for the selected dates.
                                 </td>
                             </tr>
                         ) : (
                             rooms.map((block, index) => {
-                                const details = roomDetails[block.room_id] || {};
+                                const details = roomDetails[String(block.room_id)] || {};
+                                const roomName = safeRoomName((block as any).room_name) || safeRoomName((block as any).name_without_policy) || safeRoomName(details?.room_name) || 'Standard Room';
+                                const price = block.price_breakdown?.all_inclusive_price ?? block.min_price?.price ?? (typeof block.product_price_breakdown?.gross_amount === 'object' ? block.product_price_breakdown?.gross_amount?.value : block.product_price_breakdown?.gross_amount);
+                                const currency = block.price_breakdown?.currency || block.min_price?.currency || 'USD';
+                                const roomCount = Math.min(Math.max(1, Number(block.room_count) || 1), 10);
+                                const roomOptions = Array.from({ length: roomCount }, (_, i) => i + 1);
+                                const selectionKey = String(block.block_id || block.room_id || index);
+                                const selectedCount = selectedRooms[selectionKey] ?? 1;
+                                const totalPrice = (Number(price) || 0) * selectedCount;
+                                const rateLabel = (block as any).rate_label;
+                                const mealplan = (block as any).mealplan || (block as any).detail_mealplan;
+                                const bundleExtras = (block as any).bundle_extras?.highlighted_text;
                                 return (
-                                    <tr key={index} className="group hover:bg-gray-50/50 transition-all duration-200">
+                                    <tr key={block.block_id || index} className="group hover:bg-gray-50/50 dark:hover:bg-slate-800/40 transition-all duration-200">
                                         {/* Room Type */}
                                         <td className="px-6 py-6 align-top max-w-[300px]">
                                             <button className="text-brand-primary font-bold hover:text-brand-primary/80 transition-colors block mb-1.5 text-base text-left leading-tight decoration-brand-primary/30 decoration-2 underline-offset-4 hover:underline">
-                                                {details.room_name || block.name_without_policy || 'Standard Room'}
+                                                {roomName}
                                             </button>
+                                            {(rateLabel || mealplan) && (
+                                                <div className="mb-1.5 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                                                    {rateLabel && <span className="font-medium text-brand-primary">{rateLabel}</span>}
+                                                    {mealplan && <span className="flex items-center gap-1"><UtensilsCrossed className="w-3 h-3" />{mealplan}</span>}
+                                                </div>
+                                            )}
+                                            {bundleExtras && (
+                                                <div className="mb-1.5 flex items-center gap-1 text-[11px] text-green-700">
+                                                    <Sparkles className="w-3 h-3" />
+                                                    <span>{bundleExtras}</span>
+                                                </div>
+                                            )}
 
                                             {block.extrabed_available && (
                                                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-50 text-green-700 font-bold text-[10px] mb-3">
@@ -252,7 +315,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
 
                                             <div className="flex flex-wrap gap-1.5 mt-5">
                                                 {details.highlights?.slice(0, 4).map((highlight: any, i: number) => (
-                                                    <span key={i} className="px-2 py-0.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-md text-[9px] font-bold group-hover:border-brand-primary/20 group-hover:text-brand-primary group-hover:bg-brand-primary/5 transition-all">
+                                                    <span key={i} className="px-2 py-0.5 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-600 rounded-md text-[9px] font-bold group-hover:border-brand-primary/20 group-hover:text-brand-primary group-hover:bg-brand-primary/5 transition-all">
                                                         {highlight.translated_name}
                                                     </span>
                                                 ))}
@@ -263,7 +326,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         <td className="px-6 py-6 align-top">
                                             <div className="flex items-center justify-center gap-1">
                                                 {Array.from({ length: block.nr_adults || 2 }).map((_, i) => (
-                                                    <Users key={i} className="w-4 h-4 text-brand-dark opacity-70" />
+                                                    <Users key={i} className="w-4 h-4 text-foreground opacity-70" />
                                                 ))}
                                                 {(block.nr_children ?? 0) > 0 && Array.from({ length: block.nr_children ?? 0 }).map((_, i) => (
                                                     <Users key={i} className="w-3.5 h-3.5 text-gray-300" />
@@ -273,11 +336,11 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
 
                                         {/* Price */}
                                         <td className="px-6 py-6 align-top min-w-[150px]">
-                                            <div className="text-xl font-extrabold text-brand-dark tracking-tight">
-                                                {formatCurrency(block.price_breakdown?.all_inclusive_price || 0, block.price_breakdown?.currency)}
+                                            <div className="text-xl font-extrabold text-foreground tracking-tight">
+                                                {formatCurrency(totalPrice, currency)}
                                             </div>
                                             <div className="text-[10px] font-medium text-gray-400 mt-0.5 leading-tight">
-                                                {block.price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
+                                                {block.price_breakdown?.charges_details?.translated_copy || block.product_price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
                                             </div>
                                         </td>
 
@@ -303,14 +366,20 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
 
                                         {/* Select Rooms */}
                                         <td className="px-6 py-6 align-top">
-                                            <Select defaultValue="0">
+                                            <Select
+                                                value={String(selectedCount)}
+                                                onValueChange={(v) => {
+                                                    const n = Math.max(1, Math.min(roomCount, Number(v) || 1));
+                                                    setSelectedRooms((prev) => ({ ...prev, [selectionKey]: n }));
+                                                }}
+                                            >
                                                 <SelectTrigger className="w-20 h-10 text-sm font-bold border-gray-200 rounded-xl focus:ring-brand-primary/20">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent className="rounded-xl border-gray-100 shadow-xl">
-                                                    <SelectItem value="0" className="text-sm font-medium">0</SelectItem>
-                                                    <SelectItem value="1" className="text-sm font-medium font-bold text-brand-primary">1</SelectItem>
-                                                    <SelectItem value="2" className="text-sm font-medium">2</SelectItem>
+                                                    {roomOptions.map((n) => (
+                                                        <SelectItem key={n} value={String(n)} className={`text-sm font-medium ${n === 1 ? 'font-bold text-brand-primary' : ''}`}>{n}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </td>
@@ -319,7 +388,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         <td className="px-6 py-6 align-middle bg-brand-primary/[0.02] group-hover:bg-brand-primary/[0.04] transition-colors">
                                             <div className="flex flex-col gap-2">
                                                 <Button
-                                                    onClick={() => onBook?.(block.price_breakdown?.all_inclusive_price, details.room_name || block.name_without_policy || 'Standard Room', block.block_id || block.room_id)}
+                                                    onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id))}
                                                     className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-brand-primary/10 transition-all active:scale-[0.98] group-hover:translate-y-[-1px]"
                                                 >
                                                     Book now

@@ -57,7 +57,11 @@ export default function PrivacyPage() {
                                 If you have any questions about this privacy policy or our privacy practices, please contact us at:
                             </p>
                             <p className="mt-2 font-medium">
-                                Email: bookaddiso@gmail.com<br />
+                                Email:{' '}
+                                <a href="mailto:info@flowaddis.com" className="text-brand-primary hover:underline">
+                                    info@flowaddis.com
+                                </a>
+                                <br />
                                 Phone: +251 911 520 275
                             </p>
                         </section>

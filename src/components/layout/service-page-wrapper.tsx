@@ -22,11 +22,11 @@ export function ServicePageWrapper({
     const accentColors = {
         primary: 'bg-brand-primary text-white',
         secondary: 'bg-brand-secondary text-white',
-        accent: 'bg-brand-gray text-brand-dark',
+        accent: 'bg-brand-gray dark:bg-slate-800 text-brand-dark dark:text-foreground',
     };
 
     return (
-        <div className="min-h-screen bg-brand-gray/30 pb-20 pt-0">
+        <div className="min-h-screen bg-brand-gray/30 dark:bg-background pb-20 pt-0">
             {/* Header Section - compact, no extra top margin */}
             <div className={clsx(accentColors[accentColor], "py-8 md:py-12")}>
                 <div className="container mx-auto px-4">

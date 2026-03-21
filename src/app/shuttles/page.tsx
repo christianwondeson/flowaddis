@@ -82,7 +82,7 @@ export default function ShuttlesPage() {
 
     return (
         <AdContainer leftAds={SHUTTLE_ADS_LEFT} rightAds={SHUTTLE_ADS_RIGHT}>
-        <div className="min-h-screen bg-brand-gray/30 pb-24 pt-0">
+        <div className="min-h-screen bg-brand-gray/30 dark:bg-background pb-8 md:pb-12 pt-0 text-foreground">
             {/* Header Section */}
             <div className="bg-teal-600 text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
@@ -95,7 +95,7 @@ export default function ShuttlesPage() {
 
             <div className="container mx-auto px-4 -mt-8 md:-mt-10">
                 {/* Search Widget */}
-                <Card className="p-4 md:p-6 shadow-lg rounded-2xl border border-gray-100 mb-8 md:mb-12 overflow-visible">
+                <Card className="p-4 md:p-6 shadow-lg rounded-2xl mb-8 md:mb-12 overflow-visible">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                         <div className="md:col-span-4">
                             <LocationInput
@@ -109,10 +109,10 @@ export default function ShuttlesPage() {
                             <Popover
                                 trigger={
                                     <div className="w-full cursor-pointer">
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Pickup Date</label>
-                                        <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                            <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                            <span className="text-gray-900 font-medium">Select Date</span>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Pickup Date</label>
+                                        <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
+                                            <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                                            <span className="text-gray-900 dark:text-slate-100 font-medium">Select Date</span>
                                         </div>
                                     </div>
                                 }
@@ -143,10 +143,10 @@ export default function ShuttlesPage() {
 
                 {/* Shuttle Results */}
                 <div className="space-y-6 md:space-y-8">
-                    <h2 className="text-xl md:text-2xl font-bold text-brand-dark mb-4 md:mb-6">Available Shuttles</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 md:mb-6">Available Shuttles</h2>
 
                     {mockShuttles.map((shuttle) => (
-                        <Card key={shuttle.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100 rounded-2xl">
+                        <Card key={shuttle.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 rounded-2xl">
                             <div className="flex flex-col md:flex-row">
                                 {/* Image */}
                                 <div className="w-full md:w-2/5 h-48 md:h-auto relative">
@@ -162,25 +162,25 @@ export default function ShuttlesPage() {
                                     <div>
                                         <div className="flex flex-col sm:flex-row justify-between items-start mb-4 gap-3">
                                             <div className="flex-1">
-                                                <h3 className="text-xl md:text-2xl font-bold text-brand-dark mb-1">{shuttle.type}</h3>
-                                                <div className="flex items-center gap-2 text-gray-500 text-sm">
+                                                <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">{shuttle.type}</h3>
+                                                <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400 text-sm">
                                                     <Shield className="w-4 h-4 text-brand-secondary" />
                                                     {shuttle.vehicle}
                                                 </div>
                                             </div>
                                             <div className="text-left sm:text-right">
-                                                <div className="text-sm text-gray-400 mb-1">Starting from</div>
+                                                <div className="text-sm text-gray-400 dark:text-slate-500 mb-1">Starting from</div>
                                                 <div className="text-2xl md:text-3xl font-bold text-brand-primary">
                                                     {formatCurrency(shuttle.price)}
                                                 </div>
-                                                <div className="text-xs text-gray-400">per trip</div>
+                                                <div className="text-xs text-gray-400 dark:text-slate-500">per trip</div>
                                             </div>
                                         </div>
 
                                         {/* Features */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
                                             {shuttle.features.map((feature: string, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-2 text-gray-600 text-sm">
+                                                <div key={idx} className="flex items-center gap-2 text-gray-600 dark:text-slate-300 text-sm">
                                                     <Clock className="w-4 h-4 text-brand-secondary flex-shrink-0" />
                                                     <span>{feature}</span>
                                                 </div>
@@ -188,7 +188,7 @@ export default function ShuttlesPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end pt-4 border-t border-gray-100">
+                                    <div className="flex justify-end pt-4 border-t border-border">
                                         <Button onClick={() => handleBook(shuttle)} className="w-full md:w-auto rounded-2xl min-h-[48px]">
                                             Book Now <ArrowRight className="w-4 h-4 ml-2" />
                                         </Button>

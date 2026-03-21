@@ -93,12 +93,12 @@ export default function AdminLayout({
                                 </Button>
                             </SheetTrigger>
                         </Sheet>
-                        <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
+                        <h1 className="text-xl font-extrabold text-brand-dark">Admin Dashboard</h1>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="text-right hidden sm:block">
-                            <div className="text-sm font-bold text-gray-900">{user!.name || 'Admin User'}</div>
+                            <div className="text-sm font-extrabold text-brand-dark">{user!.name || 'Admin User'}</div>
                             <div className="text-xs text-gray-500">{user!.email}</div>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold">

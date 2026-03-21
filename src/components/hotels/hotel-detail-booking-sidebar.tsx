@@ -79,23 +79,23 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
     };
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
+        <div className="bg-card rounded-2xl border border-border shadow-lg overflow-hidden">
             {/* Best Price Guarantee - mockup header */}
-            <div className="px-6 py-4 border-b border-gray-100">
+            <div className="px-6 py-4 border-b border-border">
                 <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">Best Price Guarantee</span>
             </div>
 
             <div className="p-6 space-y-4">
                 {/* Check-in - mockup: date field with calendar */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Check In</label>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Check In</label>
                     <Popover
                         isOpen={isCheckInOpen}
                         onOpenChange={setIsCheckInOpen}
                         trigger={
-                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-600/40 transition-all cursor-pointer">
+                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-600/40 transition-all cursor-pointer">
                                 <CalendarIcon className="w-5 h-5 text-teal-600 shrink-0" />
-                                <span className="text-gray-900 font-medium">
+                                <span className="text-gray-900 dark:text-slate-100 font-medium">
                                     {checkIn ? formatShortDate(checkIn) : 'Select date'}
                                 </span>
                             </div>
@@ -114,14 +114,14 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
 
                 {/* Check-out - mockup: date field with calendar */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Check Out</label>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Check Out</label>
                     <Popover
                         isOpen={isCheckOutOpen}
                         onOpenChange={setIsCheckOutOpen}
                         trigger={
-                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-600/40 transition-all cursor-pointer">
+                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-600/40 transition-all cursor-pointer">
                                 <CalendarIcon className="w-5 h-5 text-teal-600 shrink-0" />
-                                <span className="text-gray-900 font-medium">
+                                <span className="text-gray-900 dark:text-slate-100 font-medium">
                                     {checkOut ? formatShortDate(checkOut) : 'Select date'}
                                 </span>
                             </div>
@@ -140,50 +140,50 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
 
                 {/* Guest selector - mockup */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Guests</label>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Guests</label>
                     <Popover
                         isOpen={isGuestOpen}
                         onOpenChange={setIsGuestOpen}
                         trigger={
-                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-teal-600/40 transition-all cursor-pointer">
+                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-600/40 transition-all cursor-pointer">
                                 <Users className="w-5 h-5 text-teal-600 shrink-0" />
-                                <span className="text-gray-900 font-medium flex-1">{guestLabel}</span>
-                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                                <span className="text-gray-900 dark:text-slate-100 font-medium flex-1">{guestLabel}</span>
+                                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
                             </div>
                         }
                         content={
                             <div className="p-4 w-64 space-y-4">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium">Adults</span>
+                                    <span className="text-sm font-medium text-foreground">Adults</span>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setTempAdults(Math.max(1, tempAdults - 1))}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 font-bold"
+                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
                                         >
                                             −
                                         </button>
                                         <span className="w-8 text-center font-medium">{tempAdults}</span>
                                         <button
                                             onClick={() => setTempAdults(tempAdults + 1)}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 font-bold"
+                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
                                         >
                                             +
                                         </button>
                                     </div>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium">Children</span>
+                                    <span className="text-sm font-medium text-foreground">Children</span>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setTempChildren(Math.max(0, tempChildren - 1))}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 font-bold"
+                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
                                         >
                                             −
                                         </button>
                                         <span className="w-8 text-center font-medium">{tempChildren}</span>
                                         <button
                                             onClick={() => setTempChildren(tempChildren + 1)}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 hover:bg-gray-50 font-bold"
+                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
                                         >
                                             +
                                         </button>
@@ -198,14 +198,14 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
                 </div>
 
                 {/* Price breakdown - mockup */}
-                <div className="pt-4 border-t border-gray-100 space-y-2">
+                <div className="pt-4 border-t border-border space-y-2">
                     <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Price for 1 room, 1 night</span>
-                        <span className="font-bold text-gray-900">{formatCurrency(price)}</span>
+                        <span className="text-gray-600 dark:text-slate-400">Price for 1 room, 1 night</span>
+                        <span className="font-bold text-foreground">{formatCurrency(price)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Taxes & fees</span>
-                        <span className="text-gray-500">Included</span>
+                        <span className="text-gray-600 dark:text-slate-400">Taxes & fees</span>
+                        <span className="text-gray-500 dark:text-slate-400">Included</span>
                     </div>
                     <div className="flex justify-between text-base font-bold pt-2">
                         <span>Total</span>

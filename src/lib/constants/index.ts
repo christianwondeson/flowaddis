@@ -29,6 +29,10 @@ export const APP_CONSTANTS = {
         MIN_SEARCH_LENGTH: 2,
         MAX_SEARCH_LENGTH: 100,
     },
+    ASSETS: {
+        /** Generic hotel room/bed placeholder – used when API fails or images error. Shared fallback for all hotels. */
+        HOTEL_PLACEHOLDER: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80',
+    },
     Z_INDEX: {
         // Consistent z-index scale
         DROPDOWN: 50,

@@ -221,7 +221,7 @@ function FlightsPageContent() {
 
     return (
         <AdContainer leftAds={FLIGHT_ADS_LEFT} rightAds={FLIGHT_ADS_RIGHT}>
-            <div className="min-h-screen pb-24 md:pb-20" style={{ backgroundColor: '#F1F5F9' }}>
+            <div className="min-h-screen pb-8 md:pb-20 page-muted">
                 {/* Header Section - compact on mobile */}
                 <div className="bg-teal-600 text-white py-6 sm:py-8 md:py-12 lg:py-16">
                     <div className="container mx-auto px-4 sm:px-6">
@@ -240,25 +240,25 @@ function FlightsPageContent() {
                         {!hasSearched ? (
                             <div className="space-y-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="inline-flex rounded-xl bg-gray-100 p-1">
+                                    <div className="inline-flex rounded-xl bg-gray-100 dark:bg-slate-800 p-1">
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('ROUNDTRIP')}
-                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ROUNDTRIP' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-700 hover:text-teal-600'}`}
+                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ROUNDTRIP' ? 'bg-white dark:bg-slate-900 text-teal-600 shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:text-teal-600'}`}
                                         >
                                             Round trip
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('ONEWAY')}
-                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ONEWAY' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-700 hover:text-teal-600'}`}
+                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ONEWAY' ? 'bg-white dark:bg-slate-900 text-teal-600 shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:text-teal-600'}`}
                                         >
                                             One way
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('MULTISTOP')}
-                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'MULTISTOP' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-700 hover:text-teal-600'}`}
+                                            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'MULTISTOP' ? 'bg-white dark:bg-slate-900 text-teal-600 shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:text-teal-600'}`}
                                         >
                                             Multi-city
                                         </button>
@@ -269,7 +269,7 @@ function FlightsPageContent() {
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-1 gap-4">
                                             {segments.map((segment, index) => (
-                                                <div key={index} className="flex flex-col md:flex-row items-end gap-3 p-4 bg-gray-50/50 rounded-2xl border border-gray-100 relative group transition-all hover:border-brand-primary/20">
+                                                <div key={index} className="flex flex-col md:flex-row items-end gap-3 p-4 bg-gray-50/50 dark:bg-slate-800/40 rounded-2xl border border-gray-100 dark:border-slate-700 relative group transition-all hover:border-brand-primary/20">
                                                     <div className="flex-1 w-full">
                                                         <FlightRouteSelect
                                                             fromCode={segment.from}
@@ -290,10 +290,10 @@ function FlightsPageContent() {
                                                         <Popover
                                                             trigger={
                                                                 <div className="w-full cursor-pointer">
-                                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Date</label>
-                                                                    <div className="flex items-center gap-2 w-full px-3 py-3 bg-white border border-gray-200 rounded-xl hover:border-brand-primary/50 transition-all group-hover:border-gray-300">
-                                                                        <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                                        <span className="text-gray-900 font-medium text-xs truncate">{segment.date ? formatDateEnglish(parseDateLocal(segment.date)) : 'Select Date'}</span>
+                                                                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Date</label>
+                                                                    <div className="flex items-center gap-2 w-full px-3 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl hover:border-brand-primary/50 transition-all group-hover:border-gray-300 dark:group-hover:border-slate-500">
+                                                                        <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                                                                        <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{segment.date ? formatDateEnglish(parseDateLocal(segment.date)) : 'Select Date'}</span>
                                                                     </div>
                                                                 </div>
                                                             }
@@ -316,7 +316,7 @@ function FlightsPageContent() {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-[52px] w-[52px] text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl"
+                                                            className="h-[52px] w-[52px] text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl"
                                                             onClick={() => setSegments(segments.filter((_, i) => i !== index))}
                                                         >
                                                             <span className="text-xl">×</span>
@@ -365,10 +365,10 @@ function FlightsPageContent() {
                                                 <Popover
                                                     trigger={
                                                         <div className="w-full cursor-pointer">
-                                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
-                                                            <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                                                <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                                <span className="text-gray-900 font-medium text-xs truncate">{departDate ? formatDateEnglish(parseDateLocal(departDate)) : 'Select Date'}</span>
+                                                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
+                                                            <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
+                                                                <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                                                                <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{departDate ? formatDateEnglish(parseDateLocal(departDate)) : 'Select Date'}</span>
                                                             </div>
                                                         </div>
                                                     }
@@ -385,10 +385,10 @@ function FlightsPageContent() {
                                                 <Popover
                                                     trigger={
                                                         <div className={`w-full cursor-pointer ${flightType === 'ONEWAY' ? 'opacity-50 pointer-events-none' : ''}`}>
-                                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Return</label>
-                                                            <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
-                                                                <CalendarIcon className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                                <span className="text-gray-900 font-medium text-xs truncate">{flightReturnDate ? formatDateEnglish(parseDateLocal(flightReturnDate)) : 'Select Date'}</span>
+                                                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Return</label>
+                                                            <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
+                                                                <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
+                                                                <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{flightReturnDate ? formatDateEnglish(parseDateLocal(flightReturnDate)) : 'Select Date'}</span>
                                                             </div>
                                                         </div>
                                                     }
@@ -422,16 +422,16 @@ function FlightsPageContent() {
                         ) : (
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm">
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-full font-semibold text-gray-700">
+                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
                                         {flightType === 'ROUNDTRIP' ? 'Round trip' : flightType === 'MULTISTOP' ? 'Multi-city' : 'One way'}
                                     </span>
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-full font-semibold text-gray-700">
+                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
                                         {flightType === 'MULTISTOP' ? `${segments.length} flights` : `${fromCode} → ${toCode}`}
                                     </span>
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-full font-semibold text-gray-700">
+                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
                                         {flightType === 'MULTISTOP' ? `${formatDateEnglishStr(segments[0].date)} — ${formatDateEnglishStr(segments[segments.length - 1].date)}` : `${formatDateEnglishStr(departDate)}${flightType === 'ROUNDTRIP' && flightReturnDate ? ` — ${formatDateEnglishStr(flightReturnDate)}` : ''}`}
                                     </span>
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-full font-semibold text-gray-700">
+                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
                                         {trav.adults} adult{trav.adults > 1 ? 's' : ''}{trav.children ? `, ${trav.children} child` : ''} • {trav.cabinClass?.toLowerCase().replace('_', ' ')}
                                     </span>
                                 </div>
@@ -446,9 +446,9 @@ function FlightsPageContent() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
                         {/* Sidebar Filters */}
                         <aside className="lg:col-span-3 space-y-6">
-                            <Card className="p-6 shadow-sm border-gray-100 sticky top-24">
+                            <Card className="p-6 shadow-sm sticky top-24">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-bold text-gray-900">Filters</h3>
+                                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Filters</h3>
                                     <button
                                         onClick={() => setSearchParams(prev => ({ ...prev, stops: undefined, airlines: undefined }))}
                                         className="text-xs text-brand-primary hover:underline"
@@ -459,7 +459,7 @@ function FlightsPageContent() {
 
                                 {/* Stops Filter */}
                                 <div className="space-y-4 mb-8">
-                                    <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Stops</h4>
+                                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Stops</h4>
                                     <div className="space-y-2">
                                         {[
                                             { label: 'All', value: 'all' },
@@ -474,7 +474,7 @@ function FlightsPageContent() {
                                                     onChange={() => handleFilterChange('stops', stop.value)}
                                                     className="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary"
                                                 />
-                                                <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{stop.label}</span>
+                                                <span className="text-sm text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-100 transition-colors">{stop.label}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -482,7 +482,7 @@ function FlightsPageContent() {
 
                                 {/* Cabin Class Filter (Quick Switch) */}
                                 <div className="space-y-4 mb-8">
-                                    <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Cabin Class</h4>
+                                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Cabin Class</h4>
                                     <div className="space-y-2">
                                         {['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'].map((cls) => (
                                             <label key={cls} className="flex items-center gap-3 cursor-pointer group">
@@ -493,7 +493,7 @@ function FlightsPageContent() {
                                                     onChange={() => handleFilterChange('cabinClass', cls)}
                                                     className="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary"
                                                 />
-                                                <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                                                <span className="text-sm text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-100 transition-colors">
                                                     {cls.toLowerCase().replace('_', ' ')}
                                                 </span>
                                             </label>
@@ -504,10 +504,10 @@ function FlightsPageContent() {
 
                             {/* Airline Filter */}
                             {flightsData?.aggregation?.airlines && flightsData.aggregation.airlines.length > 0 && (
-                                <Card className="p-6 shadow-sm border-gray-100">
+                                <Card className="p-6 shadow-sm">
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Airlines</h4>
+                                            <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Airlines</h4>
                                             {searchParams.airlines && (
                                                 <button
                                                     onClick={() => handleFilterChange('airlines', undefined)}
@@ -527,11 +527,11 @@ function FlightsPageContent() {
                                                         onChange={() => handleFilterChange('airlines', airline.name === searchParams.airlines ? undefined : airline.name)}
                                                         className="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary"
                                                     />
-                                                    <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors flex-1 truncate">
+                                                    <span className="text-sm text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-100 transition-colors flex-1 truncate">
                                                         {airline.name}
                                                     </span>
                                                     {airline.minPrice && (
-                                                        <span className="text-xs text-gray-400 font-medium">
+                                                        <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">
                                                             {formatCurrency(airline.minPrice.amount)}
                                                         </span>
                                                     )}
@@ -546,12 +546,12 @@ function FlightsPageContent() {
                         {/* Main Content */}
                         <div className="lg:col-span-9 space-y-4">
                             <div className="flex items-center justify-between mb-2">
-                                <h2 className="text-xl font-bold text-brand-dark">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                                     {isLoading ? 'Searching Flights...' : `Available Flights (${displayFlights.length})`}
                                 </h2>
                                 {!isLoading && displayFlights.length > 0 && (
-                                    <div className="text-sm text-gray-500">
-                                        Showing results for <span className="font-semibold text-gray-900">{fromCode} to {toCode}</span>
+                                    <div className="text-sm text-gray-500 dark:text-slate-400">
+                                        Showing results for <span className="font-semibold text-slate-900 dark:text-slate-100">{fromCode} to {toCode}</span>
                                     </div>
                                 )}
                             </div>
@@ -565,22 +565,22 @@ function FlightsPageContent() {
                             )}
 
                             {error && (
-                                <Card className="p-8 text-center border-red-100 bg-red-50/50">
-                                    <div className="text-red-600 font-medium mb-2">Failed to fetch flights</div>
-                                    <p className="text-sm text-red-500/80 mb-4">There was an error connecting to the flight search service.</p>
-                                    <Button variant="outline" size="sm" onClick={handleSearch} className="border-red-200 text-red-600 hover:bg-red-100">
+                                <Card className="p-8 text-center border-red-100 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/25">
+                                    <div className="text-red-600 dark:text-red-400 font-medium mb-2">Failed to fetch flights</div>
+                                    <p className="text-sm text-red-500/80 dark:text-red-300/90 mb-4">There was an error connecting to the flight search service.</p>
+                                    <Button variant="outline" size="sm" onClick={handleSearch} className="border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40">
                                         Try again
                                     </Button>
                                 </Card>
                             )}
 
                             {!isLoading && displayFlights.length === 0 && !error && (
-                                <Card className="p-12 text-center border-dashed border-2 border-gray-200 bg-gray-50/50">
-                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Plane className="w-8 h-8 text-gray-400" />
+                                <Card className="p-12 text-center border-dashed border-2 border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-800/40">
+                                    <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Plane className="w-8 h-8 text-gray-400 dark:text-slate-500" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">No flights found</h3>
-                                    <p className="text-gray-500 max-w-xs mx-auto mb-6">
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">No flights found</h3>
+                                    <p className="text-gray-500 dark:text-slate-400 max-w-xs mx-auto mb-6">
                                         We couldn't find any flights matching your criteria. Try adjusting your dates or filters.
                                     </p>
                                     <Button onClick={() => setHasSearched(false)} variant="outline">
@@ -590,25 +590,25 @@ function FlightsPageContent() {
                             )}
 
                             {displayFlights.map((flight: any) => (
-                                <Card key={flight.id || Math.random()} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-gray-100">
+                                <Card key={flight.id || Math.random()} className="group overflow-hidden hover:shadow-xl transition-all duration-300">
                                     <div className="flex flex-col md:flex-row">
                                         {/* Main Info */}
                                         <div className="flex-1 p-5 md:p-6">
                                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                                                 {/* Airline */}
                                                 <div className="flex items-center gap-4 w-full md:w-48">
-                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-50 rounded-xl p-2 flex items-center justify-center border border-gray-100 group-hover:border-brand-primary/20 transition-colors">
+                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-50 dark:bg-slate-800 rounded-xl p-2 flex items-center justify-center border border-gray-100 dark:border-slate-600 group-hover:border-brand-primary/20 transition-colors">
                                                         {flight.airlineLogo ? (
                                                             <img src={flight.airlineLogo} alt={flight.airline} className="max-w-full max-h-full object-contain" />
                                                         ) : (
-                                                            <Plane className="w-6 h-6 text-gray-300" />
+                                                            <Plane className="w-6 h-6 text-gray-300 dark:text-slate-600" />
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <h3 className="font-bold text-gray-900 truncate">{flight.airline || 'Airline'}</h3>
+                                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{flight.airline || 'Airline'}</h3>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-gray-500">{flight.flightNumber}</span>
-                                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                            <span className="text-xs text-gray-500 dark:text-slate-400">{flight.flightNumber}</span>
+                                                            <span className="w-1 h-1 bg-gray-300 dark:bg-slate-600 rounded-full"></span>
                                                             <span className="text-xs font-medium text-brand-primary">{flight.cabinClass}</span>
                                                         </div>
                                                     </div>
@@ -617,15 +617,15 @@ function FlightsPageContent() {
                                                 {/* Route */}
                                                 <div className="flex items-center justify-between flex-1 w-full max-w-md mx-auto">
                                                     <div className="text-left">
-                                                        <div className="text-xl md:text-2xl font-bold text-gray-900">{flight.departureTime}</div>
-                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-tighter">{fromCode}</div>
+                                                        <div className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">{flight.departureTime}</div>
+                                                        <div className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tighter">{fromCode}</div>
                                                     </div>
 
                                                     <div className="flex-1 px-4 flex flex-col items-center">
-                                                        <div className="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-widest">{flight.duration}</div>
-                                                        <div className="w-full h-[2px] bg-gray-100 relative">
+                                                        <div className="text-[10px] font-medium text-gray-400 dark:text-slate-500 mb-1 uppercase tracking-widest">{flight.duration}</div>
+                                                        <div className="w-full h-[2px] bg-gray-100 dark:bg-slate-700 relative">
                                                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-brand-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2">
+                                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2">
                                                                 <Plane className="w-4 h-4 text-brand-primary/40 group-hover:text-brand-primary transition-colors rotate-90" />
                                                             </div>
                                                         </div>
@@ -633,19 +633,19 @@ function FlightsPageContent() {
                                                     </div>
 
                                                     <div className="text-right">
-                                                        <div className="text-xl md:text-2xl font-bold text-gray-900">{flight.arrivalTime}</div>
-                                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-tighter">{toCode}</div>
+                                                        <div className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">{flight.arrivalTime}</div>
+                                                        <div className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-tighter">{toCode}</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Price Section */}
-                                        <div className="md:w-56 bg-gray-50/50 border-t md:border-t-0 md:border-l border-gray-100 p-5 md:p-6 flex flex-row md:flex-col items-center md:items-center justify-between md:justify-center gap-4">
+                                        <div className="md:w-56 bg-gray-50/50 dark:bg-slate-800/50 border-t md:border-t-0 md:border-l border-gray-100 dark:border-slate-700 p-5 md:p-6 flex flex-row md:flex-col items-center md:items-center justify-between md:justify-center gap-4">
                                             <div className="text-left md:text-center">
-                                                <div className="text-xs text-gray-500 mb-0.5">Price from</div>
+                                                <div className="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Price from</div>
                                                 <div className="text-2xl md:text-3xl font-black text-brand-primary">{formatCurrency(flight.price?.amount || 0)}</div>
-                                                <div className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">incl. taxes & fees</div>
+                                                <div className="text-[10px] text-gray-400 dark:text-slate-500 uppercase font-bold tracking-wider">incl. taxes & fees</div>
                                             </div>
                                             <div className="flex flex-col gap-2 w-full max-w-[140px] md:max-w-none">
                                                 <Button
@@ -656,7 +656,7 @@ function FlightsPageContent() {
                                                 </Button>
                                                 <button
                                                     onClick={() => handleViewDetails(flight)}
-                                                    className="text-xs font-bold text-gray-500 hover:text-brand-primary transition-colors py-1"
+                                                    className="text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-brand-primary transition-colors py-1"
                                                 >
                                                     View Details
                                                 </button>
@@ -680,20 +680,20 @@ function FlightsPageContent() {
 
                 {/* Flight Detail Modal - premium redesign */}
                 {isDetailOpen && (
-                    <div className="fixed inset-0 z-[10000] flex items-end md:items-center justify-center p-0 md:p-6 bg-brand-dark/60 backdrop-blur-sm transition-all">
-                        <div className="w-full md:max-w-3xl bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
+                    <div className="fixed inset-0 z-[10000] flex items-end md:items-center justify-center p-0 md:p-6 bg-slate-900/70 dark:bg-black/70 backdrop-blur-sm transition-all">
+                        <div className="w-full md:max-w-3xl bg-white dark:bg-slate-900 rounded-t-3xl md:rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80">
                                 <div className="flex items-center gap-4">
-                                    <div className="inline-flex rounded-xl bg-white border border-gray-200 p-1 shadow-sm">
+                                    <div className="inline-flex rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 p-1 shadow-sm">
                                         <button
                                             onClick={() => setShowSeatMap(false)}
-                                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${!showSeatMap ? 'bg-brand-primary text-white shadow-md' : 'text-gray-500 hover:text-brand-primary'}`}
+                                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${!showSeatMap ? 'bg-brand-primary text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:text-brand-primary'}`}
                                         >
                                             Journey
                                         </button>
                                         <button
                                             onClick={() => setShowSeatMap(true)}
-                                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${showSeatMap ? 'bg-brand-primary text-white shadow-md' : 'text-gray-500 hover:text-brand-primary'}`}
+                                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${showSeatMap ? 'bg-brand-primary text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:text-brand-primary'}`}
                                         >
                                             Seat Map
                                         </button>
@@ -701,27 +701,27 @@ function FlightsPageContent() {
                                 </div>
                                 <button
                                     onClick={() => setIsDetailOpen(false)}
-                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-400 hover:text-gray-900 hover:border-gray-300 transition-all shadow-sm"
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-gray-400 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:border-gray-300 dark:hover:border-slate-500 transition-all shadow-sm"
                                 >
                                     ✕
                                 </button>
                             </div>
 
-                            <div className="p-6 overflow-y-auto custom-scrollbar">
+                            <div className="p-6 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900">
                                 {isDetailLoading && (
                                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                                         <div className="w-12 h-12 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
-                                        <p className="text-gray-500 font-medium animate-pulse">Fetching latest flight info...</p>
+                                        <p className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">Fetching latest flight info...</p>
                                     </div>
                                 )}
 
                                 {!isDetailLoading && !flightDetail ? (
                                     <div className="text-center py-16">
-                                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <div className="w-16 h-16 bg-red-50 dark:bg-red-950/40 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <Plane className="w-8 h-8 text-red-400 rotate-45" />
                                         </div>
-                                        <h4 className="text-lg font-bold text-gray-900 mb-2">Details unavailable</h4>
-                                        <p className="text-gray-500 max-w-xs mx-auto mb-6 text-sm">
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Details unavailable</h4>
+                                        <p className="text-gray-500 dark:text-slate-400 max-w-xs mx-auto mb-6 text-sm">
                                             We couldn't retrieve the specific details for this flight right now. Please try again or select another flight.
                                         </p>
                                         <Button onClick={() => setIsDetailOpen(false)} variant="outline" size="sm">Close</Button>
@@ -743,8 +743,8 @@ function FlightsPageContent() {
                             </div>
 
                             {!isDetailLoading && flightDetail && (
-                                <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                                    <div className="text-xs text-gray-500 max-w-[200px]">
+                                <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80 flex items-center justify-between">
+                                    <div className="text-xs text-gray-500 dark:text-slate-400 max-w-[200px]">
                                         Prices and availability are subject to change until booking is confirmed.
                                     </div>
                                     <Button

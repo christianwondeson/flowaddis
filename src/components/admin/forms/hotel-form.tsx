@@ -90,7 +90,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 p-6 no-scrollbar">
+        <form onSubmit={handleSubmit} className="space-y-8 no-scrollbar">
             {/* Basic Info */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
@@ -154,7 +154,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                         <select
                             value={pricing.currency}
                             onChange={(e) => setPricing({ ...pricing, currency: e.target.value })}
-                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40 transition-colors"
                         >
                             <option value="USD">USD ($)</option>
                             <option value="ETB">ETB (Br)</option>
@@ -168,7 +168,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                         <select
                             value={pricing.category}
                             onChange={(e) => setPricing({ ...pricing, category: e.target.value })}
-                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-primary transition-colors font-bold"
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40 transition-colors"
                         >
                             <option>Budget</option>
                             <option>Mid-range</option>
@@ -178,7 +178,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-500 uppercase">Star Rating</label>
-                        <select className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-brand-primary transition-colors">
+                        <select className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40 transition-colors">
                             <option>5 Stars</option>
                             <option>4 Stars</option>
                             <option>3 Stars</option>
@@ -264,7 +264,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {images.map((img, idx) => (
-                        <div key={idx} className={`relative aspect-[4/3] rounded-2xl overflow-hidden group border-2 transition-all ${img.isPrimary ? 'border-brand-primary shadow-lg ring-4 ring-brand-primary/10' : 'border-transparent'
+                        <div key={idx} className={`relative aspect-4/3 rounded-2xl overflow-hidden group border-2 transition-all ${img.isPrimary ? 'border-brand-primary shadow-lg ring-4 ring-brand-primary/10' : 'border-transparent'
                             }`}>
                             <img src={img.url} alt="Upload preview" className="w-full h-full object-cover" />
 
@@ -295,7 +295,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                         </div>
                     ))}
 
-                    <label className="aspect-[4/3] rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-all group">
+                    <label className="aspect-4/3 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-all group">
                         <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2 group-hover:bg-brand-primary/10 transition-colors">
                             <Upload className="w-5 h-5 text-gray-400 group-hover:text-brand-primary" />
                         </div>
@@ -311,7 +311,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                 <Button type="button" variant="ghost" onClick={onCancel} className="rounded-xl font-bold text-gray-400 hover:text-gray-600">
                     Cancel
                 </Button>
-                <Button type="submit" className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-8 rounded-xl shadow-lg shadow-brand-primary/20 transition-all active:scale-95">
+                <Button type="submit" className="bg-brand-primary hover:bg-brand-secondary text-white font-bold px-8 rounded-xl shadow-lg shadow-brand-primary/20 transition-all active:scale-95">
                     Create Hotel Profile
                 </Button>
             </div>

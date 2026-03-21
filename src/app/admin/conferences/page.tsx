@@ -62,12 +62,12 @@ export default function AdminConferencesPage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Manage Conferences</h1>
+                        <h1 className="text-2xl font-extrabold text-brand-dark">Manage Conferences</h1>
                         <p className="text-gray-500">View and manage upcoming events and conferences.</p>
                     </div>
                     <Button
                         onClick={() => setIsModalOpen(true)}
-                        className="bg-brand-primary hover:bg-teal-700 text-white gap-2"
+                        className="bg-brand-primary hover:bg-brand-secondary text-white gap-2"
                     >
                         <Plus className="w-4 h-4" />
                         Add New Conference
@@ -75,12 +75,12 @@ export default function AdminConferencesPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input placeholder="Search conferences..." className="pl-10 bg-gray-50 border-transparent focus:bg-white" />
                     </div>
-                    <select className="bg-gray-50 border-none text-sm font-medium text-gray-600 rounded-lg px-4 cursor-pointer hover:bg-gray-100 transition-colors">
+                    <select className="bg-gray-50 border border-transparent text-sm font-semibold text-gray-700 rounded-lg px-4 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40">
                         <option>All Status</option>
                         <option>Upcoming</option>
                         <option>Active</option>
@@ -105,7 +105,7 @@ export default function AdminConferencesPage() {
                             {conferences.map((conf) => (
                                 <tr key={conf.id} className="hover:bg-gray-50 transition-colors group">
                                     <td className="px-6 py-4">
-                                        <div className="font-bold text-gray-900">{conf.name}</div>
+                                        <div className="font-extrabold text-brand-dark">{conf.name}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2 text-gray-600 text-sm">
@@ -120,14 +120,17 @@ export default function AdminConferencesPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1 text-gray-900 font-medium text-sm">
+                                        <div className="flex items-center gap-1 text-brand-dark font-semibold text-sm">
                                             <Users className="w-3.5 h-3.5 text-gray-400" />
                                             {conf.capacity}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${conf.status === 'Upcoming' ? 'bg-teal-100 text-teal-700' :
-                                            conf.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${conf.status === 'Upcoming'
+                                            ? 'bg-brand-primary/10 text-brand-primary'
+                                            : conf.status === 'Active'
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-gray-100 text-gray-700'
                                             }`}>
                                             {conf.status}
                                         </span>

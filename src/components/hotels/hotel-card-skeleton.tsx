@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card"
 
 export function HotelCardSkeleton() {
     return (
-        <Card className="overflow-hidden border border-gray-200 bg-white h-full">
+        <Card className="overflow-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 h-full">
             <div className="h-48 relative">
                 <Skeleton className="h-full w-full" />
             </div>

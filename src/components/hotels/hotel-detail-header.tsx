@@ -65,16 +65,16 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
     };
 
     return (
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
             <div className="container mx-auto px-4">
                 {/* Top Bar with Back Button */}
-                <div className="flex items-center py-2 border-b border-gray-50">
+                <div className="flex items-center py-2 border-b border-gray-50 dark:border-slate-800">
                     <button
                         onClick={() => {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                             router.back();
                         }}
-                        className="flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-brand-primary transition-colors"
+                        className="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-brand-primary transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" />
                         Back
@@ -91,23 +91,25 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                         <Star key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                                     ))}
                                 </div>
-                                <span className="bg-green-50 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded-sm border border-green-100 flex items-center gap-1">
+                                <span className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[10px] font-bold px-1.5 py-0.5 rounded-sm border border-green-100 dark:border-green-900/50 flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span>
                                     Free taxi available
                                 </span>
                             </div>
-                            <h1 className="text-xl md:text-2xl font-bold text-brand-dark mb-1 leading-tight">
+                            <h1 className="text-xl md:text-2xl font-bold text-brand-dark dark:text-foreground mb-1 leading-tight">
                                 {hotel.name}
                             </h1>
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-slate-400">
                                 <MapPin className="w-4 h-4 text-brand-primary" />
                                 <span>{hotel.location}</span>
-                                <span className="text-gray-300 mx-1">–</span>
+                                <span className="text-gray-300 dark:text-slate-600 mx-1">–</span>
                                 <button
                                     onClick={() => {
                                         const params = new URLSearchParams();
-                                        if (hotel.location) params.set('query', hotel.location);
+                                        // Broad region only — street/address as `query` breaks Booking dest resolution and images.
+                                        params.set('query', 'Ethiopia');
                                         if (hotel.name) params.set('hotelName', hotel.name);
+                                        params.set('fromDetail', '1');
 
                                         // Pass coordinates for map centering
                                         if (hotel.coordinates?.lat) params.set('lat', hotel.coordinates.lat.toString());
@@ -127,8 +129,8 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                         {Math.round(hotel.rating || 0)}
                                     </div>
                                     <div className="text-sm">
-                                        <span className="font-bold text-brand-dark">{hotel.reviewWord || 'Very Good'}</span>
-                                        {hotel.reviews ? <span className="text-gray-500"> · {hotel.reviews} reviews</span> : null}
+                                        <span className="font-bold text-brand-dark dark:text-foreground">{hotel.reviewWord || 'Very Good'}</span>
+                                        {hotel.reviews ? <span className="text-gray-500 dark:text-slate-400"> · {hotel.reviews} reviews</span> : null}
                                     </div>
                                 </div>
                             )}
@@ -143,7 +145,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                         variant="ghost"
                                         size="icon"
                                         onClick={handleHeartClick}
-                                        className={`rounded-full ${inTrip ? 'text-red-500 hover:bg-red-50' : 'text-brand-primary hover:bg-brand-primary/10'}`}
+                                        className={`rounded-full ${inTrip ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40' : 'text-brand-primary hover:bg-brand-primary/10'}`}
                                         aria-label={inTrip ? 'Remove from Trip' : 'Add to Trip'}
                                         title={inTrip ? 'Remove from Trip' : 'Add to Trip'}
                                     >
@@ -167,7 +169,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                 {/* Tabs */}
                 <div className="relative">
                     {/* Left fade indicator - hidden on large screens */}
-                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none lg:hidden" />
+                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none lg:hidden" />
 
                     <div className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-1 lg:gap-0">
                         {tabs.map((tab) => (
@@ -180,8 +182,8 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                     border-b-3 transition-all duration-200
                                     min-w-[110px] sm:min-w-[120px] lg:min-w-0
                                     ${activeTab === tab.id
-                                        ? 'border-brand-primary text-brand-primary bg-brand-primary/5'
-                                        : 'border-transparent text-gray-500 hover:text-brand-primary hover:bg-gray-50'
+                                        ? 'border-brand-primary text-brand-primary bg-brand-primary/5 dark:bg-brand-primary/15'
+                                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-brand-primary hover:bg-gray-50 dark:hover:bg-slate-800'
                                     }
                                 `}
                             >
@@ -194,7 +196,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                     </div>
 
                     {/* Right fade indicator - hidden on large screens */}
-                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none lg:hidden" />
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-900 to-transparent z-10 pointer-events-none lg:hidden" />
                 </div>
             </div>
         </div>
@@ -203,22 +205,22 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
 
 function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: boolean, onClose: () => void }) {
     return (
-        <div className="p-4 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[240px] animate-in fade-in zoom-in duration-200 relative z-[10010]">
+        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 min-w-[240px] animate-in fade-in zoom-in duration-200 relative z-[10010]">
             <div className="flex flex-col gap-4">
                 <div>
-                    <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                    <p className="text-sm text-gray-600 dark:text-slate-300 mb-1 flex items-center gap-1">
                         Saved to:
                         <Link href="/trips" className="text-brand-primary font-bold hover:underline">
                             My next trip
                         </Link>
                     </p>
                 </div>
-                <div className="h-px bg-gray-100" />
+                <div className="h-px bg-gray-100 dark:bg-slate-700" />
                 <label className="flex items-center gap-3 cursor-pointer group">
                     <div className="w-5 h-5 rounded-full border-2 border-brand-primary flex items-center justify-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900">My next trip</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-slate-100">My next trip</span>
                 </label>
             </div>
         </div>

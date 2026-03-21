@@ -18,23 +18,23 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
     return (
         <div className="space-y-4">
             {/* Review Score Card */}
-            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+            <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
                 {loading ? (
                     <div className="animate-pulse space-y-4">
                         <div className="flex justify-between items-center">
-                            <div className="h-4 bg-gray-200 rounded w-24"></div>
-                            <div className="h-10 w-10 bg-gray-200 rounded-t-xl rounded-br-xl"></div>
+                            <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-24"></div>
+                            <div className="h-10 w-10 bg-gray-200 dark:bg-slate-700 rounded-t-xl rounded-br-xl"></div>
                         </div>
-                        <div className="h-12 bg-gray-100 rounded w-full"></div>
+                        <div className="h-12 bg-gray-100 dark:bg-slate-800 rounded w-full"></div>
                     </div>
                 ) : reviews.length > 0 ? (
                     <>
                         <div className="flex items-center justify-between mb-4">
                             <div className="text-right">
-                                <div className="font-bold text-brand-dark">
+                                <div className="font-bold text-foreground">
                                     {hotel.rating >= 4 ? 'Exceptional' : hotel.rating >= 3.5 ? 'Excellent' : 'Good'}
                                 </div>
-                                <div className="text-[10px] text-gray-400">{hotel.reviews} reviews</div>
+                                <div className="text-[10px] text-muted-foreground">{hotel.reviews} reviews</div>
                             </div>
                             <div className="w-10 h-10 bg-brand-primary text-white rounded-t-xl rounded-br-xl flex items-center justify-center font-bold text-lg shadow-sm shadow-brand-primary/20">
                                 {Number(hotel.rating).toFixed(1)}
@@ -42,7 +42,7 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                         </div>
 
                         <div className="space-y-4">
-                            <div className="text-[11px] text-gray-500 italic leading-relaxed border-l-2 border-brand-primary/20 pl-3 line-clamp-3">
+                            <div className="text-[11px] text-muted-foreground italic leading-relaxed border-l-2 border-brand-primary/20 pl-3 line-clamp-3">
                                 "{reviews[0].pros || reviews[0].title || 'No comment provided.'}"
                             </div>
 
@@ -55,8 +55,8 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                                     </div>
                                 )}
                                 <div className="text-[10px]">
-                                    <span className="font-bold text-gray-900">{reviews[0].author?.name || 'Guest'}</span>
-                                    <span className="text-gray-500 ml-1">
+                                    <span className="font-bold text-foreground">{reviews[0].author?.name || 'Guest'}</span>
+                                    <span className="text-muted-foreground ml-1">
                                         {reviews[0].author?.countrycode?.toUpperCase()}
                                     </span>
                                 </div>
@@ -65,19 +65,19 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                     </>
                 ) : (
                     <div className="text-center py-4">
-                        <div className="text-sm font-bold text-brand-dark mb-1">No reviews yet</div>
-                        <div className="text-[10px] text-gray-400">Be the first to review!</div>
+                        <div className="text-sm font-bold text-foreground mb-1">No reviews yet</div>
+                        <div className="text-[10px] text-muted-foreground">Be the first to review!</div>
                     </div>
                 )}
 
-                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-brand-dark">Staff</span>
+                <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">Staff</span>
                     <span className="text-xs font-bold text-brand-primary border border-brand-primary/10 bg-brand-primary/5 px-1.5 py-0.5 rounded-md">9.0</span>
                 </div>
             </div>
 
             {/* Map Card */}
-            <div className="relative h-48 rounded-xl overflow-hidden border border-gray-100 group cursor-pointer shadow-sm">
+            <div className="relative h-48 rounded-xl overflow-hidden border border-border group cursor-pointer shadow-sm">
                 <img
                     src="https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=800&q=80"
                     alt="Map preview"
@@ -87,8 +87,13 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                     <Button
                         onClick={() => {
                             const params = new URLSearchParams();
-                            if (hotel.location) params.set('query', hotel.location);
+                            // Broad region only — street/address as `query` breaks Booking dest resolution and images.
+                            params.set('query', 'Ethiopia');
                             if (hotel.name) params.set('hotelName', hotel.name);
+                            params.set('fromDetail', '1');
+                            if (hotel.coordinates?.lat != null) params.set('lat', String(hotel.coordinates.lat));
+                            if (hotel.coordinates?.lng != null) params.set('lng', String(hotel.coordinates.lng));
+                            if (hotel.id) params.set('highlightId', String(hotel.id));
                             router.push(`/hotels/map?${params.toString()}`);
                         }}
                         className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95"
@@ -96,20 +101,20 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                         Show on map
                     </Button>
                 </div>
-                <div className="absolute bottom-2 right-2 bg-white/90 px-1.5 py-0.5 rounded-md text-[8px] text-gray-400">
+                <div className="absolute bottom-2 right-2 bg-white/90 dark:bg-slate-900/90 px-1.5 py-0.5 rounded-md text-[8px] text-gray-400 dark:text-slate-400">
                     Map data ©2025
                 </div>
             </div>
 
             {/* Property Highlights */}
-            <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-xl p-4 space-y-4">
-                <h4 className="font-bold text-brand-dark text-sm">Property highlights</h4>
+            <div className="bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/10 dark:border-brand-primary/20 rounded-xl p-4 space-y-4">
+                <h4 className="font-bold text-foreground text-sm">Property highlights</h4>
                 <div className="space-y-3">
                     <div className="flex gap-2">
                         <Info className="w-4 h-4 text-brand-primary shrink-0" />
                         <div>
-                            <div className="text-[11px] font-bold text-brand-dark">Perfect for a 3-night stay!</div>
-                            <div className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
+                            <div className="text-[11px] font-bold text-foreground">Perfect for a 3-night stay!</div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                 <MapPin className="w-3 h-3 text-brand-primary" />
                                 Top Location: Highly rated by recent guests (9.0)
                             </div>
@@ -118,20 +123,20 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                     <div className="flex gap-2">
                         <Maximize className="w-4 h-4 text-brand-primary shrink-0" />
                         <div>
-                            <div className="text-[11px] font-bold text-brand-dark">Apartments with:</div>
-                            <div className="text-[10px] text-gray-500 mt-0.5">Landmark view</div>
+                            <div className="text-[11px] font-bold text-foreground">Apartments with:</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">Landmark view</div>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <ParkingCircle className="w-4 h-4 text-brand-primary shrink-0" />
-                        <div className="text-[10px] text-gray-500">Free Private Parking Available On Site</div>
+                        <div className="text-[10px] text-muted-foreground">Free Private Parking Available On Site</div>
                     </div>
                 </div>
 
                 <Button onClick={() => onBook?.()} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs py-2 rounded-lg shadow-md shadow-brand-primary/10 transition-all active:scale-95">
                     Book now
                 </Button>
-                <div className="text-center text-[10px] text-gray-400">You won't be charged yet</div>
+                <div className="text-center text-[10px] text-muted-foreground">You won't be charged yet</div>
             </div>
         </div>
     );
