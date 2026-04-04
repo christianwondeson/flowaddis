@@ -1,4 +1,5 @@
 import React from 'react';
+import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from '@/lib/contact-phones';
 
 export default function PrivacyPage() {
     return (
@@ -58,12 +59,28 @@ export default function PrivacyPage() {
                             </p>
                             <p className="mt-2 font-medium">
                                 Email:{' '}
-                                <a href="mailto:info@flowaddis.com" className="text-brand-primary hover:underline">
-                                    info@flowaddis.com
+                                <a href="mailto:bookaddis0@gmail.com" className="text-brand-primary hover:underline">
+                                    bookaddis0@gmail.com
                                 </a>
-                                <br />
-                                Phone: +251 911 520 275
                             </p>
+                            <ul className="mt-3 space-y-2 list-none pl-0 text-gray-700">
+                                <li>
+                                    <span className="text-gray-500 text-sm font-semibold uppercase tracking-wide">Ethiopia</span>
+                                    <br />
+                                    <a href={`tel:${BOOKADDIS_ETHIOPIA_PHONE.tel}`} className="text-brand-primary hover:underline">
+                                        {BOOKADDIS_ETHIOPIA_PHONE.display}
+                                    </a>
+                                </li>
+                                {BOOKADDIS_INTERNATIONAL_LINES.map((line) => (
+                                    <li key={line.region}>
+                                        <span className="text-gray-500 text-sm font-semibold uppercase tracking-wide">{line.region}</span>
+                                        <br />
+                                        <a href={`tel:${line.tel}`} className="text-brand-primary hover:underline">
+                                            {line.display}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
                         </section>
                     </div>
                 </div>

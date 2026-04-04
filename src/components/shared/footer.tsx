@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Facebook, Instagram, Linkedin, Mail, Phone, MessageCircle } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
+import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from '@/lib/contact-phones';
 
 function TikTokIcon({ className }: { className?: string }) {
     return (
@@ -39,14 +40,30 @@ export const Footer: React.FC = () => {
                     <div>
                         <h3 className="text-lg font-bold mb-6 text-white">Support</h3>
                         <ul className="space-y-4 text-gray-400 text-sm">
-                            <li className="flex items-center gap-3">
-                                <Phone className="w-4 h-4 text-brand-primary" />
-                                <span>+251 921 929 159</span>
+                            <li className="flex items-start gap-3">
+                                <Phone className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
+                                <div>
+                                    <span className="text-gray-500 text-xs block uppercase tracking-wide">Ethiopia</span>
+                                    <a href={`tel:${BOOKADDIS_ETHIOPIA_PHONE.tel}`} className="hover:text-teal-400 transition-colors">
+                                        {BOOKADDIS_ETHIOPIA_PHONE.display}
+                                    </a>
+                                </div>
                             </li>
+                            {BOOKADDIS_INTERNATIONAL_LINES.map((line) => (
+                                <li key={line.region} className="flex items-start gap-3">
+                                    <Phone className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
+                                    <div>
+                                        <span className="text-gray-500 text-xs block uppercase tracking-wide">{line.region}</span>
+                                        <a href={`tel:${line.tel}`} className="hover:text-teal-400 transition-colors">
+                                            {line.display}
+                                        </a>
+                                    </div>
+                                </li>
+                            ))}
                             <li className="flex items-center gap-3">
                                 <Mail className="w-4 h-4 text-brand-primary" />
-                                <a href="mailto:info@flowaddis.com" className="hover:text-teal-400 transition-colors">
-                                    info@flowaddis.com
+                                <a href="mailto:bookaddis0@gmail.com" className="hover:text-teal-400 transition-colors">
+                                    bookaddis0@gmail.com
                                 </a>
                             </li>
                             <li className="flex items-center gap-3">
@@ -95,7 +112,7 @@ export const Footer: React.FC = () => {
 
                 <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                        <p className="text-gray-500 text-sm">© 2025 FlowAddis. All rights reserved.</p>
+                        <p className="text-gray-500 text-sm">© 2025 BookAddis. All rights reserved.</p>
                         <div className="flex gap-6">
                             <Link href="/privacy" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">Privacy Policy</Link>
                             <Link href="/terms" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">Terms of Service</Link>

@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { Mail, Phone, MapPin, MessageCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from '@/lib/contact-phones';
 
 export const metadata: Metadata = {
     title: 'Contact Us | BookAddis',
@@ -40,34 +41,57 @@ export default function ContactPage() {
 
                                 <div className="space-y-6">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center shrink-0">
                                             <Phone className="w-6 h-6 text-brand-primary" />
                                         </div>
-                                        <div>
-                                            <h3 className="font-bold text-brand-dark mb-1">Phone</h3>
-                                            <p className="text-gray-600">+251 921 929 159</p>
-                                            <p className="text-sm text-gray-500">Mon-Fri 9am-6pm EAT</p>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h3 className="font-bold text-brand-dark mb-2">Phone</h3>
+                                                <p className="text-sm text-gray-500 mb-3">Mon–Fri 9am–6pm EAT (Ethiopia)</p>
+                                            </div>
+                                            <div className="space-y-3 text-gray-600">
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Ethiopia</p>
+                                                    <a
+                                                        href={`tel:${BOOKADDIS_ETHIOPIA_PHONE.tel}`}
+                                                        className="font-medium text-brand-primary hover:underline"
+                                                    >
+                                                        {BOOKADDIS_ETHIOPIA_PHONE.display}
+                                                    </a>
+                                                </div>
+                                                {BOOKADDIS_INTERNATIONAL_LINES.map((line) => (
+                                                    <div key={line.region}>
+                                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">{line.region}</p>
+                                                        <a
+                                                            href={`tel:${line.tel}`}
+                                                            className="font-medium text-brand-primary hover:underline"
+                                                        >
+                                                            {line.display}
+                                                        </a>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center shrink-0">
                                             <Mail className="w-6 h-6 text-brand-primary" />
                                         </div>
                                         <div>
                                             <p className="text-gray-600 font-medium">Email Us</p>
                                             <a
-                                                href="mailto:info@flowaddis.com"
+                                                href="mailto:bookaddis0@gmail.com"
                                                 className="text-brand-primary font-medium hover:underline"
                                             >
-                                                info@flowaddis.com
+                                                bookaddis0@gmail.com
                                             </a>
                                             <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
                                         </div>
                                     </div>
 
                                     <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
                                             <MessageCircle className="w-6 h-6 text-green-600" />
                                         </div>
                                         <div>
@@ -85,7 +109,7 @@ export default function ContactPage() {
                                     </div>
 
                                     <div className="flex items-start gap-4">
-                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center shrink-0">
                                             <MapPin className="w-6 h-6 text-brand-primary" />
                                         </div>
                                         <div>

@@ -5,6 +5,7 @@ import { Send, ShieldAlert, Ticket, Phone, Mail, MessageCircle } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { CreateSupportTicketInput, SupportServiceType, SupportTicketCategory } from '@/types/support';
+import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from '@/lib/contact-phones';
 
 const SERVICES: { value: SupportServiceType; label: string }[] = [
   { value: 'hotels', label: 'Hotels' },
@@ -112,18 +113,31 @@ export default function HelpPage() {
 
               <div className="mt-6 space-y-4 text-sm">
                 <div className="flex items-start gap-3">
-                  <Phone className="w-4 h-4 text-brand-primary mt-0.5" />
-                  <div>
+                  <Phone className="w-4 h-4 text-brand-primary mt-0.5 shrink-0" />
+                  <div className="space-y-3">
                     <div className="font-semibold text-brand-dark">Phone</div>
-                    <div className="text-gray-600">+251 921 929 159</div>
+                    <div>
+                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Ethiopia</div>
+                      <a className="text-gray-700 hover:text-brand-primary" href={`tel:${BOOKADDIS_ETHIOPIA_PHONE.tel}`}>
+                        {BOOKADDIS_ETHIOPIA_PHONE.display}
+                      </a>
+                    </div>
+                    {BOOKADDIS_INTERNATIONAL_LINES.map((line) => (
+                      <div key={line.region}>
+                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">{line.region}</div>
+                        <a className="text-gray-700 hover:text-brand-primary" href={`tel:${line.tel}`}>
+                          {line.display}
+                        </a>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Mail className="w-4 h-4 text-brand-primary mt-0.5" />
                   <div>
                     <div className="font-semibold text-brand-dark">Email</div>
-                    <a href="mailto:info@flowaddis.com" className="text-brand-primary hover:underline">
-                      info@flowaddis.com
+                    <a href="mailto:bookaddis0@gmail.com" className="text-brand-primary hover:underline">
+                      bookaddis0@gmail.com
                     </a>
                   </div>
                 </div>
