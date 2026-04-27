@@ -59,8 +59,8 @@ export default function PrivacyPage() {
                             </p>
                             <p className="mt-2 font-medium">
                                 Email:{' '}
-                                <a href="mailto:bookaddis0@gmail.com" className="text-brand-primary hover:underline">
-                                    bookaddis0@gmail.com
+                                <a href="mailto:info@bookaddis.com" className="text-brand-primary hover:underline">
+                                    info@bookaddis.com
                                 </a>
                             </p>
                             <ul className="mt-3 space-y-2 list-none pl-0 text-gray-700">

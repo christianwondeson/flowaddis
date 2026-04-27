@@ -136,8 +136,8 @@ export default function HelpPage() {
                   <Mail className="w-4 h-4 text-brand-primary mt-0.5" />
                   <div>
                     <div className="font-semibold text-brand-dark">Email</div>
-                    <a href="mailto:bookaddis0@gmail.com" className="text-brand-primary hover:underline">
-                      bookaddis0@gmail.com
+                    <a href="mailto:info@bookaddis.com" className="text-brand-primary hover:underline">
+                      info@bookaddis.com
                     </a>
                   </div>
                 </div>

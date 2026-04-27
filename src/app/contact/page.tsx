@@ -81,10 +81,10 @@ export default function ContactPage() {
                                         <div>
                                             <p className="text-gray-600 font-medium">Email Us</p>
                                             <a
-                                                href="mailto:bookaddis0@gmail.com"
+                                                href="mailto:info@bookaddis.com"
                                                 className="text-brand-primary font-medium hover:underline"
                                             >
-                                                bookaddis0@gmail.com
+                                                info@bookaddis.com
                                             </a>
                                             <p className="text-sm text-gray-500">We'll respond within 24 hours</p>
                                         </div>
