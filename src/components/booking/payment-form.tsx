@@ -104,9 +104,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     return;
                 }
 
+                if (
+                    (bookingType === 'flight' || bookingType === 'hotel') &&
+                    (!externalItemId || externalItemId === 'N/A')
+                ) {
+                    toast.error(
+                        bookingType === 'flight'
+                            ? 'Card checkout needs a valid flight offer from search. Try another flight or use a local payment option.'
+                            : 'Card checkout needs a valid hotel. Open the hotel from search again or use a local payment option.',
+                    );
+                    setLoading(false);
+                    return;
+                }
+
                 // Force-refresh Firebase ID token to avoid invalid/expired tokens
                 const token = await auth.currentUser.getIdToken(true);
-                const returnUrl = resolveCheckoutReturnUrlForRequest();
+                void resolveCheckoutReturnUrlForRequest();
 
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
@@ -114,15 +127,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         'Content-Type': 'application/json',
                         ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
-                    // Match backend API spec
+                    // Server-only pricing: never send a client-controlled amount to the API
                     body: JSON.stringify({
                         bookingType,
                         source,
                         externalItemId,
-                        displayedPrice: amount,
                         currency: currencyCode || 'USD',
                         external_snapshot: externalSnapshot,
-                        ...(returnUrl ? { returnUrl } : {}),
                     }),
                 });
 

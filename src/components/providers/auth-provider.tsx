@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 // Actually, I should check types/auth.ts first to be safe.
 
 import { APP_CONSTANTS } from '@/lib/constants';
+import { validatePasswordStrength } from '@/lib/password-policy';
 // import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies'; // Deprecated in favor of HttpOnly cookies
 import { useUserProfile } from '@/hooks/use-user-profile';
 
@@ -113,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             case 'auth/email-already-in-use':
                 return 'An account with this email already exists. Try signing in instead.';
             case 'auth/weak-password':
-                return 'Your password is too weak. Please use at least 8 characters with a mix of letters and numbers.';
+                return 'Your password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a symbol.';
             case 'auth/invalid-email':
                 return 'Please enter a valid email address.';
             case 'auth/operation-not-allowed':
@@ -240,6 +241,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         if (!password) throw new Error("Password required");
 
+        const pwCheck = validatePasswordStrength(password);
+        if (!pwCheck.ok) {
+            throw new Error(pwCheck.message);
+        }
+
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
@@ -348,7 +354,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const sendPasswordReset = async (email: string) => {
         if (!auth) throw new Error("Auth not initialized");
         try {
-            await sendPasswordResetEmail(auth, email);
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            if (origin) {
+                await sendPasswordResetEmail(auth, email, {
+                    url: `${origin}/reset-password`,
+                    handleCodeInApp: false,
+                });
+            } else {
+                await sendPasswordResetEmail(auth, email);
+            }
         } catch (error) {
             throw new Error(handleAuthError(error));
         }

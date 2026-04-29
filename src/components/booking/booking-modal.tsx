@@ -34,6 +34,12 @@ interface BookingModalProps {
     initialCheckOut?: string;
     isLocal?: boolean;
     externalItemId?: string;
+    /** RapidAPI room-list block id (from Book now on a rate) for server-side price verification */
+    roomBlockId?: string;
+    /** Number of rooms of that rate (matches UI selector). Defaults to 1. */
+    roomBookQuantity?: number;
+    /** Guest count forwarded to Nest for room-list verification */
+    hotelAdults?: number;
 }
 
 const normalizePhone = (v: string) => v.replace(/[^+\d]/g, '');
@@ -84,6 +90,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialCheckOut = '',
     isLocal = false,
     externalItemId = 'N/A',
+    roomBlockId,
+    roomBookQuantity = 1,
+    hotelAdults,
 }) => {
     const pathname = usePathname();
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
@@ -92,13 +101,41 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [bookingData, setBookingData] = useState<any>(null);
 
     // Create a snapshot for the service identification
-    const externalSnapshot = useMemo(() => ({
-        serviceName,
-        checkIn: initialCheckIn,
-        checkOut: initialCheckOut,
-        type,
-        timestamp: new Date().toISOString()
-    }), [serviceName, initialCheckIn, initialCheckOut, type]);
+    const externalSnapshot = useMemo(
+        () => ({
+            serviceName,
+            checkIn: initialCheckIn,
+            checkOut: initialCheckOut,
+            type,
+            timestamp: new Date().toISOString(),
+            ...(roomBlockId
+                ? {
+                      roomBlockId,
+                      roomBookQuantity: Math.max(1, Math.floor(roomBookQuantity || 1)),
+                  }
+                : {}),
+            ...(typeof hotelAdults === 'number' && hotelAdults > 0 ? { adults: hotelAdults } : {}),
+        }),
+        [
+            serviceName,
+            initialCheckIn,
+            initialCheckOut,
+            type,
+            roomBlockId,
+            roomBookQuantity,
+            hotelAdults,
+        ],
+    );
+
+    const checkoutExternalSnapshot = useMemo(() => {
+        if (!bookingData) return externalSnapshot;
+        const bd = bookingData as BookingFormData;
+        return {
+            ...externalSnapshot,
+            checkIn: bd.checkIn || externalSnapshot.checkIn,
+            checkOut: bd.checkOut || externalSnapshot.checkOut,
+        };
+    }, [bookingData, externalSnapshot]);
 
     const {
         register,
@@ -138,13 +175,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             externalItemId: String(externalItemId),
             type,
             serviceName,
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
             checkIn: data.checkIn,
             checkOut: data.checkOut,
-            countryCode,
-            nationalNumber,
+            roomBlockId,
+            roomBookQuantity,
+            hotelAdults,
         });
         requireAuth();
     };
@@ -155,15 +190,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const draft = consumeMatchedHotelDraft(pathname, String(externalItemId), type);
         if (draft) {
             reset({
-                name: draft.name,
-                email: draft.email,
-                phone: draft.phone,
+                name: '',
+                email: '',
+                phone: '',
                 checkIn: draft.checkIn || initialCheckIn,
                 checkOut: draft.checkOut || initialCheckOut,
             });
-            setCountryCode(draft.countryCode || 'ET');
-            setNationalNumber(draft.nationalNumber || '');
-            toast.success('Your booking details were restored. Continue where you left off.');
+            setCountryCode('ET');
+            setNationalNumber('');
+            toast.success('Your dates were restored. Please complete your name and phone to continue.');
             return;
         }
         if (initialCheckIn) setValue('checkIn', initialCheckIn, { shouldValidate: true });
@@ -440,7 +475,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 bookingType={type as any}
                                 source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
                                 externalItemId={externalItemId}
-                                externalSnapshot={externalSnapshot}
+                                externalSnapshot={checkoutExternalSnapshot}
                             />
                         )}
 

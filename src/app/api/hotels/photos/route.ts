@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
+import { assertHotelDetailAccess } from '@/lib/hotel-public-api-guard';
 import axios from 'axios';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const hotelId = searchParams.get('hotelId');
-
-    if (!hotelId) {
-        return NextResponse.json({ error: 'Hotel ID is required' }, { status: 400 });
-    }
+    const guarded = assertHotelDetailAccess(request, searchParams.get('hotelId'));
+    if (!guarded.ok) return guarded.response;
+    const hotelId = guarded.hotelId;
 
     try {
         const options = {

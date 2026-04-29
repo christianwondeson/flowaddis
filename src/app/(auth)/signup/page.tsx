@@ -10,6 +10,8 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { toast } from "sonner"
 import { AuthLayout } from "@/components/layout/auth-layout"
 import { FormField } from "@/components/auth/form-field"
+import { validatePasswordStrength, PASSWORD_POLICY_HINT } from "@/lib/password-policy"
+import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter"
 
 export default function SignUpPage() {
     const [name, setName] = useState("")
@@ -50,7 +52,8 @@ export default function SignUpPage() {
 
         if (!name.trim()) newErrors.name = "Full name is required"
         if (!email.includes("@")) newErrors.email = "Please enter a valid email"
-        if (password.length < 8) newErrors.password = "Password must be at least 8 characters"
+        const pw = validatePasswordStrength(password)
+        if (!pw.ok) newErrors.password = pw.message
         if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match"
 
         setErrors(newErrors)
@@ -126,6 +129,7 @@ export default function SignUpPage() {
 
                 {/* Password Field */}
                 <FormField label="Password" error={errors.password}>
+                    <p className="text-xs text-gray-600 mb-1.5">{PASSWORD_POLICY_HINT}</p>
                     <PasswordInput
                         placeholder="••••••••"
                         value={password}
@@ -135,6 +139,7 @@ export default function SignUpPage() {
                         }}
                         className="w-full"
                     />
+                    <PasswordStrengthMeter password={password} className="mt-2" />
                 </FormField>
 
                 {/* Confirm Password Field */}

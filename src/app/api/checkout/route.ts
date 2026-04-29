@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
+import { pickNestCreateSessionBody } from '@/lib/nest-checkout-body';
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
+        const nestBody = pickNestCreateSessionBody(body);
 
         // The NestJS backend URL - should be in .env
         const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
@@ -17,7 +19,7 @@ export async function POST(req: Request) {
             // Log header presence only
         }
 
-        // Forward the request to the NestJS backend
+        // Forward only whitelisted fields (no client price / no unknown props for ValidationPipe)
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
                 // Forward authorization header if it exists
                 ...(authHeader && { 'Authorization': authHeader }),
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify(nestBody),
         });
 
         const data = await response.json();

@@ -5,19 +5,49 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { Trip } from '@/store/trip-store';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency';
-import { Plane, Hotel, Bus, Users, Calendar, CheckCircle } from 'lucide-react';
+import { Plane, Hotel, Bus, Users, Calendar, CheckCircle, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 
 export default function CustomerDashboard() {
     const { user } = useAuth();
     const [trips, setTrips] = useState<Trip[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (user && typeof window !== 'undefined') {
-            // Load trips from localStorage (Mock persistence)
-            const allTrips = JSON.parse(localStorage.getItem('flowaddis_trips') || '[]');
-            setTrips(allTrips);
+        if (!user?.id || !db) {
+            setTrips([]);
+            setLoading(false);
+            return;
         }
-    }, [user]);
+
+        (async () => {
+            try {
+                try {
+                    localStorage.removeItem('bookaddis_trips');
+                    localStorage.removeItem('flowaddis_trips');
+                    localStorage.removeItem('trip-storage');
+                } catch {
+                    /* ignore */
+                }
+
+                const q = query(collection(db, 'trips'), where('userId', '==', user.id), limit(50));
+                const snap = await getDocs(q);
+                const list: Trip[] = [];
+                snap.forEach((docSnap) => {
+                    const data = docSnap.data() as Omit<Trip, 'id'>;
+                    list.push({ ...data, id: docSnap.id });
+                });
+                list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                setTrips(list);
+            } catch (e) {
+                console.error('Failed to load trips', e);
+                setTrips([]);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [user?.id]);
 
     return (
         <div className="container mx-auto px-4 py-8 md:py-12">
@@ -25,7 +55,11 @@ export default function CustomerDashboard() {
             <p className="text-gray-500 mb-6 md:mb-8">Manage your bookings and digital tickets.</p>
 
             <div className="space-y-4 md:space-y-6">
-                {trips.length === 0 ? (
+                {loading ? (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+                    </div>
+                ) : trips.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl">
                         <p className="text-gray-500">No trips found. Start booking!</p>
                     </div>

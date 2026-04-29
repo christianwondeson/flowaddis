@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { persist } from 'zustand/middleware';
 
 import { db } from '@/lib/firebase';
-import { doc, setDoc, collection } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 export interface TripItem {
     id: string;
@@ -29,53 +28,45 @@ interface TripState {
     checkoutTrip: (userId: string) => Promise<string>;
 }
 
-export const useTripStore = create<TripState>()(
-    persist(
-        (set, get) => ({
-            currentTrip: [],
-            addToTrip: (item) => {
-                const newItem = { ...item, id: uuidv4() };
-                set((state) => ({ currentTrip: [...state.currentTrip, newItem] }));
-            },
-            removeFromTrip: (id) => {
-                set((state) => ({
-                    currentTrip: state.currentTrip.filter((item) => item.id !== id),
-                }));
-            },
-            clearTrip: () => set({ currentTrip: [] }),
-            checkoutTrip: async (userId) => {
-                const { currentTrip, clearTrip } = get();
-                const tripId = uuidv4();
-                const totalAmount = currentTrip.reduce((sum, item) => sum + item.price, 0);
+/**
+ * Trip cart lives in memory only (no localStorage) to avoid exposing booking details
+ * and identifiers to XSS or extensions. Confirmed trips are persisted in Firestore.
+ */
+export const useTripStore = create<TripState>()((set, get) => ({
+    currentTrip: [],
+    addToTrip: (item) => {
+        const newItem = { ...item, id: uuidv4() };
+        set((state) => ({ currentTrip: [...state.currentTrip, newItem] }));
+    },
+    removeFromTrip: (id) => {
+        set((state) => ({
+            currentTrip: state.currentTrip.filter((item) => item.id !== id),
+        }));
+    },
+    clearTrip: () => set({ currentTrip: [] }),
+    checkoutTrip: async (userId) => {
+        const { currentTrip, clearTrip } = get();
+        const tripId = uuidv4();
+        const totalAmount = currentTrip.reduce((sum, item) => sum + item.price, 0);
 
-                const newTrip: Trip = {
-                    id: tripId,
-                    userId,
-                    items: currentTrip,
-                    totalAmount,
-                    status: 'confirmed',
-                    date: new Date().toISOString(),
-                };
+        const newTrip: Trip = {
+            id: tripId,
+            userId,
+            items: currentTrip,
+            totalAmount,
+            status: 'confirmed',
+            date: new Date().toISOString(),
+        };
 
-                // Save to Firestore
-                if (db) {
-                    try {
-                        await setDoc(doc(db, 'trips', tripId), newTrip);
-                    } catch (error) {
-                        console.error('Error saving trip to Firestore:', error);
-                    }
-                }
-
-                // For now, also save to localStorage to simulate persistence
-                const existingTrips = JSON.parse(localStorage.getItem('bookaddis_trips') || '[]');
-                localStorage.setItem('bookaddis_trips', JSON.stringify([...existingTrips, newTrip]));
-
-                clearTrip();
-                return tripId;
-            },
-        }),
-        {
-            name: 'trip-storage',
+        if (db) {
+            try {
+                await setDoc(doc(db, 'trips', tripId), newTrip);
+            } catch (error) {
+                console.error('Error saving trip to Firestore:', error);
+            }
         }
-    )
-);
+
+        clearTrip();
+        return tripId;
+    },
+}));

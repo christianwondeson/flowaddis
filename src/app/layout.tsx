@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
@@ -33,11 +34,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `!function(){try{if(localStorage.getItem('flowaddis-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}}();`,
-          }}
-        />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
       <body className="antialiased font-sans bg-background text-foreground min-h-screen" suppressHydrationWarning>
         <Providers>

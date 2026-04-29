@@ -1,29 +1,44 @@
 import { NextResponse } from 'next/server';
 import { APP_CONSTANTS } from '@/lib/constants';
+import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
 
-// POST: Create a session (Set Cookie)
+function clearSessionCookie(response: NextResponse) {
+    response.cookies.set({
+        name: APP_CONSTANTS.AUTH.COOKIE_NAME,
+        value: '',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 0,
+        sameSite: 'lax',
+    });
+}
+
+// POST: Verify Firebase ID token, then set HttpOnly session cookie
 export async function POST(request: Request) {
     try {
         const { token } = await request.json();
 
-        if (!token) {
+        if (!token || typeof token !== 'string') {
             return NextResponse.json({ error: 'Token is required' }, { status: 400 });
         }
 
-        // In a real-world scenario (Future Step), we would verify this token using firebase-admin here.
-        // For now, we trust the client-provided token but store it securely to prevent XSS theft.
+        try {
+            await verifyFirebaseIdToken(token);
+        } catch {
+            return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
+        }
 
         const response = NextResponse.json({ success: true });
 
-        // Set HttpOnly Cookie
         response.cookies.set({
             name: APP_CONSTANTS.AUTH.COOKIE_NAME,
             value: token,
-            httpOnly: true, // Critical: Not accessible via client-side JS
-            secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
             path: '/',
             maxAge: APP_CONSTANTS.AUTH.COOKIE_MAX_AGE,
-            sameSite: 'lax', // Protects against CSRF
+            sameSite: 'lax',
         });
 
         return response;
@@ -36,17 +51,6 @@ export async function POST(request: Request) {
 // DELETE: Destroy session (Clear Cookie)
 export async function DELETE() {
     const response = NextResponse.json({ success: true });
-
-    // Clear Cookie
-    response.cookies.set({
-        name: APP_CONSTANTS.AUTH.COOKIE_NAME,
-        value: '',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        maxAge: 0, // Expire immediately
-        sameSite: 'lax',
-    });
-
+    clearSessionCookie(response);
     return response;
 }

@@ -1,28 +1,56 @@
 import { NextResponse } from 'next/server';
 import { APP_CONSTANTS } from '@/lib/constants';
 import type { NextRequest } from 'next/server';
+import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
 
-// Protected routes that require authentication
-const protectedRoutes = ['/dashboard', '/admin']; // Removed root route
+const protectedRoutes = ['/dashboard', '/admin'];
 const authRoutes = ['/signin', '/signup'];
 
-export function middleware(request: NextRequest) {
+function clearSessionCookie(response: NextResponse) {
+    response.cookies.set({
+        name: APP_CONSTANTS.AUTH.COOKIE_NAME,
+        value: '',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 0,
+        sameSite: 'lax',
+    });
+}
+
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const token = request.cookies.get(APP_CONSTANTS.AUTH.COOKIE_NAME)?.value;
 
-    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+    const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-    // Redirect to signin if accessing protected route without token
-    if (isProtectedRoute && !token) {
-        const url = new URL('/signin', request.url);
-        url.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(url);
+    if (isProtectedRoute) {
+        if (!token) {
+            const url = new URL('/signin', request.url);
+            url.searchParams.set('redirect', pathname);
+            return NextResponse.redirect(url);
+        }
+        try {
+            await verifyFirebaseIdToken(token);
+        } catch {
+            const url = new URL('/signin', request.url);
+            url.searchParams.set('redirect', pathname);
+            const res = NextResponse.redirect(url);
+            clearSessionCookie(res);
+            return res;
+        }
+        return NextResponse.next();
     }
 
-    // Redirect to home if accessing auth routes with token
     if (isAuthRoute && token) {
-        // If there is a redirect param, use it
+        try {
+            await verifyFirebaseIdToken(token);
+        } catch {
+            const res = NextResponse.next();
+            clearSessionCookie(res);
+            return res;
+        }
         const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/';
         return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
@@ -32,14 +60,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - api (API routes)
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - public folder
-         */
         '/((?!api|_next/static|_next/image|favicon.ico|assets).*)',
     ],
 };

@@ -23,7 +23,7 @@ interface HotelDetailAvailabilityProps {
     roomsCount?: number;
     onDateChange?: (checkIn: string, checkOut: string) => void;
     onGuestsChange?: (adults: number, children: number, rooms: number) => void;
-    onBook?: (price?: number, serviceName?: string, externalItemId?: string) => void;
+    onBook?: (price?: number, serviceName?: string, roomBlockId?: string, roomQuantity?: number) => void;
 }
 
 export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = ({
@@ -229,7 +229,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         </SelectContent>
                                     </Select>
 
-                                    <Button onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id))} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
+                                    <Button onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id), selectedCount)} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
                                         Book now
                                     </Button>
                                 </div>
@@ -388,7 +388,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         <td className="px-6 py-6 align-middle bg-brand-primary/[0.02] group-hover:bg-brand-primary/[0.04] transition-colors">
                                             <div className="flex flex-col gap-2">
                                                 <Button
-                                                    onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id))}
+                                                    onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id), selectedCount)}
                                                     className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-brand-primary/10 transition-all active:scale-[0.98] group-hover:translate-y-[-1px]"
                                                 >
                                                     Book now

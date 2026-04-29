@@ -34,7 +34,8 @@ export default function HotelDetailPage() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedPrice, setSelectedPrice] = useState<number>(0);
     const [selectedServiceName, setSelectedServiceName] = useState<string>('');
-    const [selectedExternalItemId, setSelectedExternalItemId] = useState<string>('');
+    const [selectedRoomBlockId, setSelectedRoomBlockId] = useState<string | undefined>(undefined);
+    const [selectedRoomQty, setSelectedRoomQty] = useState(1);
     const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
     const [facilities, setFacilities] = useState<any[]>([]);
     const [apiError, setApiError] = useState<{ message: string; isRateLimit?: boolean } | null>(null);
@@ -267,10 +268,11 @@ export default function HotelDetailPage() {
                                         setChildren(ch);
                                         setRoomsCount(rm);
                                     }}
-                                    onBook={(p?: number, s?: string, rid?: string) => {
+                                    onBook={(p, s, blockId, qty) => {
                                         if (p) setSelectedPrice(p);
                                         if (s) setSelectedServiceName(s);
-                                        if (rid) setSelectedExternalItemId(rid);
+                                        setSelectedRoomBlockId(blockId ? String(blockId) : undefined);
+                                        setSelectedRoomQty(typeof qty === 'number' && qty > 0 ? qty : 1);
                                         setIsBookingOpen(true);
                                     }}
                                 />
@@ -360,14 +362,19 @@ export default function HotelDetailPage() {
                 onClose={() => {
                     setIsBookingOpen(false);
                     setSelectedServiceName('');
+                    setSelectedRoomBlockId(undefined);
+                    setSelectedRoomQty(1);
                 }}
                 serviceName={selectedServiceName || hotel.name}
                 price={selectedPrice || hotel.price}
-                externalItemId={selectedExternalItemId || hotel.id || (Array.isArray(id) ? id[0] : id)}
+                externalItemId={String(hotel.id || (Array.isArray(id) ? id[0] : id) || '')}
                 type="hotel"
                 initialCheckIn={checkInDate}
                 initialCheckOut={checkOutDate}
                 isLocal={true}
+                roomBlockId={selectedRoomBlockId}
+                roomBookQuantity={selectedRoomQty}
+                hotelAdults={adults}
             />
 
             {/* Mobile bottom bar - fixed, safe-area aware */}

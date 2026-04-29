@@ -95,21 +95,20 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
     const selectedCountry: Country = useMemo(() => COUNTRIES.find(c => c.code === countryCode) || COUNTRIES[0], [countryCode]);
     const [nationalNumber, setNationalNumber] = useState<string>('');
 
+    /** RapidAPI flight offer token — required for server-side price verification at checkout */
+    const flightOfferToken =
+        (flightData?.selectionKey as string | undefined) ||
+        (flightData?.id as string | undefined) ||
+        '';
+
     const updatePhoneE164 = (cc: Country, nat: string) => {
         const natDigits = nat.replace(/\D/g, '');
         const e164 = `${cc.dial}${natDigits}`;
         setValue('phone', e164, { shouldValidate: true });
     };
 
-    const persistDraftAndRequireAuth = (data: FlightBookingFormData) => {
-        saveFlightBookingDraftForAuthRedirect({
-            pathname,
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            countryCode,
-            nationalNumber,
-        });
+    const persistDraftAndRequireAuth = () => {
+        saveFlightBookingDraftForAuthRedirect({ pathname });
         requireAuth();
     };
 
@@ -117,14 +116,10 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         if (!isOpen) return;
         const draft = consumeMatchedFlightDraft(pathname);
         if (!draft) return;
-        reset({
-            name: draft.name,
-            email: draft.email,
-            phone: draft.phone,
-        });
-        setCountryCode(draft.countryCode || 'ET');
-        setNationalNumber(draft.nationalNumber || '');
-        toast.success('Your booking details were restored. Continue where you left off.');
+        reset({ name: '', email: '', phone: '' });
+        setCountryCode('ET');
+        setNationalNumber('');
+        toast.success('Please enter your contact details to continue.');
     }, [isOpen, pathname, reset]);
 
     useEffect(() => {
@@ -137,7 +132,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
 
     const handleAddToTrip = (data: FlightBookingFormData) => {
         if (!user) {
-            persistDraftAndRequireAuth(data);
+            persistDraftAndRequireAuth();
             return;
         }
         const email = resolveBookingEmail(data);
@@ -159,7 +154,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
 
     const handleFormSubmit = (data: FlightBookingFormData) => {
         if (!user) {
-            persistDraftAndRequireAuth(data);
+            persistDraftAndRequireAuth();
             return;
         }
         // Additional country-based length validation
@@ -352,6 +347,16 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                                 onSuccess={handlePaymentSuccess as any}
                                 onCancel={() => setStep('form')}
                                 isLocal={isLocal}
+                                bookingType="flight"
+                                source="rapidapi"
+                                externalItemId={flightOfferToken}
+                                currencyCode={flightData?.price?.currency || 'USD'}
+                                externalSnapshot={{
+                                    serviceName,
+                                    type: 'flight',
+                                    airline: flightData?.airline,
+                                    flightNumber: flightData?.flightNumber,
+                                }}
                             />
                         )}
 
