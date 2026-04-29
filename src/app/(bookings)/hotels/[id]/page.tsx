@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { HotelDetailHeader } from '@/components/hotels/hotel-detail-header';
 import { HotelDetailGallery } from '@/components/hotels/hotel-detail-gallery';
 import { HotelDetailAbout } from '@/components/hotels/hotel-detail-about';
@@ -11,13 +11,32 @@ import { HotelDetailBookingSidebar } from '@/components/hotels/hotel-detail-book
 import { useHotels } from '@/hooks/use-hotels';
 import axios from 'axios';
 import { BookingModal } from '@/components/booking/booking-modal';
-import { formatDateLocal } from '@/lib/date-utils';
+import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 import { Preloader } from '@/components/ui/preloader';
 import { Button } from '@/components/ui/button';
 import { APP_CONSTANTS } from '@/lib/constants';
 
+function defaultStayDates() {
+    return {
+        ci: formatDateLocal(new Date(Date.now() + 86400000)),
+        co: formatDateLocal(new Date(Date.now() + 172800000)),
+    };
+}
+
 export default function HotelDetailPage() {
     const { id } = useParams();
+    const searchParams = useSearchParams();
+    const defStay = defaultStayDates();
+    const initialCi =
+        searchParams.get('checkIn') ||
+        searchParams.get('checkin') ||
+        searchParams.get('checkInDate') ||
+        defStay.ci;
+    const initialCo =
+        searchParams.get('checkOut') ||
+        searchParams.get('checkout') ||
+        searchParams.get('checkOutDate') ||
+        defStay.co;
     const [activeTab, setActiveTab] = useState('overview');
     const HOTEL_PLACEHOLDER = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || '/assets/images/addis-view.jpg';
     const [hotel, setHotel] = useState<any>({
@@ -40,35 +59,58 @@ export default function HotelDetailPage() {
     const [apiError, setApiError] = useState<{ message: string; isRateLimit?: boolean } | null>(null);
     const [reviewsList, setReviewsList] = useState<any[]>([]);
 
-    // Manage dates
-    const [checkInDate, setCheckInDate] = useState<string>('');
-    const [checkOutDate, setCheckOutDate] = useState<string>('');
+    // Manage dates (seed from URL so search + availability use the same stay as the listing)
+    const [checkInDate, setCheckInDate] = useState<string>(initialCi);
+    const [checkOutDate, setCheckOutDate] = useState<string>(initialCo);
 
     // Manage guests and rooms
     const [adults, setAdults] = useState<number>(2);
     const [children, setChildren] = useState<number>(0);
     const [rooms, setRoomsCount] = useState<number>(1);
 
-    // In a real app, we would fetch by ID. 
-    // For now, we'll find it from the search results or use mock data.
-    const { data, isLoading } = useHotels({ query: 'Ethiopia' });
+    const listQuery = searchParams.get('query') || searchParams.get('hotelName') || 'Ethiopia';
+    const { data, isLoading } = useHotels({
+        query: listQuery,
+        checkIn: checkInDate ? parseDateLocal(checkInDate) : undefined,
+        checkOut: checkOutDate ? parseDateLocal(checkOutDate) : undefined,
+    });
+
+    const urlStayKey = [
+        searchParams.get('checkIn'),
+        searchParams.get('checkin'),
+        searchParams.get('checkInDate'),
+        searchParams.get('checkOut'),
+        searchParams.get('checkout'),
+        searchParams.get('checkOutDate'),
+    ].join('\0');
 
     useEffect(() => {
-        // Seed basic details from URL query string if present
+        const d = defaultStayDates();
+        const ci =
+            searchParams.get('checkIn') ||
+            searchParams.get('checkin') ||
+            searchParams.get('checkInDate') ||
+            d.ci;
+        const co =
+            searchParams.get('checkOut') ||
+            searchParams.get('checkout') ||
+            searchParams.get('checkOutDate') ||
+            d.co;
+        setCheckInDate(ci);
+        setCheckOutDate(co);
+    }, [id, urlStayKey]);
+
+    useEffect(() => {
         if (typeof window !== 'undefined') {
             const usp = new URLSearchParams(window.location.search);
             const name = usp.get('name');
             const price = usp.get('price');
             const image = usp.get('image');
             const location = usp.get('location');
-            const ci = usp.get('checkIn') || usp.get('checkin') || usp.get('checkInDate') || formatDateLocal(new Date(Date.now() + 86400000));
-            const co = usp.get('checkOut') || usp.get('checkout') || usp.get('checkOutDate') || formatDateLocal(new Date(Date.now() + 172800000));
             const ad = Number(usp.get('adults')) || 2;
             const ch = Number(usp.get('children')) || 0;
             const rm = Number(usp.get('rooms')) || 1;
 
-            setCheckInDate(ci);
-            setCheckOutDate(co);
             setAdults(ad);
             setChildren(ch);
             setRoomsCount(rm);

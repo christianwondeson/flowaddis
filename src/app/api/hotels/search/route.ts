@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
+import { useHotelbedsInventory, logHotelInventoryRouting, nestHotelbedsBackendUrl, hotelbedsLanguageFromLocale } from '@/lib/hotel-inventory';
 import axios from 'axios';
 
 export async function GET(request: Request) {
@@ -16,6 +17,8 @@ export async function GET(request: Request) {
     const adults = searchParams.get('adults') || '2';
     const children = searchParams.get('children') || '0';
     const rooms = searchParams.get('rooms') || '1';
+    const latitude = searchParams.get('latitude');
+    const longitude = searchParams.get('longitude');
 
     // Direct IDs
     const urlDestId = searchParams.get('destId');
@@ -30,6 +33,45 @@ export async function GET(request: Request) {
     const hotelName = searchParams.get('hotelName') || '';
 
     try {
+        logHotelInventoryRouting('GET /api/hotels/search', {
+            query,
+            checkIn,
+            checkOut,
+            page,
+            pageSize,
+            proxyToNest: useHotelbedsInventory(),
+        });
+        if (useHotelbedsInventory()) {
+            const backendUrl = nestHotelbedsBackendUrl() || (process.env.BACKEND_URL || 'http://localhost:4000').replace(/\/$/, '');
+            const p = new URLSearchParams({
+                query,
+                checkIn,
+                checkOut,
+                page,
+                pageSize: String(pageSize),
+                adults,
+                children,
+                rooms,
+            });
+            if (latitude) p.set('latitude', latitude);
+            if (longitude) p.set('longitude', longitude);
+            if (minPrice) p.set('minPrice', minPrice);
+            if (maxPrice) p.set('maxPrice', maxPrice);
+            p.set('language', hotelbedsLanguageFromLocale(searchParams.get('locale')));
+            const res = await fetch(`${backendUrl}/api/v1/hotelbeds/search?${p.toString()}`, {
+                headers: { Accept: 'application/json' },
+                next: { revalidate: 0 },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                return NextResponse.json(
+                    { hotels: [], total: 0, hasNextPage: false, destId: undefined },
+                    { status: res.status },
+                );
+            }
+            return NextResponse.json(data);
+        }
+
         let destId = urlDestId;
         let destType = urlDestType || 'city';
         let searchType = urlDestType || 'city';
@@ -222,9 +264,6 @@ export async function GET(request: Request) {
                 headers: getApiHeaders(),
             };
         };
-
-        const latitude = searchParams.get('latitude');
-        const longitude = searchParams.get('longitude');
 
         const ORDER_MAP: Record<string, string> = {
             class_descending: 'class_descending',

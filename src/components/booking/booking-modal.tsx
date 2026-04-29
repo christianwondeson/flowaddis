@@ -10,6 +10,7 @@ import { PaymentForm } from './payment-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/currency';
 import { formatDateEnglishStr } from '@/lib/date-utils';
+import { hotelInventorySource } from '@/lib/hotel-inventory';
 import { useTripStore } from '@/store/trip-store';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useForm } from 'react-hook-form';
@@ -438,7 +439,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 onCancel={() => setStep('form')}
                                 isLocal={isLocal}
                                 bookingType={type as any}
-                                source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
+                                source={type === 'hotel' ? hotelInventorySource() : 'amadeus'}
                                 externalItemId={externalItemId}
                                 externalSnapshot={externalSnapshot}
                             />

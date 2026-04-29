@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
+import { useHotelbedsInventory, logHotelInventoryRouting, nestHotelbedsBackendUrl } from '@/lib/hotel-inventory';
 import axios from 'axios';
 
 export async function GET(request: Request) {
@@ -11,9 +12,48 @@ export async function GET(request: Request) {
     const children = searchParams.get('children_number_by_rooms') || searchParams.get('children_number') || '0';
     const childrenAges = searchParams.get('children_ages') || '';
     const currency = searchParams.get('currency') || 'USD';
+    const rooms = searchParams.get('room_number') || '1';
 
     if (!hotelId) {
         return NextResponse.json({ error: 'hotelId is required' }, { status: 400 });
+    }
+
+    logHotelInventoryRouting('GET /api/hotels/room-list', {
+        hotelId,
+        checkinDate,
+        checkoutDate,
+        proxyToNest: useHotelbedsInventory(),
+    });
+
+    if (useHotelbedsInventory()) {
+        const backendUrl = nestHotelbedsBackendUrl() || (process.env.BACKEND_URL || 'http://localhost:4000').replace(/\/$/, '');
+        const hbParams = new URLSearchParams({
+            hotelId,
+            checkin_date: checkinDate,
+            checkout_date: checkoutDate,
+            adults_number: adults,
+            children_number: children,
+            room_number: rooms,
+        });
+        try {
+            const res = await fetch(`${backendUrl}/api/v1/hotelbeds/room-list?${hbParams.toString()}`, {
+                method: 'GET',
+                headers: { Accept: 'application/json' },
+                next: { revalidate: 0 },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                return NextResponse.json(
+                    { error: data?.message || 'Hotelbeds room-list failed' },
+                    { status: res.status },
+                );
+            }
+            return NextResponse.json(data);
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Hotelbeds room-list proxy error:', msg);
+            return NextResponse.json({ error: 'Failed to fetch room list from backend' }, { status: 500 });
+        }
     }
 
     try {
@@ -36,8 +76,9 @@ export async function GET(request: Request) {
 
         const response = await axios.request(options);
         return NextResponse.json(response.data);
-    } catch (error: any) {
-        console.error('Error fetching room list:', error.message);
+    } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.error('Error fetching room list:', err.message);
         return NextResponse.json({ error: 'Failed to fetch room list' }, { status: 500 });
     }
 }

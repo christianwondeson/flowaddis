@@ -4,6 +4,7 @@ import { queryKeys } from '@/lib/react-query';
 import { apiClient } from '@/lib/api-client';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { mergeHotelSearchLocation } from '@/lib/hotel-search-location';
+import { formatDateLocal } from '@/lib/date-utils';
 
 interface UseHotelsInfiniteParams {
     query: string;
@@ -47,8 +48,8 @@ export function useHotelsInfinite(
                 children,
                 rooms,
                 ...filterRest,
-                checkIn: checkIn?.toISOString().split('T')[0],
-                checkOut: checkOut?.toISOString().split('T')[0],
+                checkIn: checkIn ? formatDateLocal(checkIn) : undefined,
+                checkOut: checkOut ? formatDateLocal(checkOut) : undefined,
                 destId: effectiveDestId,
                 destType: effectiveDestType,
                 latitude,

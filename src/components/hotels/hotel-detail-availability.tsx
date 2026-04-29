@@ -42,12 +42,26 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        let cancelled = false;
+
         const fetchRooms = async () => {
+            const hotelId = hotel.id;
+            if (!hotelId || !checkInDate?.trim() || !checkOutDate?.trim()) {
+                if (!cancelled) {
+                    setRooms([]);
+                    setRoomDetails({});
+                    setSelectedRooms({});
+                    setError(null);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
             try {
-                setIsLoading(true);
-                setError(null);
-                const hotelId = hotel.id;
-                if (!hotelId || !checkInDate || !checkOutDate) return;
+                if (!cancelled) {
+                    setIsLoading(true);
+                    setError(null);
+                }
 
                 const params = new URLSearchParams({
                     hotelId,
@@ -64,23 +78,31 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                 const response = await axios.get(`/api/hotels/room-list?${params.toString()}`);
                 const data = response.data;
 
+                if (cancelled) return;
+
                 const hotelData = Array.isArray(data) && data.length > 0 ? data[0] : (data && typeof data === 'object' && !Array.isArray(data) ? data : null);
                 if (hotelData) {
                     setRooms(hotelData.block || []);
                     const roomsMap = hotelData.rooms || {};
                     setRoomDetails(typeof roomsMap === 'object' ? roomsMap : {});
-                    // Reset selected counts when new data loads
                     setSelectedRooms({});
                 }
             } catch (err: any) {
-                console.error('Error fetching rooms:', err);
-                setError('Failed to load room availability. Please try again later.');
+                if (!cancelled) {
+                    console.error('Error fetching rooms:', err);
+                    setError('Failed to load room availability. Please try again later.');
+                }
             } finally {
-                setIsLoading(false);
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
             }
         };
 
-        fetchRooms();
+        void fetchRooms();
+        return () => {
+            cancelled = true;
+        };
     }, [hotel.id, checkInDate, checkOutDate, adults, childrenCount, roomsCount]);
 
     if (isLoading) {
