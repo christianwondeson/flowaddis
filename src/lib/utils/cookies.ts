@@ -1,14 +1,24 @@
-import { APP_CONSTANTS } from "../constants";
+import { APP_CONSTANTS } from '../constants';
 
-export const setAuthCookie = (token: string) => {
-    const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    document.cookie = `${APP_CONSTANTS.AUTH.COOKIE_NAME}=${token}; path=/; max-age=${APP_CONSTANTS.AUTH.COOKIE_MAX_AGE}; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+/**
+ * @deprecated Auth session must use HttpOnly cookie from `POST /api/auth/session` only.
+ * Setting the Firebase ID token in `document.cookie` exposes it to XSS (INSA / cookie flags).
+ * These functions are no-ops kept so any stale import does not silently reintroduce the risk.
+ */
+export const setAuthCookie = (_token: string): void => {
+    if (process.env.NODE_ENV === 'development') {
+        console.warn(
+            `[${APP_CONSTANTS.AUTH.COOKIE_NAME}] setAuthCookie is disabled — use POST /api/auth/session for HttpOnly session.`,
+        );
+    }
 };
 
-export const clearAuthCookie = () => {
-    document.cookie = `${APP_CONSTANTS.AUTH.COOKIE_NAME}=; path=/; max-age=0; SameSite=Strict`;
+export const clearAuthCookie = (): void => {
+    if (process.env.NODE_ENV === 'development') {
+        console.warn(`[${APP_CONSTANTS.AUTH.COOKIE_NAME}] clearAuthCookie is disabled — use DELETE /api/auth/session.`);
+    }
 };
 
-export const deleteAuthCookie = () => {
-    document.cookie = `${APP_CONSTANTS.AUTH.COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict`;
+export const deleteAuthCookie = (): void => {
+    clearAuthCookie();
 };

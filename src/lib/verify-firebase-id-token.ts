@@ -23,7 +23,7 @@ export function getFirebaseProjectIdForAuth(): string {
 
 /**
  * Verifies a Firebase ID token using Google's JWKS (RS256 only).
- * Rejects forged tokens, alg stripping, and non-Firebase issuers/audiences.
+ * Rejects forged tokens, alg=none, and non-Firebase issuers/audiences (jose never trusts the JWT header alg alone).
  */
 export async function verifyFirebaseIdToken(idToken: string) {
     const projectId = getFirebaseProjectIdForAuth();
@@ -31,6 +31,7 @@ export async function verifyFirebaseIdToken(idToken: string) {
         issuer: `https://securetoken.google.com/${projectId}`,
         audience: projectId,
         algorithms: ['RS256'],
+        clockTolerance: 60,
     });
     return payload;
 }

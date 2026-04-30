@@ -23,11 +23,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Token is required' }, { status: 400 });
         }
 
+        let payload: Awaited<ReturnType<typeof verifyFirebaseIdToken>>;
         try {
-            await verifyFirebaseIdToken(token);
+            payload = await verifyFirebaseIdToken(token);
         } catch {
             return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
         }
+
+        const nowSec = Math.floor(Date.now() / 1000);
+        const expSec = typeof payload.exp === 'number' ? payload.exp : nowSec + 3600;
+        /** Cookie lifetime matches Firebase ID token expiry (not a flat 24h), so stale sessions cannot linger. */
+        const maxAge = Math.max(120, Math.min(3600, expSec - nowSec));
 
         const response = NextResponse.json({ success: true });
 
@@ -37,7 +43,7 @@ export async function POST(request: Request) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             path: '/',
-            maxAge: APP_CONSTANTS.AUTH.COOKIE_MAX_AGE,
+            maxAge,
             sameSite: 'lax',
         });
 

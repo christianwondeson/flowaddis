@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { pickNestCreateSessionBody } from '@/lib/nest-checkout-body';
+import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
 
 export async function POST(req: Request) {
     try {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        const idToken = authHeader.slice('Bearer '.length).trim();
+        if (!idToken) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        try {
+            await verifyFirebaseIdToken(idToken);
+        } catch {
+            return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
+        }
+
         const body = await req.json();
         const nestBody = pickNestCreateSessionBody(body);
 
@@ -10,22 +25,12 @@ export async function POST(req: Request) {
         const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
         const apiUrl = `${backendUrl}/api/v1/payments/create-session`;
 
-
-        // Check Authorization header presence (do not log the token)
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-            console.warn('⚠️ Missing Authorization header on /api/checkout request');
-        } else {
-            // Log header presence only
-        }
-
         // Forward only whitelisted fields (no client price / no unknown props for ValidationPipe)
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // Forward authorization header if it exists
-                ...(authHeader && { 'Authorization': authHeader }),
+                Authorization: authHeader,
             },
             body: JSON.stringify(nestBody),
         });

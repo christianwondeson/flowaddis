@@ -3,7 +3,8 @@
  * Keep in sync with any server-side checks (e.g. Firebase Identity Platform policies in console).
  */
 
-export const PASSWORD_MIN_LENGTH = 8;
+/** Align with Firebase console “password strength” where possible; auditors expect ≥12 for high-risk apps. */
+export const PASSWORD_MIN_LENGTH = 12;
 
 export const PASSWORD_POLICY_HINT =
     `Use at least ${PASSWORD_MIN_LENGTH} characters with uppercase, lowercase, a number, and a symbol (e.g. !@#$%).`;
@@ -34,6 +35,10 @@ const COMMON_PASSWORDS = new Set(
         'sunshine1',
         'princess1',
         'abc12345',
+        '12345678',
+        '87654321',
+        '11111111',
+        '00000000',
         'trustno1',
     ].map((s) => s.toLowerCase()),
 );
@@ -75,7 +80,7 @@ export function validatePasswordStrength(password: string): PasswordValidationRe
         return { ok: false, message: 'Avoid repeating the same character many times in a row.' };
     }
 
-    // Simple ascending digit runs
+    // Simple ascending / descending digit runs embedded in the password
     if (/0123456|1234567|2345678|3456789|9876543|8765432|7654321|6543210/.test(password)) {
         return { ok: false, message: 'Avoid obvious number sequences like 1234567.' };
     }

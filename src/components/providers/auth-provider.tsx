@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
             if (user) {
-                const token = await user.getIdToken();
+                const token = await user.getIdToken(true);
                 // setAuthCookie(token);
                 // Securely set session on server
                 await fetch('/api/auth/session', {
@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             case 'auth/email-already-in-use':
                 return 'An account with this email already exists. Try signing in instead.';
             case 'auth/weak-password':
-                return 'Your password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a symbol.';
+                return 'Your password is too weak. Use at least 12 characters with uppercase, lowercase, a number, and a symbol.';
             case 'auth/invalid-email':
                 return 'Please enter a valid email address.';
             case 'auth/operation-not-allowed':

@@ -17,7 +17,7 @@ export const handleAuthError = (error: any) => {
                 break;
             case 'auth/weak-password':
                 message =
-                    "Password is too weak. Use at least 8 characters with uppercase, lowercase, a number, and a symbol.";
+                    'Password is too weak. Use at least 12 characters with uppercase, lowercase, a number, and a symbol.';
                 break;
             case 'auth/invalid-email':
                 message = "Please enter a valid email address.";

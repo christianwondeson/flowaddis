@@ -1,7 +1,8 @@
 export const APP_CONSTANTS = {
     AUTH: {
         COOKIE_NAME: '__session',
-        COOKIE_MAX_AGE: 86400, // 24 hours
+        /** Legacy upper bound; `/api/auth/session` sets `maxAge` from the JWT `exp` claim (Firebase ID token ~1h). */
+        COOKIE_MAX_AGE: 86400,
         REDIRECT_PARAM: 'redirect',
         SIGNIN_PATH: '/signin',
     },

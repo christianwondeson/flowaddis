@@ -3,14 +3,14 @@ import { NextResponse } from 'next/server';
 /**
  * Public hotel detail proxies (RapidAPI) are not multi-tenant secrets, but we still:
  * - Reject malformed / probe IDs (reduces injection and arbitrary upstream queries)
- * - Rate-limit per IP to slow enumeration and scraping
+ * - Rate-limit per IP to slow enumeration and scraping (INSA IDOR / abuse mitigation; catalog remains public).
  *
  * True "object ownership" does not apply to published OTA listings; optional auth gating
  * can be added later via env if you need login-only catalog.
  */
 
 const WINDOW_MS = 60_000;
-const MAX_REQUESTS_PER_WINDOW = 120;
+const MAX_REQUESTS_PER_WINDOW = 60;
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 

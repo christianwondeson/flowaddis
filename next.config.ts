@@ -5,9 +5,12 @@ import type { NextConfig } from "next";
  * cannot be HttpOnly because Stripe.js must read them).
  */
 function buildContentSecurityPolicy(isDev: boolean): string {
+  // Next.js App Router emits inline bootstrap/hydration scripts in production HTML; without
+  // 'unsafe-inline' or per-build hashes/nonces, the browser blocks them (dev worked because
+  // NODE_ENV=development used the looser branch). See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
   const scriptSrc = isDev
     ? "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.google.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.recaptcha.net"
-    : "script-src 'self' https://js.stripe.com https://www.google.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.recaptcha.net";
+    : "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.google.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.recaptcha.net";
 
   const parts = [
     "default-src 'self'",

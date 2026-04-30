@@ -7,7 +7,7 @@ const HOTEL_KEY = 'flowaddis_booking_draft_hotel_v2';
 const FLIGHT_KEY = 'flowaddis_booking_draft_flight_v2';
 const LEGACY_HOTEL_KEY = 'flowaddis_booking_draft_hotel_v1';
 const LEGACY_FLIGHT_KEY = 'flowaddis_booking_draft_flight_v1';
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const MAX_AGE_MS = 60 * 60 * 1000;
 
 /** Input may include PII for call-site convenience; it is stripped before storage. */
 export type HotelBookingDraftInput = {

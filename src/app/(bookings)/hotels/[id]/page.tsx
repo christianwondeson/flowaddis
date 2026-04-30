@@ -59,7 +59,6 @@ export default function HotelDetailPage() {
         if (typeof window !== 'undefined') {
             const usp = new URLSearchParams(window.location.search);
             const name = usp.get('name');
-            const price = usp.get('price');
             const image = usp.get('image');
             const location = usp.get('location');
             const ci = usp.get('checkIn') || usp.get('checkin') || usp.get('checkInDate') || formatDateLocal(new Date(Date.now() + 86400000));
@@ -77,7 +76,6 @@ export default function HotelDetailPage() {
             setHotel((prev: any) => ({
                 ...prev,
                 ...(name ? { name } : {}),
-                ...(price ? { price: Number(price) } : {}),
                 ...(image ? { image } : {}),
                 ...(location ? { location } : {}),
             }));

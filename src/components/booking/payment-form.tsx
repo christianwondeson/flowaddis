@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Building2, CreditCard, Loader2 } from 'lucide-react';
+import { Building2, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
@@ -30,6 +30,9 @@ interface PaymentFormProps {
 
 type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe' | 'pay_on_site';
 
+/** Set to true to show Telebirr, CBE / bank transfer, and pay-on-site again. */
+const SHOW_LOCAL_PAYMENT_METHODS = false;
+
 // Validation schemas
 const telebirrSchema = z.object({
     phone: z.string().regex(/^(09|07)\d{8}$/, 'Invalid Ethiopian phone number (e.g., 0912345678)'),
@@ -46,8 +49,9 @@ const stripeSchema = z.object({
 });
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true, bookingType = 'flight', source = 'local', externalItemId = 'N/A', currencyCode = 'USD', externalSnapshot = {} }) => {
-    // Default to stripe if not local, otherwise telebirr
-    const [method, setMethod] = useState<PaymentMethod>(isLocal ? 'telebirr' : 'stripe');
+    const [method, setMethod] = useState<PaymentMethod>(
+        SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'telebirr' : 'stripe',
+    );
     const [loading, setLoading] = useState(false);
 
     // Persist ?returnUrl= from BookAddis embed/link for Stripe cancel/success redirects
@@ -110,8 +114,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 ) {
                     toast.error(
                         bookingType === 'flight'
-                            ? 'Card checkout needs a valid flight offer from search. Try another flight or use a local payment option.'
-                            : 'Card checkout needs a valid hotel. Open the hotel from search again or use a local payment option.',
+                            ? 'Card checkout needs a valid flight offer from search. Try another flight.'
+                            : 'Card checkout needs a valid hotel. Open the hotel from search again.',
                     );
                     setLoading(false);
                     return;
@@ -196,8 +200,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 </p>
             </div>
 
-            <div className={`grid gap-4 md:gap-6 ${isLocal ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1'}`}>
-                {isLocal && (
+            <div
+                className={`grid gap-4 md:gap-6 ${
+                    SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1'
+                }`}
+            >
+                {SHOW_LOCAL_PAYMENT_METHODS && isLocal && (
                     <>
                         <button
                             type="button"
@@ -239,7 +247,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     </>
                 )}
 
-                {isLocal && (
+                {SHOW_LOCAL_PAYMENT_METHODS && isLocal && (
                     <button
                         type="button"
                         onClick={() => setMethod('pay_on_site')}
@@ -265,7 +273,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'stripe'
                         ? 'border-[#635BFF] bg-[#635BFF]/10 shadow-lg ring-2 ring-[#635BFF]/20'
                         : 'border-gray-200 dark:border-slate-600 hover:border-[#635BFF]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
-                        } ${!isLocal ? 'w-full' : ''}`}
+                        } ${!SHOW_LOCAL_PAYMENT_METHODS || !isLocal ? 'w-full' : ''}`}
                 >
                     <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 overflow-hidden relative ${method === 'stripe' ? 'scale-110 shadow-lg' : 'opacity-80'}`}>
                         {/* Colorful Gradient Card Background */}
@@ -292,7 +300,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             </div>
 
             <div className="space-y-4">
-                {method === 'telebirr' && isLocal && (
+                {SHOW_LOCAL_PAYMENT_METHODS && method === 'telebirr' && isLocal && (
                     <form onSubmit={telebirrForm.handleSubmit(onSubmit)} className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             <Input
@@ -318,7 +326,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     </form>
                 )}
 
-                {method === 'cbebirr' && isLocal && (
+                {SHOW_LOCAL_PAYMENT_METHODS && method === 'cbebirr' && isLocal && (
                     <form onSubmit={cbebirrForm.handleSubmit(onSubmit)} className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             <Input
@@ -374,7 +382,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     </div>
                 )}
 
-                {method === 'pay_on_site' && isLocal && (
+                {SHOW_LOCAL_PAYMENT_METHODS && method === 'pay_on_site' && isLocal && (
                     <div className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                             <div className="bg-brand-primary/10 p-4 rounded-xl text-sm text-brand-dark border border-brand-primary/20 flex items-center gap-3">

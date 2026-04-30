@@ -205,45 +205,13 @@ function HotelsPageContent() {
     // Stabilize total count
     const [initialTotalCount, setInitialTotalCount] = useState<number | null>(null);
 
-    // Session Storage Persistence
-    const STORAGE_KEY = 'hotel_search_state';
-
-    // Save state to session storage whenever relevant data changes
+    /** Legacy key: previously stored full hotel results (prices/PII risk). Removed — URL + refetch is source of truth. */
+    const LEGACY_HOTEL_SEARCH_STORAGE_KEY = 'hotel_search_state';
     useEffect(() => {
-        if (allHotels.length > 0) {
-            const stateToSave = {
-                allHotels,
-                page,
-                searchParams, // Now using the memoized object
-                filters,
-                totalCount: initialTotalCount,
-                timestamp: Date.now()
-            };
-            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
-        }
-    }, [allHotels, page, searchParams, filters, initialTotalCount]);
-
-    // Restore state on mount
-    useEffect(() => {
-        const savedState = sessionStorage.getItem(STORAGE_KEY);
-        if (savedState) {
-            try {
-                const parsed = JSON.parse(savedState);
-                // Only restore if less than 30 minutes old and matches current query context
-                const isFresh = Date.now() - parsed.timestamp < 30 * 60 * 1000;
-
-                // Check if URL params match the saved state to decide whether to restore
-                const urlParams = new URLSearchParams(window.location.search);
-                const currentQuery = urlParams.get('query') || 'Addis Ababa';
-
-                if (isFresh && parsed.searchParams.query === currentQuery) {
-                    setAllHotels(parsed.allHotels);
-                    setPage(parsed.page);
-                    if (parsed.totalCount) setInitialTotalCount(parsed.totalCount);
-                }
-            } catch (e) {
-                console.error('Failed to parse saved hotel state', e);
-            }
+        try {
+            sessionStorage.removeItem(LEGACY_HOTEL_SEARCH_STORAGE_KEY);
+        } catch {
+            /* ignore */
         }
     }, []);
 
@@ -352,7 +320,7 @@ function HotelsPageContent() {
     const handleBook = (hotel: any) => {
         const params = new URLSearchParams();
         if (hotel.name) params.set('name', hotel.name);
-        if (hotel.price != null) params.set('price', String(Math.round(hotel.price)));
+        // Never put price in the URL — auditors flagged tampering; Stripe/Nest always derive amount server-side.
         if (hotel.image) params.set('image', hotel.image);
         if (hotel.location) params.set('location', hotel.location);
         // Preserve current search context for the detail page and back navigation
@@ -367,7 +335,7 @@ function HotelsPageContent() {
     const handleSearch = () => {
         if (destination.trim()) {
             // Clear saved state on new search
-            sessionStorage.removeItem(STORAGE_KEY);
+            sessionStorage.removeItem(LEGACY_HOTEL_SEARCH_STORAGE_KEY);
             setInitialTotalCount(null); // Reset total count
             setPage(0); // Reset page on new search
 
@@ -389,14 +357,14 @@ function HotelsPageContent() {
         const destType = location.dest_type;
         setDestination(name);
         setPendingLocation({ destId, destType });
-        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(LEGACY_HOTEL_SEARCH_STORAGE_KEY);
         setInitialTotalCount(null);
         setPage(0);
         router.push(buildUrlWithState({ query: name, destId, destType }));
     };
 
     const handleFilterChange = (newFilters: FilterType) => {
-        sessionStorage.removeItem(STORAGE_KEY); // Clear state on filter change
+        sessionStorage.removeItem(LEGACY_HOTEL_SEARCH_STORAGE_KEY); // Clear state on filter change
         setPage(0); // Reset page on filter change
         setInitialTotalCount(null); // Reset total until new data arrives
 
