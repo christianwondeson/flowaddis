@@ -17,21 +17,16 @@ import {
     signInWithPhoneNumber,
     User as FirebaseUser,
     ConfirmationResult,
+    EmailAuthProvider,
+    reauthenticateWithCredential,
+    updatePassword,
+    updateProfile,
 } from 'firebase/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { AuthContextType, User, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
-
-// Update the type definition in the interface if it's not exported from types/auth
-// Since we can't see types/auth.ts, we'll assume we need to cast or update the implementation
-// But first let's check if we need to update the Context definition in this file if it exists
-// It seems AuthContextType is imported. Let's assume we might need to update the interface in types/auth.ts
-// But since I can't edit that file right now without reading it, I'll proceed with the implementation
-// and if TypeScript complains, I'll fix it.
-
-// Actually, I should check types/auth.ts first to be safe.
 
 import { APP_CONSTANTS } from '@/lib/constants';
 import { validatePasswordStrength } from '@/lib/password-policy';
@@ -119,6 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return 'Please enter a valid email address.';
             case 'auth/operation-not-allowed':
                 return 'Email/password sign-in is currently disabled. Please contact support.';
+            case 'auth/requires-recent-login':
+                return 'For security, sign out and sign in again, then try changing your password.';
 
             // Password Reset
             case 'auth/expired-action-code':
@@ -368,6 +365,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const changePassword = useCallback(
+        async (currentPassword: string, newPassword: string) => {
+            if (!auth?.currentUser) throw new Error('Not signed in');
+            const u = auth.currentUser;
+            const email = u.email;
+            if (!email) throw new Error('No email on this account');
+
+            const hasPasswordProvider = u.providerData.some((p) => p.providerId === 'password');
+            if (!hasPasswordProvider) {
+                throw new Error(
+                    'Password change is only available for email/password accounts. For Google sign-in, use your Google account security settings.',
+                );
+            }
+
+            const pwCheck = validatePasswordStrength(newPassword);
+            if (!pwCheck.ok) {
+                throw new Error(pwCheck.message);
+            }
+
+            try {
+                const credential = EmailAuthProvider.credential(email, currentPassword);
+                await reauthenticateWithCredential(u, credential);
+                await updatePassword(u, newPassword);
+                toast.success('Password updated successfully');
+                await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
+            } catch (error) {
+                throw new Error(handleAuthError(error));
+            }
+        },
+        [auth, queryClient],
+    );
+
     const requireAuth = () => {
         if (!user && !loading) {
             const currentPath = window.location.pathname + window.location.search;
@@ -509,6 +538,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         sendVerificationEmail,
         sendPasswordReset,
+        changePassword,
         requireAuth,
         renderRecaptcha,
         clearRecaptcha

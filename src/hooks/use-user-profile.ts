@@ -16,12 +16,14 @@ export function useUserProfile(firebaseUser: any) {
 
             let role: UserRole = APP_CONSTANTS.ROLES.USER;
             let name = firebaseUser.displayName || '';
+            let phone = '';
             let adminStatus: 'pending' | 'approved' | 'rejected' | 'none' = 'none';
 
             if (userDoc.exists()) {
                 const userData = userDoc.data();
                 role = userData.role as UserRole;
                 name = userData.name || name;
+                phone = typeof userData.phone === 'string' ? userData.phone : '';
                 adminStatus = userData.adminStatus || 'none';
 
             } else {
@@ -47,6 +49,7 @@ export function useUserProfile(firebaseUser: any) {
                 role: role,
                 emailVerified: firebaseUser.emailVerified,
                 name: name,
+                ...(phone ? { phone } : {}),
                 adminStatus: adminStatus
             };
         },

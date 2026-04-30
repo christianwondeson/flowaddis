@@ -1,13 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Bell, Lock, Globe } from "lucide-react";
+import { Lock, Globe } from "lucide-react";
 import { AppearanceThemeSection } from "@/components/settings/appearance-theme-section";
-import { ProfileBackendSection } from "@/components/settings/profile-backend-section";
 
 export default function SettingsPage() {
     const { user, loading } = useAuth();
@@ -39,39 +38,6 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="p-6 space-y-8">
-                        <ProfileBackendSection />
-
-                        <div className="border-t border-slate-100 dark:border-slate-700" />
-
-                        <section className="space-y-4" aria-labelledby="settings-notifications">
-                            <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                                <Bell className="w-5 h-5 text-brand-primary" aria-hidden />
-                                <h2 id="settings-notifications">Notifications</h2>
-                            </div>
-                            <div className="space-y-4 pl-0 sm:pl-7">
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base text-foreground">Email Notifications</Label>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            Receive emails about your bookings
-                                        </p>
-                                    </div>
-                                    <Switch defaultChecked />
-                                </div>
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base text-foreground">Marketing Emails</Label>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            Receive offers and promotions
-                                        </p>
-                                    </div>
-                                    <Switch />
-                                </div>
-                            </div>
-                        </section>
-
-                        <div className="border-t border-slate-100 dark:border-slate-700" />
-
                         <AppearanceThemeSection />
 
                         <div className="border-t border-slate-100 dark:border-slate-700" />
@@ -105,32 +71,16 @@ export default function SettingsPage() {
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div className="space-y-0.5">
                                         <Label className="text-base text-foreground">Password</Label>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Last changed 3 months ago</p>
-                                    </div>
-                                    <Button variant="outline" size="sm" className="dark:border-slate-600 dark:hover:bg-slate-800 shrink-0">
-                                        Change Password
-                                    </Button>
-                                </div>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base text-foreground">Two-Factor Authentication</Label>
                                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            Add an extra layer of security
+                                            Update your password (email/password sign-in only).
                                         </p>
                                     </div>
-                                    <Button variant="outline" size="sm" className="dark:border-slate-600 dark:hover:bg-slate-800 shrink-0">
-                                        Enable
+                                    <Button variant="outline" size="sm" asChild className="dark:border-slate-600 dark:hover:bg-slate-800 shrink-0">
+                                        <Link href="/settings/password">Change password</Link>
                                     </Button>
                                 </div>
                             </div>
                         </section>
-                    </div>
-
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-6 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
-                        <Button variant="outline" className="dark:border-slate-600 dark:hover:bg-slate-800">
-                            Cancel
-                        </Button>
-                        <Button>Save Changes</Button>
                     </div>
                 </div>
             </div>

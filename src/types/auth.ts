@@ -6,6 +6,7 @@ export interface User {
     role: UserRole;
     emailVerified: boolean;
     name?: string;
+    phone?: string;
     createdAt?: any;
     adminStatus?: 'pending' | 'approved' | 'rejected' | 'none';
 }
@@ -20,6 +21,8 @@ export interface AuthContextType {
     loginWithGoogle: () => Promise<UserRole>;
     sendVerificationEmail: () => Promise<void>;
     sendPasswordReset: (email: string) => Promise<void>;
+    /** Email/password accounts only: re-authenticates then updates password. */
+    changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
     requireAuth: () => void;
     renderRecaptcha: (containerId?: string, size?: 'invisible' | 'normal', onSolved?: () => void) => Promise<void>;
     clearRecaptcha: () => void;

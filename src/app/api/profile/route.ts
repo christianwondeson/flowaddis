@@ -18,19 +18,35 @@ async function requireBearerToken(req: Request): Promise<string | NextResponse> 
     return auth;
 }
 
+function resolveBackendBaseUrl(): string {
+    const raw = (process.env.BACKEND_URL || 'http://127.0.0.1:4000').trim();
+    return raw.replace(/\/+$/, '');
+}
+
 async function proxyToNest(req: Request, method: 'GET' | 'PATCH', body?: string) {
     const authOrError = await requireBearerToken(req);
     if (authOrError instanceof NextResponse) return authOrError;
 
-    const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:4000';
-    const res = await fetch(`${backendUrl}/api/v1/users/me`, {
-        method,
-        headers: {
-            Authorization: authOrError,
-            ...(method === 'PATCH' ? { 'Content-Type': 'application/json' } : {}),
-        },
-        body: method === 'PATCH' ? body : undefined,
-    });
+    const backendUrl = resolveBackendBaseUrl();
+    let res: Response;
+    try {
+        res = await fetch(`${backendUrl}/api/v1/users/me`, {
+            method,
+            headers: {
+                Authorization: authOrError,
+                ...(method === 'PATCH' ? { 'Content-Type': 'application/json' } : {}),
+            },
+            body: method === 'PATCH' ? body : undefined,
+        });
+    } catch (err) {
+        const cause = err instanceof Error ? err.message : String(err);
+        const hint =
+            'Cannot reach the BookAddis API. Start flowaddis-api (e.g. port 4000) and set BACKEND_URL in flowaddis/.env.local if it is not the default.';
+        return NextResponse.json(
+            { error: 'Backend unavailable', message: hint, cause },
+            { status: 503 },
+        );
+    }
 
     const text = await res.text();
     let data: unknown;
