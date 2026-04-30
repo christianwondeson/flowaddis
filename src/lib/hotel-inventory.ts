@@ -32,7 +32,17 @@ export function logHotelInventoryRouting(
 /** Nest API base URL for server-side Hotelbeds proxies (no trailing slash). */
 export function nestHotelbedsBackendUrl(): string {
     if (typeof window !== 'undefined') return '';
-    return (process.env.BACKEND_URL || 'http://localhost:4000').replace(/\/$/, '');
+    let base = (process.env.BACKEND_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
+    try {
+        const u = new URL(base);
+        if (u.hostname === 'localhost') {
+            u.hostname = '127.0.0.1';
+            base = u.origin;
+        }
+    } catch {
+        /* keep base as-is */
+    }
+    return base;
 }
 
 /** Map Next locale (e.g. en-gb) to Hotelbeds Content API language codes (3-letter). */

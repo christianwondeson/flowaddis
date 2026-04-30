@@ -42,7 +42,9 @@ export async function GET(request: Request) {
             proxyToNest: useHotelbedsInventory(),
         });
         if (useHotelbedsInventory()) {
-            const backendUrl = nestHotelbedsBackendUrl() || (process.env.BACKEND_URL || 'http://localhost:4000').replace(/\/$/, '');
+            const backendUrl =
+                nestHotelbedsBackendUrl() ||
+                (process.env.BACKEND_URL || 'http://127.0.0.1:4000').replace(/\/$/, '');
             const p = new URLSearchParams({
                 query,
                 checkIn,
@@ -55,13 +57,32 @@ export async function GET(request: Request) {
             });
             if (latitude) p.set('latitude', latitude);
             if (longitude) p.set('longitude', longitude);
+            if (urlDestId) p.set('destId', urlDestId);
+            if (urlDestType) p.set('destType', urlDestType || 'city');
             if (minPrice) p.set('minPrice', minPrice);
             if (maxPrice) p.set('maxPrice', maxPrice);
             p.set('language', hotelbedsLanguageFromLocale(searchParams.get('locale')));
-            const res = await fetch(`${backendUrl}/api/v1/hotelbeds/search?${p.toString()}`, {
-                headers: { Accept: 'application/json' },
-                next: { revalidate: 0 },
-            });
+            const url = `${backendUrl}/api/v1/hotelbeds/search?${p.toString()}`;
+            let res: Response;
+            try {
+                res = await fetch(url, {
+                    headers: { Accept: 'application/json' },
+                    next: { revalidate: 0 },
+                });
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                console.error('Hotelbeds search proxy fetch failed:', msg, 'url=', url);
+                return NextResponse.json(
+                    {
+                        hotels: [],
+                        total: 0,
+                        hasNextPage: false,
+                        destId: undefined,
+                        error: 'Hotel search service unreachable. Is the API running on BACKEND_URL?',
+                    },
+                    { status: 503 },
+                );
+            }
             const data = await res.json();
             if (!res.ok) {
                 return NextResponse.json(

@@ -383,16 +383,25 @@ function HotelsPageContent() {
     };
 
     /** Run search immediately when user selects a location (auto-search for easier UX) */
-    const handleLocationSelectAndSearch = (location: { name?: string; label?: string; dest_id?: string; dest_type?: string }) => {
+    const handleLocationSelectAndSearch = (location: {
+        name?: string;
+        label?: string;
+        dest_id?: string;
+        dest_type?: string;
+        latitude?: number;
+        longitude?: number;
+    }) => {
         const name = (location.name ?? location.label ?? destination).toString().trim() || 'Addis Ababa';
         const destId = location.dest_id;
         const destType = location.dest_type;
+        const lat = typeof location.latitude === 'number' && Number.isFinite(location.latitude) ? location.latitude : undefined;
+        const lng = typeof location.longitude === 'number' && Number.isFinite(location.longitude) ? location.longitude : undefined;
         setDestination(name);
-        setPendingLocation({ destId, destType });
+        setPendingLocation({ destId, destType, latitude: lat, longitude: lng });
         sessionStorage.removeItem(STORAGE_KEY);
         setInitialTotalCount(null);
         setPage(0);
-        router.push(buildUrlWithState({ query: name, destId, destType }));
+        router.push(buildUrlWithState({ query: name, destId, destType, latitude: lat, longitude: lng }));
     };
 
     const handleFilterChange = (newFilters: FilterType) => {

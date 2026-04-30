@@ -16,7 +16,8 @@ export function mergeHotelSearchLocation(
     filterRest: Omit<HotelFilters, 'query' | 'destId' | 'destType'>;
 } {
     const f = filters ?? {};
-    let query = String(f.query ?? topQuery ?? '').trim() || 'Addis Ababa';
+    // Prefer URL `topQuery` so we never mix a stale filter-bar query with new destId/lat-lng from navigation.
+    let query = String(topQuery ?? f.query ?? '').trim() || 'Addis Ababa';
     let destId = topDestId ?? f.destId;
     let destType = topDestType ?? f.destType;
     if (destId === '' || destId == null) destId = undefined;
