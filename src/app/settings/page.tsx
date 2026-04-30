@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell, Lock, Globe } from "lucide-react";
 import { AppearanceThemeSection } from "@/components/settings/appearance-theme-section";
+import { ProfileBackendSection } from "@/components/settings/profile-backend-section";
 
 export default function SettingsPage() {
     const { user, loading } = useAuth();
@@ -38,6 +39,10 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="p-6 space-y-8">
+                        <ProfileBackendSection />
+
+                        <div className="border-t border-slate-100 dark:border-slate-700" />
+
                         <section className="space-y-4" aria-labelledby="settings-notifications">
                             <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
                                 <Bell className="w-5 h-5 text-brand-primary" aria-hidden />
