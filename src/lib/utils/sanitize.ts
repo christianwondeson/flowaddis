@@ -8,7 +8,7 @@ const SANITIZE_CONFIG = {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'span'],
     ALLOWED_ATTR: ['href', 'target', 'rel'],
     ALLOW_DATA_ATTR: false,
-} as const;
+};
 
 /**
  * Sanitizes HTML for safe rendering with dangerouslySetInnerHTML.
