@@ -18,7 +18,7 @@ function buildContentSecurityPolicy(isDev: boolean): string {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com",
+    "connect-src 'self' https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com",
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com",
     "worker-src 'self' blob:",
     "object-src 'none'",

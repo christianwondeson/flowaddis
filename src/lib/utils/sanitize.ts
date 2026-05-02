@@ -1,50 +1,27 @@
 /**
- * HTML Sanitization Utility
- * 
- * Provides safe HTML sanitization to prevent XSS attacks when rendering
- * HTML content from external APIs.
+ * HTML sanitization (client + server) using isomorphic-dompurify to avoid XSS when
+ * rendering third-party HTML (e.g. hotel policies).
  */
+import DOMPurify from 'isomorphic-dompurify';
 
-import DOMPurify from 'dompurify';
+const SANITIZE_CONFIG = {
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'span'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+} as const;
 
 /**
- * Sanitizes HTML string to prevent XSS attacks
- * 
- * @param html - The HTML string to sanitize
- * @returns Sanitized HTML string safe for rendering
- * 
- * @example
- * ```tsx
- * <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(apiResponse.html) }} />
- * ```
+ * Sanitizes HTML for safe rendering with dangerouslySetInnerHTML.
  */
 export function sanitizeHtml(html: string): string {
-    if (typeof window === 'undefined') {
-        // Server-side: return as-is (will be sanitized on client)
-        return html;
-    }
-
-    // Configure DOMPurify to allow safe HTML tags
-    const config = {
-        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'span'],
-        ALLOWED_ATTR: ['href', 'target', 'rel'],
-        ALLOW_DATA_ATTR: false,
-    };
-
-    return DOMPurify.sanitize(html, config);
+    if (!html) return '';
+    return DOMPurify.sanitize(html, SANITIZE_CONFIG);
 }
 
 /**
- * Strips all HTML tags from a string
- * 
- * @param html - The HTML string to strip
- * @returns Plain text without any HTML tags
+ * Strips all HTML tags (plain text only).
  */
 export function stripHtml(html: string): string {
-    if (typeof window === 'undefined') {
-        // Server-side: basic regex strip
-        return html.replace(/<[^>]*>/g, '');
-    }
-
+    if (!html) return '';
     return DOMPurify.sanitize(html, { ALLOWED_TAGS: [] });
 }

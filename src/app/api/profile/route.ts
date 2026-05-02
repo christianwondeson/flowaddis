@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
+import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
 
 async function requireBearerToken(req: Request): Promise<string | NextResponse> {
     const auth = req.headers.get('Authorization');
@@ -18,16 +19,18 @@ async function requireBearerToken(req: Request): Promise<string | NextResponse> 
     return auth;
 }
 
-function resolveBackendBaseUrl(): string {
-    const raw = (process.env.BACKEND_URL || 'http://127.0.0.1:4000').trim();
-    return raw.replace(/\/+$/, '');
-}
-
 async function proxyToNest(req: Request, method: 'GET' | 'PATCH', body?: string) {
     const authOrError = await requireBearerToken(req);
     if (authOrError instanceof NextResponse) return authOrError;
 
-    const backendUrl = resolveBackendBaseUrl();
+    let backendUrl: string;
+    try {
+        backendUrl = getSafeBackendBaseUrl();
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Invalid BACKEND_URL';
+        return NextResponse.json({ error: 'Server misconfiguration', message: msg }, { status: 500 });
+    }
+
     let res: Response;
     try {
         res = await fetch(`${backendUrl}/api/v1/users/me`, {

@@ -1,69 +1,53 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Plus, Search, MoreVertical, MapPin, Calendar, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Modal } from '@/components/ui/modal';
-import { ConferenceForm } from '@/components/admin/forms/conference-form';
-import { AdContainer } from '@/components/ads/ad-container';
-import { AdConfig } from '@/lib/types/ads';
+import React, { useState } from "react";
+import { Plus, Search, MoreVertical, MapPin, Calendar, Users, Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import { ConferenceForm } from "@/components/admin/forms/conference-form";
+import { AdContainer } from "@/components/ads/ad-container";
+import { AdConfig } from "@/lib/types/ads";
+import { useCmsList } from "@/hooks/use-cms-list";
+import { getStrapiSingleMediaUrl } from "@/lib/admin-cms-client";
 
-// Sample advertisement configurations for conferences page
 const CONFERENCE_ADS_LEFT: AdConfig[] = [
     {
-        id: 'hotel-ad-1',
-        imageUrl: '/ads/hotel-ad-sample.png',
-        altText: 'Luxury Stays in Addis Ababa',
-        linkUrl: '/hotels',
-        targetBlank: false
+        id: "hotel-ad-1",
+        imageUrl: "/ads/hotel-ad-sample.png",
+        altText: "Luxury Stays in Addis Ababa",
+        linkUrl: "/hotels",
+        targetBlank: false,
     },
-    {
-        id: 'partnership-opportunity',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
 ];
 
 const CONFERENCE_ADS_RIGHT: AdConfig[] = [
     {
-        id: 'flight-ad-1',
-        imageUrl: '/ads/flight-ad-sample.png',
-        altText: 'Discover Ethiopia',
-        linkUrl: '/flights',
-        targetBlank: false
+        id: "flight-ad-1",
+        imageUrl: "/ads/flight-ad-sample.png",
+        altText: "Discover Ethiopia",
+        linkUrl: "/flights",
+        targetBlank: false,
     },
-    {
-        id: 'partnership-opportunity-2',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
 ];
 
+function fmtDate(iso: unknown): string {
+    if (!iso || typeof iso !== "string") return "—";
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+}
 
 export default function AdminConferencesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // Mock Data for Conferences
-    const conferences = [
-        { id: 1, name: 'African Tech Summit', location: 'Skylight Hotel', date: '2025-02-12', capacity: 500, status: 'Upcoming' },
-        { id: 2, name: 'Startup Ethiopia', location: 'Science Museum', date: '2025-03-05', capacity: 1200, status: 'Upcoming' },
-        { id: 3, name: 'Coffee Expo 2025', location: 'Millennium Hall', date: '2025-01-20', capacity: 3000, status: 'Active' },
-        { id: 4, name: 'FinTech Forum', location: 'Sheraton Addis', date: '2024-12-15', capacity: 200, status: 'Past' },
-    ];
+    const { items, loading, error, refetch } = useCmsList("conferences");
 
     return (
         <AdContainer leftAds={CONFERENCE_ADS_LEFT} rightAds={CONFERENCE_ADS_RIGHT}>
             <div className="space-y-8">
-                {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-extrabold text-brand-dark">Manage Conferences</h1>
-                        <p className="text-gray-500">View and manage upcoming events and conferences.</p>
+                        <p className="text-gray-500">Events stored in Strapi CMS.</p>
                     </div>
                     <Button
                         onClick={() => setIsModalOpen(true)}
@@ -74,84 +58,114 @@ export default function AdminConferencesPage() {
                     </Button>
                 </div>
 
-                {/* Filters */}
+                {error ? (
+                    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-semibold">Could not load CMS</p>
+                            <p>{error}</p>
+                        </div>
+                    </div>
+                ) : null}
+
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input placeholder="Search conferences..." className="pl-10 bg-gray-50 border-transparent focus:bg-white" />
+                        <Input placeholder="Search…" className="pl-10 bg-gray-50 border-transparent" disabled />
                     </div>
-                    <select className="bg-gray-50 border border-transparent text-sm font-semibold text-gray-700 rounded-lg px-4 py-2.5 cursor-pointer hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40">
-                        <option>All Status</option>
-                        <option>Upcoming</option>
-                        <option>Active</option>
-                        <option>Past</option>
-                    </select>
                 </div>
 
-                {/* Conferences Table */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Event Name</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Location</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Capacity</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {conferences.map((conf) => (
-                                <tr key={conf.id} className="hover:bg-gray-50 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="font-extrabold text-brand-dark">{conf.name}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2 text-gray-600 text-sm">
-                                            <MapPin className="w-3.5 h-3.5" />
-                                            {conf.location}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1 text-gray-600 text-sm">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            {conf.date}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1 text-brand-dark font-semibold text-sm">
-                                            <Users className="w-3.5 h-3.5 text-gray-400" />
-                                            {conf.capacity}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${conf.status === 'Upcoming'
-                                            ? 'bg-brand-primary/10 text-brand-primary'
-                                            : conf.status === 'Active'
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-gray-100 text-gray-700'
-                                            }`}>
-                                            {conf.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors">
-                                            <MoreVertical className="w-4 h-4" />
-                                        </button>
-                                    </td>
+                    {loading ? (
+                        <div className="flex items-center justify-center py-16 text-gray-500 gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Loading from CMS…
+                        </div>
+                    ) : (
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Event</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Venue</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Starts</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Capacity</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {items.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-10 text-center text-gray-500 text-sm">
+                                            No conferences yet. Create one in Strapi via the button above.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    items.map((row) => {
+                                        const id = row.id as number;
+                                        const name = String(row.name ?? "");
+                                        const venue = String(row.venue ?? "");
+                                        const start = fmtDate(row.start_at);
+                                        const cap = row.capacity != null ? Number(row.capacity) : "—";
+                                        const status = String(row.status ?? "—");
+                                        const banner = getStrapiSingleMediaUrl(row.banner);
+                                        return (
+                                            <tr key={id} className="hover:bg-gray-50 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-16 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                                                            {banner ? (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img src={banner} alt="" className="h-full w-full object-cover" />
+                                                            ) : null}
+                                                        </div>
+                                                        <div className="font-extrabold text-brand-dark">{name}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2 text-gray-600 text-sm">
+                                                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                                        {venue}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-1 text-gray-600 text-sm">
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        {start}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-1 text-brand-dark font-semibold text-sm">
+                                                        <Users className="w-3.5 h-3.5 text-gray-400" />
+                                                        {cap}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-brand-primary/10 text-brand-primary">
+                                                        {status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <button type="button" className="p-2 hover:bg-gray-100 rounded-lg text-gray-400" aria-label="Actions">
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
 
-                <Modal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    title="Add New Conference"
-                >
-                    <ConferenceForm onCancel={() => setIsModalOpen(false)} />
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Conference">
+                    <ConferenceForm
+                        onCancel={() => setIsModalOpen(false)}
+                        onSuccess={() => {
+                            void refetch();
+                        }}
+                    />
                 </Modal>
             </div>
         </AdContainer>

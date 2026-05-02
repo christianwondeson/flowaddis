@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
 
 export async function GET(req: Request) {
     try {
@@ -7,7 +8,13 @@ export async function GET(req: Request) {
         const limit = searchParams.get('limit') || '20';
         const offset = searchParams.get('offset') || '0';
 
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+        let backendUrl: string;
+        try {
+            backendUrl = getSafeBackendBaseUrl();
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Invalid BACKEND_URL';
+            return NextResponse.json({ error: 'Server misconfiguration', message: msg }, { status: 500 });
+        }
         const url = new URL(`${backendUrl}/api/v1/admin/payments`);
 
         if (status) url.searchParams.append('status', status);

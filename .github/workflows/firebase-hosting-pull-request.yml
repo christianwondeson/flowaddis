@@ -16,9 +16,12 @@ jobs:
       - run: npm ci && npm run build
         env:
           NEXT_PUBLIC_RAPIDAPI_KEY: ${{ secrets.NEXT_PUBLIC_RAPIDAPI_KEY }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
       - uses: FirebaseExtended/action-hosting-deploy@v0
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
+          NEXT_PUBLIC_RAPIDAPI_KEY: ${{ secrets.NEXT_PUBLIC_RAPIDAPI_KEY }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FLOWADDIS_EA8E1 }}

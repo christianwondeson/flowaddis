@@ -1,97 +1,158 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Upload, Plus, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState } from "react";
+import { Upload, Plus, X, Check, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { uploadCmsFiles, cmsCreate } from "@/lib/admin-cms-client";
+import { slugifyName } from "@/lib/slugify";
 
 interface HotelFormProps {
     onCancel: () => void;
-    onSubmit?: (data: any) => void;
+    onSuccess?: () => void;
 }
 
-export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
-    const commonFacilities = [
-        { id: 'wifi', label: 'Free Wi-Fi' },
-        { id: 'restaurant', label: 'Restaurant' },
-        { id: 'bar', label: 'Bar/Lounge' },
-        { id: 'gym', label: 'Fitness Gym' },
-        { id: 'pool', label: 'Pool' },
-        { id: 'spa', label: 'Spa' },
-        { id: 'sauna', label: 'Sauna/Steam' },
-        { id: 'shuttle', label: 'Airport Shuttle' },
-        { id: 'conference', label: 'Conference/Meeting Rooms' },
-    ];
+type GalleryItem = { file: File; preview: string; isPrimary: boolean };
 
+const commonFacilities = [
+    { id: "wifi", label: "Free Wi-Fi" },
+    { id: "restaurant", label: "Restaurant" },
+    { id: "bar", label: "Bar/Lounge" },
+    { id: "gym", label: "Fitness Gym" },
+    { id: "pool", label: "Pool" },
+    { id: "spa", label: "Spa" },
+    { id: "sauna", label: "Sauna/Steam" },
+    { id: "shuttle", label: "Airport Shuttle" },
+    { id: "conference", label: "Conference/Meeting Rooms" },
+];
+
+export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSuccess }) => {
+    const [name, setName] = useState("");
+    const [location, setLocation] = useState("");
+    const [description, setDescription] = useState("");
+    const [starRating, setStarRating] = useState("4");
+    const [status, setStatus] = useState<"Active" | "Maintenance" | "Draft">("Draft");
     const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
     const [customFacilities, setCustomFacilities] = useState<string[]>([]);
-    const [newFacility, setNewFacility] = useState('');
-    const [images, setImages] = useState<{ url: string; isPrimary: boolean }[]>([]);
+    const [newFacility, setNewFacility] = useState("");
+    const [images, setImages] = useState<GalleryItem[]>([]);
     const [pricing, setPricing] = useState({
-        original: '',
-        discounted: '',
-        currency: 'USD',
-        category: 'Mid-range'
+        original: "",
+        discounted: "",
+        currency: "USD",
+        category: "Mid-range" as "Budget" | "Mid-range" | "Luxury" | "Premium",
     });
+    const [submitting, setSubmitting] = useState(false);
 
     const toggleFacility = (id: string) => {
-        setSelectedFacilities(prev =>
-            prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
-        );
+        setSelectedFacilities((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
     };
 
     const handleAddCustomFacility = () => {
-        if (newFacility.trim() && !customFacilities.includes(newFacility.trim())) {
-            setCustomFacilities([...customFacilities, newFacility.trim()]);
-            setNewFacility('');
+        const t = newFacility.trim();
+        if (t && !customFacilities.includes(t)) {
+            setCustomFacilities([...customFacilities, t]);
+            setNewFacility("");
         }
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files);
-            const newImages = newFiles.map((file, index) => ({
-                url: URL.createObjectURL(file),
-                isPrimary: images.length === 0 && index === 0 // Mark first image as primary if none exist
+        if (!e.target.files) return;
+        const newFiles = Array.from(e.target.files);
+        setImages((prev) => {
+            const startPrimary = prev.length === 0;
+            const next = newFiles.map((file, index) => ({
+                file,
+                preview: URL.createObjectURL(file),
+                isPrimary: startPrimary && index === 0 ? true : false,
             }));
-            setImages([...images, ...newImages]);
-        }
+            return [...prev, ...next];
+        });
     };
 
     const setPrimaryImage = (index: number) => {
-        setImages(images.map((img, i) => ({
-            ...img,
-            isPrimary: i === index
-        })));
+        setImages((imgs) => imgs.map((img, i) => ({ ...img, isPrimary: i === index })));
     };
 
     const removeImage = (index: number) => {
-        const removed = images[index];
-        if (removed.isPrimary && images.length > 1) {
-            // If we remove primary, set the first remaining one as primary
-            const nextImages = images.filter((_, i) => i !== index);
-            nextImages[0].isPrimary = true;
-            setImages(nextImages);
-        } else {
-            setImages(images.filter((_, i) => i !== index));
-        }
+        setImages((imgs) => {
+            const removed = imgs[index];
+            URL.revokeObjectURL(removed.preview);
+            const next = imgs.filter((_, i) => i !== index);
+            if (removed.isPrimary && next.length > 0) {
+                next[0] = { ...next[0], isPrimary: true };
+            }
+            return next;
+        });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (onSubmit) {
-            onSubmit({
-                facilities: [...selectedFacilities.map(id => commonFacilities.find(f => f.id === id)?.label), ...customFacilities],
-                images,
-                pricing
-            });
+        const trimmedName = name.trim();
+        const trimmedLoc = location.trim();
+        if (!trimmedName || !trimmedLoc) {
+            toast.error("Name and location are required.");
+            return;
         }
-        onCancel();
+        const orig = parseFloat(pricing.original);
+        const disc = parseFloat(pricing.discounted);
+        const priceNum = Number.isFinite(disc) && disc > 0 ? disc : orig;
+        if (!Number.isFinite(priceNum) || priceNum <= 0) {
+            toast.error("Enter a valid nightly price.");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const facilityLabels = [
+                ...selectedFacilities.map((id) => commonFacilities.find((f) => f.id === id)?.label).filter(Boolean),
+                ...customFacilities,
+            ];
+
+            let primary_image: number | undefined;
+            let gallery: number[] | undefined;
+            if (images.length > 0) {
+                const ordered = [...images].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+                const files = ordered.map((i) => i.file);
+                const ids = await uploadCmsFiles(files);
+                if (ids.length > 0) {
+                    primary_image = ids[0];
+                    const rest = ids.slice(1);
+                    if (rest.length > 0) gallery = rest;
+                }
+            }
+
+            const slug = slugifyName(trimmedName);
+            const ratingNum = Math.min(5, Math.max(0, parseFloat(starRating) || 0));
+
+            await cmsCreate("hotels", {
+                name: trimmedName,
+                slug,
+                location: trimmedLoc,
+                description: description.trim() || undefined,
+                rating: ratingNum,
+                price_per_night: priceNum,
+                currency: (pricing.currency || "USD").toUpperCase().slice(0, 3),
+                price_category: pricing.category,
+                status,
+                facilities: facilityLabels,
+                ...(primary_image != null ? { primary_image } : {}),
+                ...(gallery && gallery.length > 0 ? { gallery } : {}),
+            });
+
+            toast.success("Hotel saved to CMS.");
+            onSuccess?.();
+            onCancel();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Save failed");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 no-scrollbar">
-            {/* Basic Info */}
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-8 no-scrollbar max-h-[70vh] overflow-y-auto pr-1">
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Basic Information</h3>
@@ -100,23 +161,64 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-500 uppercase">Hotel Name</label>
-                        <Input placeholder="e.g. Skylight Hotel" className="rounded-xl border-gray-100 focus:border-brand-primary" required />
+                        <Input
+                            placeholder="e.g. Skylight Hotel"
+                            className="rounded-xl border-gray-100 focus:border-brand-primary"
+                            required
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                        />
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-500 uppercase">Location</label>
-                        <Input placeholder="e.g. Bole, Addis Ababa" className="rounded-xl border-gray-100 focus:border-brand-primary" required />
+                        <Input
+                            placeholder="e.g. Bole, Addis Ababa"
+                            className="rounded-xl border-gray-100 focus:border-brand-primary"
+                            required
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                        />
                     </div>
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
                     <textarea
                         className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-primary transition-colors h-24 resize-none"
-                        placeholder="Describe the hotel's features, unique selling points, and local context..."
+                        placeholder="Describe the hotel..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
                     />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Status</label>
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value as typeof status)}
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                        >
+                            <option value="Draft">Draft</option>
+                            <option value="Active">Active</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase">Star rating</label>
+                        <select
+                            value={starRating}
+                            onChange={(e) => setStarRating(e.target.value)}
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                        >
+                            {["5", "4", "3", "2", "1"].map((n) => (
+                                <option key={n} value={n}>
+                                    {n} stars
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Pricing Details */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                     <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Pricing & Category</h3>
@@ -124,128 +226,108 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Original Price</label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <Input
-                                type="number"
-                                placeholder="0.00"
-                                className="pl-7 rounded-xl border-gray-100 focus:border-brand-primary"
-                                value={pricing.original}
-                                onChange={(e) => setPricing({ ...pricing, original: e.target.value })}
-                            />
-                        </div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">Original price / night</label>
+                        <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={pricing.original}
+                            onChange={(e) => setPricing({ ...pricing, original: e.target.value })}
+                            className="rounded-xl border-gray-100"
+                        />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Discounted Price</label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-primary font-bold text-sm">$</span>
-                            <Input
-                                type="number"
-                                placeholder="0.00"
-                                className="pl-7 rounded-xl border-gray-100 focus:border-brand-primary font-bold text-brand-primary"
-                                value={pricing.discounted}
-                                onChange={(e) => setPricing({ ...pricing, discounted: e.target.value })}
-                            />
-                        </div>
+                        <label className="text-xs font-bold text-gray-500 uppercase">Discounted (optional)</label>
+                        <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={pricing.discounted}
+                            onChange={(e) => setPricing({ ...pricing, discounted: e.target.value })}
+                            className="rounded-xl border-gray-100"
+                        />
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-500 uppercase">Currency</label>
                         <select
                             value={pricing.currency}
                             onChange={(e) => setPricing({ ...pricing, currency: e.target.value })}
-                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40 transition-colors"
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold"
                         >
-                            <option value="USD">USD ($)</option>
-                            <option value="ETB">ETB (Br)</option>
-                            <option value="EUR">EUR (€)</option>
+                            <option value="USD">USD</option>
+                            <option value="ETB">ETB</option>
+                            <option value="EUR">EUR</option>
                         </select>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Price Category</label>
-                        <select
-                            value={pricing.category}
-                            onChange={(e) => setPricing({ ...pricing, category: e.target.value })}
-                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40 transition-colors"
-                        >
-                            <option>Budget</option>
-                            <option>Mid-range</option>
-                            <option>Luxury</option>
-                            <option>Premium</option>
-                        </select>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Star Rating</label>
-                        <select className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary/40 transition-colors">
-                            <option>5 Stars</option>
-                            <option>4 Stars</option>
-                            <option>3 Stars</option>
-                            <option>2 Stars</option>
-                            <option>1 Star</option>
-                        </select>
-                    </div>
+                <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase">Price category</label>
+                    <select
+                        value={pricing.category}
+                        onChange={(e) => setPricing({ ...pricing, category: e.target.value as typeof pricing.category })}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                    >
+                        <option value="Budget">Budget</option>
+                        <option value="Mid-range">Mid-range</option>
+                        <option value="Luxury">Luxury</option>
+                        <option value="Premium">Premium</option>
+                    </select>
                 </div>
             </div>
 
-            {/* Facilities Grid */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                    <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Facilities & Amenities</h3>
+                    <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Facilities</h3>
                     <span className="text-[10px] font-bold text-brand-primary bg-brand-primary/5 px-2 py-0.5 rounded-full">Step 3 of 3</span>
                 </div>
-
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {commonFacilities.map((facility) => (
                         <button
                             key={facility.id}
                             type="button"
                             onClick={() => toggleFacility(facility.id)}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left group ${selectedFacilities.includes(facility.id)
-                                ? 'bg-brand-primary/10 border-brand-primary text-brand-primary shadow-sm'
-                                : 'bg-white border-gray-100 text-gray-600 hover:border-brand-primary/30 hover:bg-gray-50'
-                                }`}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
+                                selectedFacilities.includes(facility.id)
+                                    ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
+                                    : "bg-white border-gray-100 text-gray-600 hover:border-brand-primary/30"
+                            }`}
                         >
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedFacilities.includes(facility.id)
-                                ? 'bg-brand-primary border-brand-primary'
-                                : 'border-gray-300 group-hover:border-brand-primary'
-                                }`}>
-                                {selectedFacilities.includes(facility.id) && (
-                                    <Plus className="w-3 h-3 text-white rotate-45" />
-                                )}
-                            </div>
+                            <span
+                                className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                                    selectedFacilities.includes(facility.id) ? "bg-brand-primary border-brand-primary" : "border-gray-300"
+                                }`}
+                            >
+                                {selectedFacilities.includes(facility.id) ? <Check className="w-3 h-3 text-white" /> : null}
+                            </span>
                             <span className="text-xs font-bold">{facility.label}</span>
                         </button>
                     ))}
                 </div>
-
-                <div className="pt-4 border-t border-gray-50">
-                    <label className="text-xs font-bold text-gray-500 uppercase block mb-3">Custom Facilities</label>
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder="Add other facility (e.g. Garden, Pet-friendly)"
-                            value={newFacility}
-                            onChange={(e) => setNewFacility(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleAddCustomFacility();
-                                }
-                            }}
-                            className="rounded-xl border-gray-100 focus:border-brand-primary"
-                        />
-                        <Button onClick={handleAddCustomFacility} type="button" variant="outline" className="rounded-xl px-4 border-gray-100 hover:text-brand-primary hover:border-brand-primary">
-                            <Plus className="w-4 h-4" />
-                        </Button>
-                    </div>
+                <div className="flex gap-2">
+                    <Input
+                        placeholder="Custom facility"
+                        value={newFacility}
+                        onChange={(e) => setNewFacility(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddCustomFacility();
+                            }
+                        }}
+                        className="rounded-xl"
+                    />
+                    <Button type="button" variant="outline" onClick={handleAddCustomFacility}>
+                        <Plus className="w-4 h-4" />
+                    </Button>
                 </div>
-
                 <div className="flex flex-wrap gap-2">
                     {customFacilities.map((facility, idx) => (
-                        <div key={idx} className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2 shadow-sm">
+                        <div
+                            key={idx}
+                            className="bg-brand-dark text-white px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2"
+                        >
                             {facility}
-                            <button type="button" onClick={() => setCustomFacilities(customFacilities.filter((_, i) => i !== idx))} className="hover:text-red-400">
+                            <button type="button" onClick={() => setCustomFacilities(customFacilities.filter((_, i) => i !== idx))}>
                                 <X className="w-3 h-3" />
                             </button>
                         </div>
@@ -253,66 +335,56 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSubmit }) => {
                 </div>
             </div>
 
-            {/* Enhanced Gallery */}
             <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                    <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Gallery & Photos</h3>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">{images.length} photos added</span>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <h3 className="text-sm font-bold text-brand-dark uppercase tracking-wider">Gallery</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {images.map((img, idx) => (
-                        <div key={idx} className={`relative aspect-4/3 rounded-2xl overflow-hidden group border-2 transition-all ${img.isPrimary ? 'border-brand-primary shadow-lg ring-4 ring-brand-primary/10' : 'border-transparent'
-                            }`}>
-                            <img src={img.url} alt="Upload preview" className="w-full h-full object-cover" />
-
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                {!img.isPrimary && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setPrimaryImage(idx)}
-                                        className="bg-brand-primary text-white text-[10px] font-bold px-3 py-1 rounded-full hover:scale-105 transition-transform"
-                                    >
-                                        Set Primary
+                        <div
+                            key={idx}
+                            className={`relative aspect-4/3 rounded-2xl overflow-hidden border-2 ${
+                                img.isPrimary ? "border-brand-primary ring-2 ring-brand-primary/20" : "border-transparent"
+                            }`}
+                        >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                {!img.isPrimary ? (
+                                    <button type="button" onClick={() => setPrimaryImage(idx)} className="text-[10px] font-bold bg-white px-2 py-1 rounded-full">
+                                        Set primary
                                     </button>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => removeImage(idx)}
-                                    className="bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
-                                >
+                                ) : null}
+                                <button type="button" onClick={() => removeImage(idx)} className="bg-red-500 text-white p-1.5 rounded-full">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
-
-                            {img.isPrimary && (
-                                <div className="absolute top-2 left-2 bg-brand-primary text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full shadow-lg uppercase tracking-widest">
+                            {img.isPrimary ? (
+                                <span className="absolute top-2 left-2 bg-brand-primary text-white text-[8px] font-extrabold px-2 py-0.5 rounded-full uppercase">
                                     Primary
-                                </div>
-                            )}
+                                </span>
+                            ) : null}
                         </div>
                     ))}
-
-                    <label className="aspect-4/3 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary hover:bg-brand-primary/5 transition-all group">
-                        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2 group-hover:bg-brand-primary/10 transition-colors">
-                            <Upload className="w-5 h-5 text-gray-400 group-hover:text-brand-primary" />
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-500 group-hover:text-brand-primary uppercase tracking-wider">Select Photos</span>
-                        <span className="text-[8px] text-gray-400 mt-1">Multi-upload supported</span>
+                    <label className="aspect-4/3 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-brand-primary">
+                        <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                        <span className="text-[10px] font-bold text-gray-500">Add photos</span>
                         <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageUpload} />
                     </label>
                 </div>
             </div>
 
-            {/* Actions */}
-            <div className="pt-6 border-t border-gray-100 flex justify-end gap-4 sticky bottom-0 bg-white/95 backdrop-blur-sm -mx-6 px-6 pb-6 mt-8">
-                <Button type="button" variant="ghost" onClick={onCancel} className="rounded-xl font-bold text-gray-400 hover:text-gray-600">
+            <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>
                     Cancel
                 </Button>
-                <Button type="submit" className="bg-brand-primary hover:bg-brand-secondary text-white font-bold px-8 rounded-xl shadow-lg shadow-brand-primary/20 transition-all active:scale-95">
-                    Create Hotel Profile
+                <Button type="submit" className="bg-brand-primary text-white" disabled={submitting}>
+                    {submitting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Saving…
+                        </>
+                    ) : (
+                        "Save to CMS"
+                    )}
                 </Button>
             </div>
         </form>
