@@ -27,7 +27,6 @@ export async function GET(request: Request) {
     const stars = searchParams.get('stars');
     const minRating = searchParams.get('minRating');
     const amenities = searchParams.get('amenities');
-    const hotelName = searchParams.get('hotelName') || '';
 
     try {
         let destId = urlDestId;
@@ -223,8 +222,8 @@ export async function GET(request: Request) {
             };
         };
 
-        const latitude = searchParams.get('latitude');
-        const longitude = searchParams.get('longitude');
+        const latitude = searchParams.get('latitude') || searchParams.get('lat');
+        const longitude = searchParams.get('longitude') || searchParams.get('lng');
 
         const ORDER_MAP: Record<string, string> = {
             class_descending: 'class_descending',
@@ -359,10 +358,9 @@ export async function GET(request: Request) {
             };
         });
 
-        if (hotelName) {
-            const nameLc = hotelName.toLowerCase();
-            hotels = hotels.filter((h: any) => h.name.toLowerCase().includes(nameLc));
-        }
+        // Do not filter by `hotelName` here: results are paginated — the matching property may be on
+        // another page, which produced "0 hotels" on the map while the list page worked (client-side filter).
+        // Main `/hotels` UI already filters by property name on the client.
 
         // Post-filter: when searching Addis Ababa/Ethiopia, keep only hotels actually in Ethiopia
         if (isEthiopiaQuery && hotels.length > 0) {

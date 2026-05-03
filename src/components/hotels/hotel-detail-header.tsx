@@ -13,9 +13,11 @@ interface HotelDetailHeaderProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
     onBook?: (price?: number, name?: string, id?: string) => void;
+    /** Pre-built `/hotels/map?...` URL (destination + dates from list context). */
+    detailMapHref: string;
 }
 
-export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook }) => {
+export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook, detailMapHref }) => {
     const router = useRouter();
     const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
     const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
@@ -105,18 +107,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                 <span className="text-gray-300 dark:text-slate-600 mx-1">–</span>
                                 <button
                                     onClick={() => {
-                                        const params = new URLSearchParams();
-                                        // Broad region only — street/address as `query` breaks Booking dest resolution and images.
-                                        params.set('query', 'Ethiopia');
-                                        if (hotel.name) params.set('hotelName', hotel.name);
-                                        params.set('fromDetail', '1');
-
-                                        // Pass coordinates for map centering
-                                        if (hotel.coordinates?.lat) params.set('lat', hotel.coordinates.lat.toString());
-                                        if (hotel.coordinates?.lng) params.set('lng', hotel.coordinates.lng.toString());
-                                        if (hotel.id) params.set('highlightId', hotel.id);
-
-                                        router.push(`/hotels/map?${params.toString()}`);
+                                        router.push(detailMapHref);
                                     }}
                                     className="text-brand-primary font-bold hover:underline"
                                 >

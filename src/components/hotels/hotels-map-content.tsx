@@ -14,6 +14,8 @@ const LeafletMap = nextDynamic(() => import("@/components/map/leaflet-map").then
 import { HotelList } from "@/components/hotels/hotel-list";
 import { HotelFilters } from "@/components/hotels/hotel-filters";
 import { useHotelsInfinite } from "@/hooks/use-hotels-infinite";
+import { DEFAULT_HOTEL_DESTINATION_QUERY } from "@/lib/hotel-search-location";
+import { destinationQueryFromUrlParams, buildHotelsListUrlAfterClosingMap } from "@/lib/hotel-search-url";
 
 const MAP_PAGE_SIZE = 50; // API max per request
 
@@ -67,7 +69,7 @@ export function HotelsMapContent() {
     const paramsKey = useMemo(() => params.toString(), [params]);
     const routeHighlightId = params.get("highlightId");
 
-    const initialQuery = params.get("query") || "Ethiopia";
+    const initialQuery = destinationQueryFromUrlParams(params);
     const initialCheckIn = params.get("checkIn") || "";
     const initialCheckOut = params.get("checkOut") || "";
 
@@ -97,7 +99,7 @@ export function HotelsMapContent() {
 
     // URL is source of truth when query string changes (e.g. another hotel from detail)
     useEffect(() => {
-        const q = params.get("query") || "Ethiopia";
+        const q = destinationQueryFromUrlParams(params);
         const ci = params.get("checkIn") || "";
         const co = params.get("checkOut") || "";
         setCheckIn(ci || undefined);
@@ -125,14 +127,30 @@ export function HotelsMapContent() {
     const checkInDate = useMemo(() => (checkIn ? new Date(checkIn) : undefined), [checkIn]);
     const checkOutDate = useMemo(() => (checkOut ? new Date(checkOut) : undefined), [checkOut]);
 
+    const mapSearchLat = useMemo(() => {
+        const raw = params.get("lat") ?? params.get("latitude");
+        if (raw == null || raw === "") return undefined;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : undefined;
+    }, [paramsKey, params]);
+
+    const mapSearchLng = useMemo(() => {
+        const raw = params.get("lng") ?? params.get("longitude");
+        if (raw == null || raw === "") return undefined;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : undefined;
+    }, [paramsKey, params]);
+
     const queryClient = useQueryClient();
     const { data, isLoading, error, isFetching, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } = useHotelsInfinite(
         {
-            query: filters.query || "Ethiopia",
+            query: filters.query || DEFAULT_HOTEL_DESTINATION_QUERY,
             checkIn: checkInDate,
             checkOut: checkOutDate,
             filters,
             pageSize: MAP_PAGE_SIZE,
+            latitude: mapSearchLat,
+            longitude: mapSearchLng,
         },
         { staleTime: 0 },
     );
@@ -152,15 +170,22 @@ export function HotelsMapContent() {
         return [injected, ...flat];
     }, [data?.pages, paramsKey]);
 
-    // Featured hotel first in sidebar list
+    // Sidebar / markers: optional property filter on the client (not on each API page — see search route).
+    // Skip name narrowing when `highlightId` is set (detail → map) so slight title mismatches never hide the pin.
     const displayHotels = useMemo(() => {
-        if (!routeHighlightId) return hotels;
-        const idx = hotels.findIndex((h) => h.id === routeHighlightId);
-        if (idx <= 0) return hotels;
-        const copy = [...hotels];
+        let list = hotels;
+        const hn = filters.hotelName?.trim();
+        if (hn && !routeHighlightId) {
+            const l = hn.toLowerCase();
+            list = list.filter((h) => h.name.toLowerCase().includes(l));
+        }
+        if (!routeHighlightId) return list;
+        const idx = list.findIndex((h) => h.id === routeHighlightId);
+        if (idx <= 0) return list;
+        const copy = [...list];
         const [picked] = copy.splice(idx, 1);
         return [picked!, ...copy];
-    }, [hotels, routeHighlightId]);
+    }, [hotels, routeHighlightId, filters.hotelName]);
 
     // Scroll list so the routed hotel is visible
     useEffect(() => {
@@ -352,8 +377,7 @@ export function HotelsMapContent() {
                         {/* Back / Close Button - visible on mobile and desktop */}
                         <button
                             onClick={() => {
-                                const newParams = new URLSearchParams(params.toString());
-                                router.push(`/hotels?${newParams.toString()}`);
+                                router.push(buildHotelsListUrlAfterClosingMap(new URLSearchParams(params.toString())));
                             }}
                             className="absolute top-4 left-4 right-auto lg:left-auto lg:right-4 z-[1000] bg-white dark:bg-slate-900 text-brand-dark dark:text-foreground p-2.5 rounded-full shadow-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-all border border-gray-200 dark:border-slate-700 flex items-center gap-2"
                             title="Back to hotels list"

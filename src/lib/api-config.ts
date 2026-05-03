@@ -2,7 +2,7 @@ import { env } from './env';
 
 // API Configuration
 export const API_CONFIG = {
-    RAPIDAPI_KEY: env.NEXT_PUBLIC_RAPIDAPI_KEY,
+    RAPIDAPI_KEY: env.RAPIDAPI_KEY,
     RAPIDAPI_HOST: 'booking-com.p.rapidapi.com',
     BASE_URL: 'https://booking-com.p.rapidapi.com/v1',
     // Flights config per user: https://booking-com18.p.rapidapi.com/flights

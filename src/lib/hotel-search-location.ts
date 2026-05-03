@@ -1,5 +1,8 @@
 import type { HotelFilters } from '@/types';
 
+/** Default destination when none is chosen (aligned with hotels listing). */
+export const DEFAULT_HOTEL_DESTINATION_QUERY = 'Addis Ababa';
+
 /**
  * Merge top-level + filters location fields (same rules as home SearchWidget).
  * When user types a known city without picking from LocationInput, supply dest_id.
@@ -16,7 +19,7 @@ export function mergeHotelSearchLocation(
     filterRest: Omit<HotelFilters, 'query' | 'destId' | 'destType'>;
 } {
     const f = filters ?? {};
-    let query = String(f.query ?? topQuery ?? '').trim() || 'Addis Ababa';
+    let query = String(f.query ?? topQuery ?? '').trim() || DEFAULT_HOTEL_DESTINATION_QUERY;
     let destId = topDestId ?? f.destId;
     let destType = topDestType ?? f.destType;
     if (destId === '' || destId == null) destId = undefined;

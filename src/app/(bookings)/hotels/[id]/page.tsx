@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { HotelDetailHeader } from '@/components/hotels/hotel-detail-header';
 import { HotelDetailGallery } from '@/components/hotels/hotel-detail-gallery';
 import { HotelDetailAbout } from '@/components/hotels/hotel-detail-about';
@@ -15,9 +15,12 @@ import { formatDateLocal } from '@/lib/date-utils';
 import { Preloader } from '@/components/ui/preloader';
 import { Button } from '@/components/ui/button';
 import { APP_CONSTANTS } from '@/lib/constants';
+import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
+import { buildHotelDetailMapUrl, deriveDestinationQueryFromHotelLocation } from '@/lib/hotel-search-url';
 
-export default function HotelDetailPage() {
+function HotelDetailPageInner() {
     const { id } = useParams();
+    const sp = useSearchParams();
     const [activeTab, setActiveTab] = useState('overview');
     const HOTEL_PLACEHOLDER = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || '/assets/images/addis-view.jpg';
     const [hotel, setHotel] = useState<any>({
@@ -52,7 +55,18 @@ export default function HotelDetailPage() {
 
     // In a real app, we would fetch by ID. 
     // For now, we'll find it from the search results or use mock data.
-    const { data, isLoading } = useHotels({ query: 'Ethiopia' });
+    const listSeedQuery =
+        sp.get('searchQuery')?.trim() ||
+        deriveDestinationQueryFromHotelLocation(sp.get('location')) ||
+        DEFAULT_HOTEL_DESTINATION_QUERY;
+    const listSeedDestId = sp.get('searchDestId') || undefined;
+    const listSeedDestType = sp.get('searchDestType') || undefined;
+
+    const { data, isLoading } = useHotels({
+        query: listSeedQuery,
+        destId: listSeedDestId,
+        destType: listSeedDestType,
+    });
 
     useEffect(() => {
         // Seed basic details from URL query string if present
@@ -191,6 +205,36 @@ export default function HotelDetailPage() {
         }
     }, [id]);
 
+    const detailMapHref = useMemo(
+        () =>
+            buildHotelDetailMapUrl(
+                {
+                    searchQuery: sp.get('searchQuery'),
+                    searchDestId: sp.get('searchDestId'),
+                    searchDestType: sp.get('searchDestType'),
+                    checkIn: checkInDate,
+                    checkOut: checkOutDate,
+                    adults,
+                    children,
+                    rooms,
+                },
+                hotel,
+            ),
+        [
+            sp.toString(),
+            checkInDate,
+            checkOutDate,
+            adults,
+            children,
+            rooms,
+            hotel.id,
+            hotel.name,
+            hotel.location,
+            hotel.coordinates?.lat,
+            hotel.coordinates?.lng,
+        ],
+    );
+
     useEffect(() => {
         fetchDetails();
     }, [fetchDetails]);
@@ -209,6 +253,7 @@ export default function HotelDetailPage() {
                 hotel={hotel}
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
+                detailMapHref={detailMapHref}
                 onBook={() => {
                     setActiveTab('pricing');
                     window.scrollTo({
@@ -307,7 +352,12 @@ export default function HotelDetailPage() {
                         {activeTab === 'reviews' && (
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
                                 <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">Guest Reviews</h2>
-                                <HotelDetailSidebar hotel={hotel} reviews={reviewsList} onBook={() => setActiveTab('pricing')} />
+                                <HotelDetailSidebar
+                                    hotel={hotel}
+                                    reviews={reviewsList}
+                                    detailMapHref={detailMapHref}
+                                    onBook={() => setActiveTab('pricing')}
+                                />
                             </div>
                         )}
                     </div>
@@ -342,6 +392,7 @@ export default function HotelDetailPage() {
                             <HotelDetailSidebar
                                 hotel={hotel}
                                 reviews={reviewsList}
+                                detailMapHref={detailMapHref}
                                 onBook={() => {
                                     setActiveTab('pricing');
                                     window.scrollTo({
@@ -399,5 +450,19 @@ export default function HotelDetailPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function HotelDetailPage() {
+    return (
+        <Suspense
+            fallback={
+                <div className="min-h-screen bg-brand-gray dark:bg-background flex items-center justify-center">
+                    <Preloader size="lg" />
+                </div>
+            }
+        >
+            <HotelDetailPageInner />
+        </Suspense>
     );
 }

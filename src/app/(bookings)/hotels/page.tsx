@@ -16,6 +16,7 @@ import { HotelFilterBar } from '@/components/hotels/hotel-filter-bar';
 import { Preloader } from '@/components/ui/preloader';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
+import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
 
 // Left sidebar ads (sticky with filters)
 const HOTEL_ADS_LEFT: AdConfig[] = [
@@ -51,7 +52,7 @@ function HotelsPageContent() {
     const search = useSearchParams();
     const searchStr = search.toString();
     const isPickLocationMode = new URLSearchParams(searchStr).get('pickLocation') === '1';
-    const initialQuery = search.get('query') || 'Addis Ababa';
+    const initialQuery = search.get('query') || DEFAULT_HOTEL_DESTINATION_QUERY;
     const initialDestId = search.get('destId') || undefined;
     const initialDestType = search.get('destType') || undefined;
     const urlCheckIn = search.get('checkIn');
@@ -126,7 +127,7 @@ function HotelsPageContent() {
     // Query State derived from URL (Single Source of Truth)
     const searchParams = useMemo(() => {
         const urlParams = new URLSearchParams(searchStr);
-        const q = urlParams.get('query') || 'Addis Ababa';
+        const q = urlParams.get('query') || DEFAULT_HOTEL_DESTINATION_QUERY;
         const ci = urlParams.get('checkIn');
         const co = urlParams.get('checkOut');
         const ad = Number(urlParams.get('adults')) || 2;
@@ -160,12 +161,13 @@ function HotelsPageContent() {
             children: searchParams.children,
             rooms: searchParams.rooms
         });
-        setHasSearched(true);
+        const urlPick = new URLSearchParams(searchStr).get('pickLocation') === '1';
+        setHasSearched(!urlPick);
 
         // Update filters from URL
         const urlParams = new URLSearchParams(searchStr);
         setFilters({
-            query: urlParams.get('query') || 'Addis Ababa',
+            query: urlParams.get('query') || DEFAULT_HOTEL_DESTINATION_QUERY,
             destId: urlParams.get('destId') || undefined,
             destType: urlParams.get('destType') || undefined,
             // If no explicit sort in URL, prefer highest class / highly rated by default
@@ -178,6 +180,16 @@ function HotelsPageContent() {
             hotelName: urlParams.get('hotelName') || '',
         });
     }, [searchParams, searchStr]);
+
+    // Pick-mode landing: bring the search card into view (mobile + desktop)
+    useEffect(() => {
+        if (!isPickLocationMode) return;
+        const id = 'hotel-search-anchor';
+        const frame = window.requestAnimationFrame(() => {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [isPickLocationMode]);
 
     const { data, isLoading, error, isPlaceholderData } = useHotels({
         query: searchParams.query,
@@ -323,6 +335,9 @@ function HotelsPageContent() {
         // Never put price in the URL — auditors flagged tampering; Stripe/Nest always derive amount server-side.
         if (hotel.image) params.set('image', hotel.image);
         if (hotel.location) params.set('location', hotel.location);
+        if (searchParams.query) params.set('searchQuery', searchParams.query);
+        if (searchParams.destId) params.set('searchDestId', searchParams.destId);
+        if (searchParams.destType) params.set('searchDestType', searchParams.destType);
         // Preserve current search context for the detail page and back navigation
         if (checkIn) params.set('checkIn', checkIn);
         if (checkOut) params.set('checkOut', checkOut);
@@ -352,7 +367,7 @@ function HotelsPageContent() {
 
     /** Run search immediately when user selects a location (auto-search for easier UX) */
     const handleLocationSelectAndSearch = (location: { name?: string; label?: string; dest_id?: string; dest_type?: string }) => {
-        const name = (location.name ?? location.label ?? destination).toString().trim() || 'Addis Ababa';
+        const name = (location.name ?? location.label ?? destination).toString().trim() || DEFAULT_HOTEL_DESTINATION_QUERY;
         const destId = location.dest_id;
         const destType = location.dest_type;
         setDestination(name);
@@ -390,9 +405,9 @@ function HotelsPageContent() {
         router.push(nextUrl);
     };
 
-    const displayLocation = searchParams.query === 'Addis Ababa'
+    const displayLocation = searchParams.query === DEFAULT_HOTEL_DESTINATION_QUERY
         ? 'Addis Ababa, Ethiopia'
-        : (searchParams.query || 'Addis Ababa');
+        : (searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY);
 
     const staySummary = useMemo(() => {
         try {
@@ -416,13 +431,20 @@ function HotelsPageContent() {
                         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2 tracking-tight">
                             Luxury Stays in {displayLocation}
                         </h1>
-                        <p className="text-teal-100/90 text-sm sm:text-base max-w-2xl">
-                            Discover the perfect accommodation for your trip.
-                        </p>
+                        {isPickLocationMode ? (
+                            <p className="text-teal-100/95 text-sm sm:text-base max-w-2xl mt-1">
+                                Pick your destination from the suggestions, then press Search — we have not run your hotel search yet.
+                            </p>
+                        ) : (
+                            <p className="text-teal-100/90 text-sm sm:text-base max-w-2xl">
+                                Discover the perfect accommodation for your trip.
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className="container mx-auto px-4 sm:px-6 lg:px-6 -mt-4 sm:-mt-5 md:-mt-6">
+                    <div id="hotel-search-anchor" className="scroll-mt-20 sm:scroll-mt-24">
                     <HotelSearchForm
                         destination={destination}
                         checkIn={checkIn}
@@ -439,9 +461,12 @@ function HotelsPageContent() {
                         initialOpen={!hasSearched}
                         // When arriving from home cards, open dropdown so user selects exact destination first
                         locationAutoOpen={isPickLocationMode}
+                        pickLocationMode={isPickLocationMode}
                     />
+                    </div>
 
-                    {/* Mobile Filter Bar (Sort, Filter, Map) */}
+                    {/* Mobile Filter Bar (Sort, Filter, Map) — hidden until a real search runs */}
+                    {!isPickLocationMode && (
                     <div className="mt-4">
                         <HotelFilterBar
                             hotels={allHotels}
@@ -469,9 +494,11 @@ function HotelsPageContent() {
                             }}
                         />
                     </div>
+                    )}
 
                     <div className="flex flex-col lg:flex-row gap-8 mt-4">
                         {/* Filters Sidebar (visible on lg and above, sticky when scrolling) */}
+                        {!isPickLocationMode && (
                         <div className="hidden lg:block lg:w-1/4 shrink-0">
                             <div className="sticky top-24 self-start">
                                 <HotelFilters
@@ -501,18 +528,24 @@ function HotelsPageContent() {
                             />
                             </div>
                         </div>
+                        )}
 
                         {/* Results Content */}
-                        <div className="w-full lg:w-3/4 space-y-6">
+                        <div className={isPickLocationMode ? 'w-full space-y-6' : 'w-full lg:w-3/4 space-y-6'}>
                             {/* Results Header - mockup: "Addis Ababa - 207 hotels" */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                                 <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">
-                                    {searchParams.query || 'Addis Ababa'} – {filters.hotelName
-                                        ? allHotels.filter((h) => h.name.toLowerCase().includes(filters.hotelName!.toLowerCase())).length
-                                        : (initialTotalCount ?? 0)} hotels
+                                    {isPickLocationMode
+                                        ? 'Ready when you are'
+                                        : `${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY} – ${filters.hotelName
+                                              ? allHotels.filter((h) =>
+                                                    h.name.toLowerCase().includes(filters.hotelName!.toLowerCase()),
+                                                ).length
+                                              : initialTotalCount ?? 0} hotels`}
                                 </h2>
 
                                 {/* Sorting Tabs - mockup style */}
+                                {!isPickLocationMode && (
                                 <div className="flex flex-wrap gap-2">
                                     {[
                                         { label: 'Lowest Price First', value: 'price' },
@@ -533,6 +566,7 @@ function HotelsPageContent() {
                                         );
                                     })}
                                 </div>
+                                )}
                             </div>
 
                             {/* Hotel List */}
@@ -544,12 +578,13 @@ function HotelsPageContent() {
                                 error={error}
                                 onBook={handleBook}
                                 staySummary={staySummary}
+                                awaitingDestinationPick={isPickLocationMode}
                             />
 
                             {/* Infinite scroll sentinel removed */}
 
                             {/* Load More Button with enhanced loading indicator */}
-                            {hasNextPage && (
+                            {!isPickLocationMode && hasNextPage && (
                                 <div className="flex justify-center mt-6">
                                     <button
                                         onClick={() => !isLoadingMore && setPage(p => p + 1)}
@@ -569,30 +604,31 @@ function HotelsPageContent() {
                             )}
 
                             {/* Collections Sections */}
+                            {!isPickLocationMode && (
                             <div className="pt-12 space-y-4">
                                 <HotelCollection
-                                    title={`Hotels with airport shuttles in ${searchParams.query || 'Addis Ababa'}`}
+                                    title={`Hotels with airport shuttles in ${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY}`}
                                     hotels={collections.airportShuttle}
                                     onBook={handleBook}
                                     onSeeAll={() => { }}
                                 />
 
                                 <HotelCollection
-                                    title={`Most booked hotels in ${searchParams.query || 'Addis Ababa'} and surrounding area`}
+                                    title={`Most booked hotels in ${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY} and surrounding area`}
                                     hotels={collections.mostBooked}
                                     onBook={handleBook}
                                     onSeeAll={() => { }}
                                 />
 
                                 <HotelCollection
-                                    title={`Best hotels with breakfast in ${searchParams.query || 'Addis Ababa'} and nearby`}
+                                    title={`Best hotels with breakfast in ${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY} and nearby`}
                                     hotels={collections.breakfast}
                                     onBook={handleBook}
                                     onSeeAll={() => { }}
                                 />
 
                                 <HotelCollection
-                                    title={`Hotels located in the center of ${searchParams.query || 'Addis Ababa'}`}
+                                    title={`Hotels located in the center of ${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY}`}
                                     hotels={collections.center}
                                     onBook={handleBook}
                                     onSeeAll={() => { }}
@@ -600,15 +636,18 @@ function HotelsPageContent() {
 
 
                                 <HotelCollection
-                                    title={`Budget hotels in ${searchParams.query || 'Addis Ababa'} and nearby`}
+                                    title={`Budget hotels in ${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY} and nearby`}
                                     hotels={collections.budget}
                                     onBook={handleBook}
                                     onSeeAll={() => { }}
                                 />
                             </div>
+                            )}
 
                             {/* FAQ Section */}
-                            <HotelFAQ location={searchParams.query || 'Addis Ababa'} />
+                            {!isPickLocationMode && (
+                            <HotelFAQ location={searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY} />
+                            )}
                         </div>
                     </div>
                 </div>

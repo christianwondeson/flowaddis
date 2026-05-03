@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { APP_CONSTANTS } from '@/lib/constants';
 import type { NextRequest } from 'next/server';
 import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
+import { getSafeAppRedirectPath } from '@/lib/safe-redirect';
 
 const protectedRoutes = ['/dashboard', '/admin'];
 const authRoutes = ['/signin', '/signup'];
@@ -51,8 +52,9 @@ export async function middleware(request: NextRequest) {
             clearSessionCookie(res);
             return res;
         }
-        const redirectUrl = request.nextUrl.searchParams.get('redirect') || '/';
-        return NextResponse.redirect(new URL(redirectUrl, request.url));
+        const rawRedirect = request.nextUrl.searchParams.get('redirect');
+        const redirectPath = getSafeAppRedirectPath(rawRedirect, '/');
+        return NextResponse.redirect(new URL(redirectPath, request.url));
     }
 
     return NextResponse.next();

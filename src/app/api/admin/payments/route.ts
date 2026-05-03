@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
+import { assertFirebaseAndNestAdmin, CmsAuthError } from '@/lib/assert-admin-cms';
 
 export async function GET(req: Request) {
     try {
+        try {
+            await assertFirebaseAndNestAdmin(req);
+        } catch (e) {
+            if (e instanceof CmsAuthError) {
+                return NextResponse.json({ error: e.message }, { status: e.status });
+            }
+            throw e;
+        }
+
         const { searchParams } = new URL(req.url);
         const status = searchParams.get('status');
         const limit = searchParams.get('limit') || '20';
@@ -21,13 +31,13 @@ export async function GET(req: Request) {
         url.searchParams.append('limit', limit);
         url.searchParams.append('offset', offset);
 
-        const authHeader = req.headers.get('Authorization');
+        const authHeader = req.headers.get('Authorization')!;
 
         const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                ...(authHeader && { 'Authorization': authHeader }),
+                Authorization: authHeader,
             },
         });
 

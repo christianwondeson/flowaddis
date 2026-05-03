@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
 import { isLikelyFirebaseUid } from '@/lib/admin-firebase-uid';
+import { assertFirebaseAndNestAdmin, CmsAuthError } from '@/lib/assert-admin-cms';
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ uid: string }> }
 ) {
     try {
+        try {
+            await assertFirebaseAndNestAdmin(req);
+        } catch (e) {
+            if (e instanceof CmsAuthError) {
+                return NextResponse.json({ error: e.message }, { status: e.status });
+            }
+            throw e;
+        }
+
         const { uid } = await params;
         if (!isLikelyFirebaseUid(uid)) {
             return NextResponse.json({ error: 'Invalid user id' }, { status: 400 });
@@ -20,13 +30,13 @@ export async function GET(
         }
         const url = `${backendUrl}/api/v1/admin/payments/user/${encodeURIComponent(uid)}`;
 
-        const authHeader = req.headers.get('Authorization');
+        const authHeader = req.headers.get('Authorization')!;
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                ...(authHeader && { 'Authorization': authHeader }),
+                Authorization: authHeader,
             },
         });
 

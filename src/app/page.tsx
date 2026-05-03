@@ -11,6 +11,7 @@ import {
 } from '@/components/home/promo-sections';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { hotelsDestinationPickUrl } from '@/lib/hotel-promo-links';
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = React.useState('flights');
@@ -51,7 +52,7 @@ export default function HomePage() {
         <section className="pb-8 md:pb-20">
           <SectionHeading
             title="Popular with travelers"
-            subtitle="Top picks for your next trip"
+            subtitle="Pick your destination from the list (same as hotels), then search"
           />
           <PopularDestinationsTabs />
         </section>
@@ -109,30 +110,30 @@ function PopularDestinationsTabs() {
     { id: 'relaxation', label: 'Relaxation' },
   ];
 
-  const content: Record<string, { name: string; query: string }[]> = {
+  const content: Record<string, { name: string; hint: string }[]> = {
     adventure: [
-      { name: 'Sof Omar Caves', query: 'Sof Omar' },
-      { name: 'Wenchi Crater', query: 'Bishoftu' },
-      { name: 'Simien Mountains', query: 'Gonder' },
-      { name: 'Omo Valley', query: 'Arba Minch' },
-      { name: 'Bale Mountains', query: 'Bale' },
-      { name: 'Danakil Depression', query: 'Mekele' },
+      { name: 'Sof Omar Caves', hint: 'Sof Omar' },
+      { name: 'Wenchi Crater', hint: 'Wenchi' },
+      { name: 'Simien Mountains', hint: 'Gondar' },
+      { name: 'Omo Valley', hint: 'Omo' },
+      { name: 'Bale Mountains', hint: 'Bale' },
+      { name: 'Danakil Depression', hint: 'Danakil' },
     ],
     culture: [
-      { name: 'Lalibela', query: 'Lalibela' },
-      { name: 'Axum', query: 'Axum' },
-      { name: 'Gondar', query: 'Gonder' },
-      { name: 'Harar', query: 'Harar' },
-      { name: 'Bahir Dar', query: 'Bahir Dar' },
-      { name: 'Addis Ababa', query: 'Addis Ababa' },
+      { name: 'Lalibela', hint: 'Lalibela' },
+      { name: 'Axum', hint: 'Axum' },
+      { name: 'Gondar', hint: 'Gondar' },
+      { name: 'Harar', hint: 'Harar' },
+      { name: 'Bahir Dar', hint: 'Bahir Dar' },
+      { name: 'Addis Ababa', hint: 'Addis Ababa' },
     ],
     relaxation: [
-      { name: 'Hawassa Lake', query: 'Hawassa' },
-      { name: 'Bishoftu Lakes', query: 'Bishoftu' },
-      { name: 'Langano', query: 'Langano' },
-      { name: 'Debre Zeyt', query: 'Bishoftu' },
-      { name: 'Arba Minch', query: 'Arba Minch' },
-      { name: 'Lake Tana', query: 'Bahir Dar' },
+      { name: 'Hawassa Lake', hint: 'Hawassa' },
+      { name: 'Bishoftu Lakes', hint: 'Bishoftu' },
+      { name: 'Langano', hint: 'Langano' },
+      { name: 'Debre Zeyt', hint: 'Debre Zeit' },
+      { name: 'Arba Minch', hint: 'Arba Minch' },
+      { name: 'Lake Tana', hint: 'Bahir Dar' },
     ],
   };
 
@@ -156,14 +157,12 @@ function PopularDestinationsTabs() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 sm:gap-6">
         {content[activeTab].map((item, idx) => {
-          const image = DESTINATION_IMAGES[item.name] || DESTINATION_IMAGES[item.query] || FALLBACK_IMAGE;
-          const hotelParams = new URLSearchParams(defaultParams.toString());
-          hotelParams.set('query', item.query);
-          hotelParams.set('pickLocation', '1');
+          const image = DESTINATION_IMAGES[item.name] || DESTINATION_IMAGES[item.hint] || FALLBACK_IMAGE;
+          const href = hotelsDestinationPickUrl(item.hint, defaultParams);
           return (
             <Link
               key={idx}
-              href={`/hotels?${hotelParams.toString()}`}
+              href={href}
               className="group block rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900"
             >
               <div className="aspect-[4/3] sm:aspect-[3/2] relative overflow-hidden bg-gray-100">

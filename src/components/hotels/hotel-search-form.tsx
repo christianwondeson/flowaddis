@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { MapPin, Calendar as CalendarIcon, Users, Search, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LocationInput } from '@/components/search/location-input';
@@ -28,6 +28,8 @@ interface HotelSearchFormProps {
     onLocationSelectAndSearch?: (location: any) => void;
     /** If true, open location dropdown immediately so user picks exact match first */
     locationAutoOpen?: boolean;
+    /** `pickLocation=1` flow: clearer mobile copy and keep mobile panel in sync with URL */
+    pickLocationMode?: boolean;
 }
 
 export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
@@ -45,6 +47,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     onSearch,
     initialOpen = false,
     locationAutoOpen = false,
+    pickLocationMode = false,
 }) => {
     const [mobileOpen, setMobileOpen] = React.useState<boolean>(initialOpen || locationAutoOpen);
     const [isDesktop, setIsDesktop] = React.useState(false);
@@ -81,10 +84,14 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
         return () => mq.removeEventListener?.('change', apply);
     }, []);
 
-    // If we are on desktop, keep mobile panel closed even though it's mounted (md:hidden).
+    // Desktop: never keep the (hidden) mobile sheet "open". Mobile + pick URL: keep sheet open after client navigations.
     React.useEffect(() => {
-        if (isDesktop && mobileOpen) setMobileOpen(false);
-    }, [isDesktop, mobileOpen]);
+        if (isDesktop) {
+            if (mobileOpen) setMobileOpen(false);
+        } else if (locationAutoOpen) {
+            setMobileOpen(true);
+        }
+    }, [isDesktop, mobileOpen, locationAutoOpen]);
 
     // Close inline calendars when clicking outside
     React.useEffect(() => {
@@ -113,11 +120,23 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
                                 <Search className="w-5 h-5 text-teal-600" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="text-base font-bold text-gray-900 dark:text-slate-100 truncate">{destination || 'Addis Ababa'}</div>
+                                <div className="text-base font-bold text-gray-900 dark:text-slate-100 truncate">
+                                    {pickLocationMode && !destination.trim()
+                                        ? 'Choose your destination'
+                                        : destination.trim()
+                                          ? destination
+                                          : 'Destination'}
+                                </div>
                                 <div className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 flex items-center gap-2 truncate">
-                                    <span>{datesSummary}</span>
-                                    <span>·</span>
-                                    <span>{guestsSummary}</span>
+                                    {pickLocationMode && !destination.trim() ? (
+                                        <span>Tap to search suggestions, then Search</span>
+                                    ) : (
+                                        <>
+                                            <span>{datesSummary}</span>
+                                            <span>·</span>
+                                            <span>{guestsSummary}</span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                             <span className="text-gray-400 dark:text-slate-500 text-sm">Edit</span>

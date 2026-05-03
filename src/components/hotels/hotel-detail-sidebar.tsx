@@ -10,9 +10,10 @@ interface HotelDetailSidebarProps {
     reviews?: any[];
     loading?: boolean;
     onBook?: (price?: number, name?: string, id?: string) => void;
+    detailMapHref: string;
 }
 
-export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, reviews = [], loading = false, onBook }) => {
+export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, reviews = [], loading = false, onBook, detailMapHref }) => {
     const router = useRouter();
 
     return (
@@ -86,15 +87,7 @@ export const HotelDetailSidebar: React.FC<HotelDetailSidebarProps> = ({ hotel, r
                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
                     <Button
                         onClick={() => {
-                            const params = new URLSearchParams();
-                            // Broad region only — street/address as `query` breaks Booking dest resolution and images.
-                            params.set('query', 'Ethiopia');
-                            if (hotel.name) params.set('hotelName', hotel.name);
-                            params.set('fromDetail', '1');
-                            if (hotel.coordinates?.lat != null) params.set('lat', String(hotel.coordinates.lat));
-                            if (hotel.coordinates?.lng != null) params.set('lng', String(hotel.coordinates.lng));
-                            if (hotel.id) params.set('highlightId', String(hotel.id));
-                            router.push(`/hotels/map?${params.toString()}`);
+                            router.push(detailMapHref);
                         }}
                         className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs px-4 py-2 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95"
                     >

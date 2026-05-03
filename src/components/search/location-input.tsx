@@ -7,20 +7,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { LocationSuggestion } from '@/types/api';
 import { LOCATION_PRESETS } from '@/data/location-presets';
-
-// Hotel-specific presets with verified dest_ids for hotel search (Booking.com)
-const HOTEL_LOCATION_PRESETS: LocationSuggestion[] = [
-    { name: 'Addis Ababa', dest_id: '-603097', dest_type: 'city', cityName: 'Addis Ababa', country: 'Ethiopia', label: 'Addis Ababa, Ethiopia' },
-    { name: 'Bishoftu', dest_id: '-603094', dest_type: 'city', cityName: 'Bishoftu', country: 'Ethiopia', label: 'Bishoftu, Ethiopia' },
-    { name: 'Hawassa', dest_id: '-603014', dest_type: 'city', cityName: 'Hawassa', country: 'Ethiopia', label: 'Hawassa, Ethiopia' },
-    { name: 'Bahir Dar', dest_id: '-603098', dest_type: 'city', cityName: 'Bahir Dar', country: 'Ethiopia', label: 'Bahir Dar, Ethiopia' },
-    { name: 'Gondar', dest_id: '-603099', dest_type: 'city', cityName: 'Gondar', country: 'Ethiopia', label: 'Gondar, Ethiopia' },
-    { name: 'Lalibela', dest_id: '-603099', dest_type: 'city', cityName: 'Gondar', country: 'Ethiopia', label: 'Lalibela, Ethiopia' },
-    { name: 'Harar', dest_id: '-603100', dest_type: 'city', cityName: 'Dire Dawa', country: 'Ethiopia', label: 'Harar, Ethiopia' },
-    { name: 'Arba Minch', dest_id: '-603014', dest_type: 'city', cityName: 'Hawassa', country: 'Ethiopia', label: 'Arba Minch, Ethiopia' },
-    { name: 'Dubai', dest_id: '20088325', dest_type: 'city', cityName: 'Dubai', country: 'UAE', label: 'Dubai, UAE' },
-    { name: 'London', dest_id: '-2601889', dest_type: 'city', cityName: 'London', country: 'UK', label: 'London, UK' },
-];
+import { HOTEL_LOCATION_PRESETS } from '@/data/hotel-location-presets';
 import axios from 'axios';
 
 interface LocationInputProps {

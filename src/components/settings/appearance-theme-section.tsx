@@ -4,14 +4,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Moon } from "lucide-react";
 import { useTheme } from "@/components/providers/theme-provider";
-import { writeStoredThemePreference } from "@/lib/theme-storage";
 
 /**
- * Dark mode switch: `writeStoredThemePreference` updates storage, `<html class="dark">`, and
- * fires an event so ThemeProvider refreshes `resolvedTheme` for this controlled Switch.
+ * Dark mode switch: `setTheme` persists preference, updates `<html class="dark">`, and
+ * refreshes ThemeProvider state so the controlled Switch stays in sync (including back to light).
  */
 export function AppearanceThemeSection() {
-    const { resolvedTheme } = useTheme();
+    const { resolvedTheme, setTheme } = useTheme();
 
     return (
         <div className="space-y-4">
@@ -35,7 +34,7 @@ export function AppearanceThemeSection() {
                     <Switch
                         id="dark-mode"
                         checked={resolvedTheme === "dark"}
-                        onCheckedChange={(on) => writeStoredThemePreference(on ? "dark" : "light")}
+                        onCheckedChange={(on) => setTheme(on ? "dark" : "light")}
                         aria-label="Toggle dark mode"
                     />
                 </div>

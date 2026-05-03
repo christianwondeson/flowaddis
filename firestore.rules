@@ -3,10 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if user is admin
+    function adminUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    // Align with Nest RolesGuard: admin role + not pending/rejected
     function isAdmin() {
-      return request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      let path = adminUserPath();
+      let data = exists(path) ? get(path).data : null;
+      return request.auth != null
+        && data != null
+        && data.role == 'admin'
+        && (
+          !('adminStatus' in data)
+          || !(data.adminStatus in ['pending', 'rejected'])
+        );
     }
 
     // Rules for users collection
@@ -21,7 +32,7 @@ service cloud.firestore {
       allow read, write: if request.auth != null && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid || isAdmin());
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
-    
+
     // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;

@@ -11,6 +11,8 @@ import { useHotels } from '@/hooks/use-hotels';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTripStore } from '@/store/trip-store';
 import { Popover } from '@/components/ui/popover';
+import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
+import { hotelsDestinationPickUrl } from '@/lib/hotel-promo-links';
 
 export function SignInPromo() {
     const pathname = usePathname();
@@ -123,18 +125,19 @@ export function TrendingDestinations() {
         checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
         adults: '2',
-        rooms: '1'
+        children: '0',
+        rooms: '1',
     });
 
     return (
         <div className="space-y-6">
             <SectionHeading
                 title="Trending destinations"
-                subtitle="Travelers searching for Ethiopia also booked these"
+                subtitle="Select the city from the destination list on the hotels page, then search"
             />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {destinations.slice(0, 2).map((dest, idx) => (
-                    <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-64 rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
+                    <Link href={hotelsDestinationPickUrl(dest.name, defaultParams)} key={idx} className="group relative h-64 rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
                         <img
                             src={dest.image}
                             alt={dest.name}
@@ -157,7 +160,7 @@ export function TrendingDestinations() {
                 ))}
                 <div className="grid grid-cols-1 gap-4">
                     {destinations.slice(2).map((dest, idx) => (
-                        <Link href={`/hotels?query=${dest.name}&${defaultParams.toString()}`} key={idx} className="group relative h-[120px] rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
+                        <Link href={hotelsDestinationPickUrl(dest.name, defaultParams)} key={idx} className="group relative h-[120px] rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
                             <img
                                 src={dest.image}
                                 alt={dest.name}
@@ -182,16 +185,16 @@ export function TrendingDestinations() {
     );
 }
 
-// Unique Unsplash images per Ethiopian destination (no duplicates)
-const EXPLORE_ETHIOPIA_DESTINATIONS = [
-    { name: 'Lalibela', destId: '-603099', destType: 'city', image: 'https://images.unsplash.com/photo-1518079562269-53db1e4433b8?auto=format&fit=crop&w=600&q=80', searchQuery: 'Lalibela' },
-    { name: 'Bahir Dar', destId: '-603098', destType: 'city', image: 'https://images.unsplash.com/photo-1668939581252-470c103ac7da?auto=format&fit=crop&w=600&q=80', searchQuery: 'Bahir Dar' },
-    { name: 'Mekelle', destId: '-603099', destType: 'city', image: 'https://images.unsplash.com/photo-1573403092240-26095e118918?auto=format&fit=crop&w=600&q=80', searchQuery: 'Mekelle' },
-    { name: 'Axum', destId: '-603099', destType: 'city', image: 'https://images.unsplash.com/photo-1662894312546-667d7698a1f7?auto=format&fit=crop&w=600&q=80', searchQuery: 'Axum' },
-    { name: 'Harar', destId: '-603097', destType: 'city', image: 'https://images.unsplash.com/photo-1597709324959-38e0ac50bd4b?auto=format&fit=crop&w=600&q=80', searchQuery: 'Harar' },
-    { name: 'Arba Minch', destId: '-603014', destType: 'city', image: 'https://images.unsplash.com/photo-1658823235938-c424fa0875d6?auto=format&fit=crop&w=600&q=80', searchQuery: 'Arba Minch' },
-    { name: 'Debre Zeit', destId: '-603094', destType: 'city', image: 'https://images.unsplash.com/photo-1625141569599-fa40fc7301b6?auto=format&fit=crop&w=600&q=80', searchQuery: 'Bishoftu' },
-    { name: 'Hawassa', destId: '-603014', destType: 'city', image: 'https://images.unsplash.com/photo-1768383206344-dfeb4a00b18d?auto=format&fit=crop&w=600&q=80', searchQuery: 'Hawassa' },
+// Card titles = same `label` strings used by hotel LocationInput / presets; URL uses `pickLocation=1` + hint to filter suggestions (no instant search).
+const EXPLORE_ETHIOPIA_DESTINATIONS: { displayLabel: string; searchHint: string; image: string }[] = [
+    { displayLabel: 'Lalibela, Ethiopia', searchHint: 'Lalibela', image: 'https://images.unsplash.com/photo-1518079562269-53db1e4433b8?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Bahir Dar, Ethiopia', searchHint: 'Bahir Dar', image: 'https://images.unsplash.com/photo-1668939581252-470c103ac7da?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Mekelle, Ethiopia', searchHint: 'Mekelle', image: 'https://images.unsplash.com/photo-1573403092240-26095e118918?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Axum, Ethiopia', searchHint: 'Axum', image: 'https://images.unsplash.com/photo-1662894312546-667d7698a1f7?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Harar, Ethiopia', searchHint: 'Harar', image: 'https://images.unsplash.com/photo-1597709324959-38e0ac50bd4b?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Arba Minch, Ethiopia', searchHint: 'Arba Minch', image: 'https://images.unsplash.com/photo-1658823235938-c424fa0875d6?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Debre Zeit, Ethiopia', searchHint: 'Debre Zeit', image: 'https://images.unsplash.com/photo-1625141569599-fa40fc7301b6?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'Hawassa, Ethiopia', searchHint: 'Hawassa', image: 'https://images.unsplash.com/photo-1768383206344-dfeb4a00b18d?auto=format&fit=crop&w=600&q=80' },
 ];
 
 export function ExploreEthiopia() {
@@ -201,7 +204,8 @@ export function ExploreEthiopia() {
         checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
         adults: '2',
-        rooms: '1'
+        children: '0',
+        rooms: '1',
     });
 
     if (loading) return <div className="h-48 bg-gray-50 animate-pulse rounded-xl" />;
@@ -210,23 +214,19 @@ export function ExploreEthiopia() {
         <div className="space-y-6">
             <SectionHeading
                 title="Explore Ethiopia"
-                subtitle="These popular destinations have a lot to offer"
+                subtitle="Choose the exact place from suggestions (same as the hotel page), then search"
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {EXPLORE_ETHIOPIA_DESTINATIONS.map((city, idx) => {
-                    const hotelParams = new URLSearchParams(defaultParams.toString());
-                    hotelParams.set('query', city.searchQuery || city.name);
-                    hotelParams.set('pickLocation', '1');
-                    return (
+                {EXPLORE_ETHIOPIA_DESTINATIONS.map((city, idx) => (
                     <Link
-                        href={`/hotels?${hotelParams.toString()}`}
+                        href={hotelsDestinationPickUrl(city.searchHint, defaultParams)}
                         key={idx}
                         className="group block"
                     >
                         <div className="aspect-square rounded-2xl overflow-hidden relative bg-gray-100 border border-gray-100 shadow-sm group-hover:shadow-md transition-all duration-300">
                             <img
                                 src={city.image}
-                                alt={city.name}
+                                alt={city.displayLabel}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 onError={(e) => {
                                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80';
@@ -234,12 +234,13 @@ export function ExploreEthiopia() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                             <div className="absolute bottom-0 left-0 right-0 p-3">
-                                <h3 className="font-bold text-white text-sm drop-shadow-md">{city.name}</h3>
+                                <h3 className="font-bold text-white text-xs sm:text-sm drop-shadow-md leading-snug line-clamp-2">
+                                    {city.displayLabel}
+                                </h3>
                             </div>
                         </div>
                     </Link>
-                );
-                })}
+                ))}
             </div>
         </div>
     );
@@ -257,7 +258,8 @@ export function PropertyTypeSection() {
         checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
         adults: '2',
-        rooms: '1'
+        children: '0',
+        rooms: '1',
     });
 
     return (
@@ -267,7 +269,7 @@ export function PropertyTypeSection() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {types.map((type, idx) => (
-                    <Link href={`/hotels?query=Addis Ababa&type=${type.name}&${defaultParams.toString()}`} key={idx} className="group">
+                    <Link href={hotelsDestinationPickUrl('Addis Ababa', defaultParams, { type: type.name })} key={idx} className="group">
                         <div className="aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-gray-100">
                             <img
                                 src={type.image}
@@ -299,7 +301,8 @@ export function PerfectStaySection() {
         checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
         adults: '2',
-        rooms: '1'
+        children: '0',
+        rooms: '1',
     });
 
     const handleBook = (hotelId: string) => {
@@ -420,7 +423,7 @@ function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: bo
 export function HomesGuestsLoveSection() {
     const router = useRouter();
     const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
-    const { data, isLoading } = useHotels({ query: 'Ethiopia', filters: { sortOrder: 'popularity' } });
+    const { data, isLoading } = useHotels({ query: DEFAULT_HOTEL_DESTINATION_QUERY, filters: { sortOrder: 'popularity' } });
     const hotels = data?.hotels.slice(4, 12) || []; // More for carousel
     const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
     const [scrollIndex, setScrollIndex] = React.useState(0);
@@ -429,7 +432,8 @@ export function HomesGuestsLoveSection() {
         checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
         adults: '2',
-        rooms: '1'
+        children: '0',
+        rooms: '1',
     });
 
     const handleBook = (hotelId: string) => {
@@ -473,7 +477,7 @@ export function HomesGuestsLoveSection() {
                     <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">Homes guests love</h2>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Link href={`/hotels?${defaultParams.toString()}`} className="text-brand-primary text-sm font-medium hover:underline hidden sm:block">Discover homes</Link>
+                    <Link href={hotelsDestinationPickUrl(DEFAULT_HOTEL_DESTINATION_QUERY, defaultParams)} className="text-brand-primary text-sm font-medium hover:underline hidden sm:block">Discover homes</Link>
                     <div className="flex gap-2">
                         <button
                             onClick={prev}

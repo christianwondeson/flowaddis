@@ -7,18 +7,21 @@
  */
 
 interface EnvConfig {
-    NEXT_PUBLIC_RAPIDAPI_KEY: string;
-    // Add other required env vars here as needed
+    /** Prefer server-only `RAPIDAPI_KEY`; legacy `NEXT_PUBLIC_RAPIDAPI_KEY` still supported. */
+    RAPIDAPI_KEY: string;
 }
 
 function validateEnv(): EnvConfig {
     const errors: string[] = [];
 
-    // Check for required environment variables
-    const NEXT_PUBLIC_RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY;
+    const RAPIDAPI_KEY =
+        process.env.RAPIDAPI_KEY?.trim() ||
+        process.env.NEXT_PUBLIC_RAPIDAPI_KEY?.trim();
 
-    if (!NEXT_PUBLIC_RAPIDAPI_KEY) {
-        errors.push('NEXT_PUBLIC_RAPIDAPI_KEY is required but not set');
+    if (!RAPIDAPI_KEY) {
+        errors.push(
+            'RAPIDAPI_KEY (recommended, server-only) or NEXT_PUBLIC_RAPIDAPI_KEY is required but not set',
+        );
     }
 
     // If there are any errors, throw with helpful message
@@ -26,12 +29,13 @@ function validateEnv(): EnvConfig {
         throw new Error(
             `Missing required environment variables:\n${errors.map(e => `  - ${e}`).join('\n')}\n\n` +
             `Please check your .env.local file and ensure all required variables are set.\n` +
-            `See .env.example for the complete list of required variables.`
+            `See .env.example for the complete list of required variables.\n` +
+            `Tip: set RAPIDAPI_KEY (without NEXT_PUBLIC_) so the key is never bundled for the browser.`
         );
     }
 
     return {
-        NEXT_PUBLIC_RAPIDAPI_KEY: NEXT_PUBLIC_RAPIDAPI_KEY!,
+        RAPIDAPI_KEY: RAPIDAPI_KEY!,
     };
 }
 
