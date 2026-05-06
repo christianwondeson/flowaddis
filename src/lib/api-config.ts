@@ -1,8 +1,10 @@
-import { env } from './env';
+import { requireRapidApiKey } from './env';
 
-// API Configuration
+// API Configuration (RAPIDAPI_KEY read lazily so `next build` works without RapidAPI env)
 export const API_CONFIG = {
-    RAPIDAPI_KEY: env.RAPIDAPI_KEY,
+    get RAPIDAPI_KEY() {
+        return requireRapidApiKey();
+    },
     RAPIDAPI_HOST: 'booking-com.p.rapidapi.com',
     BASE_URL: 'https://booking-com.p.rapidapi.com/v1',
     // Flights config per user: https://booking-com18.p.rapidapi.com/flights

@@ -27,8 +27,33 @@ export function assertSafeHttpBaseUrl(raw: string, envName: string): string {
     return trimmed;
 }
 
+/** True when this Node process is running on Firebase SSR / Cloud Run (not your laptop). */
+function isDeployedServerless(): boolean {
+    return Boolean(
+        process.env.K_SERVICE ||
+            process.env.FUNCTION_TARGET ||
+            process.env.GCLOUD_PROJECT ||
+            process.env.GOOGLE_CLOUD_PROJECT
+    );
+}
+
 /** Nest API base URL used by Next route handlers (server-side fetch only). */
 export function getSafeBackendBaseUrl(): string {
-    const raw = process.env.BACKEND_URL || 'http://127.0.0.1:4000';
-    return assertSafeHttpBaseUrl(raw, 'BACKEND_URL');
+    const configured = process.env.BACKEND_URL?.trim();
+    if (isDeployedServerless() && !configured) {
+        throw new Error(
+            'BACKEND_URL is unset in the serverless environment. Set it to your public Nest origin (e.g. https://api.bookaddis.com): GitHub Actions deploy step env, or Google Cloud Run / Firebase function configuration, then redeploy.'
+        );
+    }
+    const raw = configured || 'http://127.0.0.1:4000';
+    const url = assertSafeHttpBaseUrl(raw, 'BACKEND_URL');
+    if (isDeployedServerless()) {
+        const host = new URL(url).hostname.toLowerCase();
+        if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
+            throw new Error(
+                'BACKEND_URL must be a public URL reachable from the internet when deployed to Firebase (not localhost).'
+            );
+        }
+    }
+    return url;
 }

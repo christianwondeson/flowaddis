@@ -18,6 +18,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # If deploy fails with cloudbilling.googleapis.com 403, enable Cloud Billing API on the GCP project:
+      # https://console.developers.google.com/apis/api/cloudbilling.googleapis.com/overview?project=1021348571684
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -28,5 +30,7 @@ jobs:
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
           NEXT_PUBLIC_RAPIDAPI_KEY: ${{ secrets.NEXT_PUBLIC_RAPIDAPI_KEY }}
-          # Server-side Route Handlers call Nest; must match production API host.
+          # Server-only RapidAPI key for Web Frameworks build + SSR (preferred over NEXT_PUBLIC_*).
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          # Server-side Route Handlers call Nest; set repo secret to https://api.bookaddis.com (non-empty).
           BACKEND_URL: ${{ secrets.BACKEND_URL }}

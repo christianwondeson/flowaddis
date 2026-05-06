@@ -32,6 +32,23 @@ import { APP_CONSTANTS } from '@/lib/constants';
 import { validatePasswordStrength } from '@/lib/password-policy';
 // import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies'; // Deprecated in favor of HttpOnly cookies
 import { useUserProfile } from '@/hooks/use-user-profile';
+import {
+    assertEmailLoginAllowed,
+    clearEmailLoginGuard,
+    recordEmailLoginFailure,
+} from '@/lib/login-attempt-guard';
+import {
+    assertPasswordResetAllowed,
+    recordPasswordResetRequest,
+} from '@/lib/password-reset-attempt-guard';
+
+async function postSessionCookie(token: string): Promise<Response> {
+    return fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+    });
+}
 
 declare global {
     interface Window {
@@ -62,13 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
             if (user) {
                 const token = await user.getIdToken(true);
-                // setAuthCookie(token);
-                // Securely set session on server
-                await fetch('/api/auth/session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token }),
-                });
+                const res = await postSessionCookie(token);
+                if (res.status === 429) {
+                    toast.error(
+                        'Too many session requests from this network. Wait a few minutes or refresh the page.',
+                    );
+                } else if (!res.ok) {
+                    console.warn('[auth] Session cookie sync failed:', res.status);
+                }
                 setFirebaseUser(user);
             } else {
                 // clearAuthCookie();
@@ -189,15 +207,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!auth) throw new Error("Auth not initialized");
         if (!password) throw new Error("Password required");
 
+        assertEmailLoginAllowed(email);
+
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            clearEmailLoginGuard(email);
             const token = await userCredential.user.getIdToken();
-            // setAuthCookie(token);
-            await fetch('/api/auth/session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token }),
-            });
+            const sessRes = await postSessionCookie(token);
+            if (sessRes.status === 429) {
+                await signOut(auth);
+                throw new Error(
+                    'Too many authentication attempts from this network. Please wait and try again.',
+                );
+            }
+            if (!sessRes.ok) {
+                await signOut(auth);
+                throw new Error('Could not complete sign-in securely. Please try again.');
+            }
 
             if (db) {
                 const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
@@ -225,7 +251,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
             }
             return APP_CONSTANTS.ROLES.USER;
-        } catch (error) {
+        } catch (error: unknown) {
+            const code =
+                typeof error === 'object' && error && 'code' in error
+                    ? String((error as { code?: string }).code)
+                    : '';
+            if (
+                code === 'auth/wrong-password' ||
+                code === 'auth/user-not-found' ||
+                code === 'auth/invalid-credential'
+            ) {
+                recordEmailLoginFailure(email);
+            }
+            if (code.startsWith('auth/')) {
+                throw new Error(handleAuthError(error));
+            }
+            if (error instanceof Error) {
+                throw error;
+            }
             throw new Error(handleAuthError(error));
         }
     };
@@ -291,12 +334,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userCredential = await signInWithPopup(auth, provider);
         const user = userCredential.user;
         const token = await user.getIdToken();
-        // setAuthCookie(token);
-        await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-        });
+        const sessRes = await postSessionCookie(token);
+        if (sessRes.status === 429) {
+            await signOut(auth);
+            throw new Error(
+                'Too many authentication attempts from this network. Please wait and try again.',
+            );
+        }
+        if (!sessRes.ok) {
+            await signOut(auth);
+            throw new Error('Could not complete sign-in securely. Please try again.');
+        }
 
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
@@ -350,6 +398,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const sendPasswordReset = async (email: string) => {
         if (!auth) throw new Error("Auth not initialized");
+        assertPasswordResetAllowed(email);
         try {
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
             if (origin) {
@@ -360,6 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
                 await sendPasswordResetEmail(auth, email);
             }
+            recordPasswordResetRequest(email);
         } catch (error) {
             throw new Error(handleAuthError(error));
         }

@@ -1,0 +1,25 @@
+# Firebase App Hosting — https://firebase.google.com/docs/app-hosting/configure
+# Cloud Build merges this file with variables you set in Firebase Console (Build > App Hosting > backend).
+
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+
+env:
+  # Public origin only (no /api path). Override per environment in Console if needed.
+  - variable: BACKEND_URL
+    value: https://api.bookaddis.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # RAPIDAPI_KEY: do not commit real keys. In Firebase Console add either:
+  # - Environment variable RAPIDAPI_KEY (mark for BUILD + RUNTIME), or
+  # - Secret from Secret Manager — see https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  #
+  # Example (after creating secret `rapidapi-key` in Secret Manager):
+  # - variable: RAPIDAPI_KEY
+  #   secret: rapidapi-key
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME

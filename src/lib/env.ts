@@ -1,43 +1,48 @@
 /**
- * Environment Variable Validation
- * 
- * This module validates that all required environment variables are present
- * and provides type-safe access to them. The app will fail fast on startup
- * if any required variables are missing.
+ * RapidAPI key for server-side Booking.com proxies.
+ * Validation is lazy so `next build` / Firebase App Hosting can run without secrets;
+ * routes that call RapidAPI fail at request time if the key is still missing.
  */
 
-interface EnvConfig {
-    /** Prefer server-only `RAPIDAPI_KEY`; legacy `NEXT_PUBLIC_RAPIDAPI_KEY` still supported. */
+export interface ServerEnv {
     RAPIDAPI_KEY: string;
 }
 
-function validateEnv(): EnvConfig {
-    const errors: string[] = [];
+let cached: ServerEnv | null = null;
 
-    const RAPIDAPI_KEY =
-        process.env.RAPIDAPI_KEY?.trim() ||
-        process.env.NEXT_PUBLIC_RAPIDAPI_KEY?.trim();
-
-    if (!RAPIDAPI_KEY) {
-        errors.push(
-            'RAPIDAPI_KEY (recommended, server-only) or NEXT_PUBLIC_RAPIDAPI_KEY is required but not set',
-        );
-    }
-
-    // If there are any errors, throw with helpful message
-    if (errors.length > 0) {
-        throw new Error(
-            `Missing required environment variables:\n${errors.map(e => `  - ${e}`).join('\n')}\n\n` +
-            `Please check your .env.local file and ensure all required variables are set.\n` +
-            `See .env.example for the complete list of required variables.\n` +
-            `Tip: set RAPIDAPI_KEY (without NEXT_PUBLIC_) so the key is never bundled for the browser.`
-        );
-    }
-
-    return {
-        RAPIDAPI_KEY: RAPIDAPI_KEY!,
-    };
+/** Next sets this while running `next build` (including Firebase App Hosting / Cloud Build). */
+function isNextProductionBuild(): boolean {
+    return process.env.NEXT_PHASE === 'phase-production-build';
 }
 
-// Validate on module load
-export const env = validateEnv();
+function loadRapidApiKey(): string {
+    const key =
+        process.env.RAPIDAPI_KEY?.trim() ||
+        process.env.NEXT_PUBLIC_RAPIDAPI_KEY?.trim();
+    if (!key) {
+        // Allow the bundle to build without secrets; real requests still need the key at runtime.
+        if (isNextProductionBuild()) {
+            return '';
+        }
+        throw new Error(
+            `Missing required environment variables:\n` +
+                `  - RAPIDAPI_KEY (recommended, server-only) or NEXT_PUBLIC_RAPIDAPI_KEY is required but not set\n\n` +
+                `Set RAPIDAPI_KEY (or NEXT_PUBLIC_RAPIDAPI_KEY) in Firebase App Hosting env / Cloud Run / GitHub Actions for deploy.\n` +
+                `Locally use .env.local. See .env.example.`
+        );
+    }
+    return key;
+}
+
+/** Validates once per process when first needed (not at module load). */
+export function getServerEnv(): ServerEnv {
+    if (!cached) {
+        cached = { RAPIDAPI_KEY: loadRapidApiKey() };
+    }
+    return cached;
+}
+
+/** Use from server code paths that call RapidAPI (e.g. api-config getters). */
+export function requireRapidApiKey(): string {
+    return getServerEnv().RAPIDAPI_KEY;
+}

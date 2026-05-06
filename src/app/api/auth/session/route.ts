@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
+import {
+    getClientIpFromHeaders,
+    isAuthSessionIpBlocked,
+    recordSessionVerificationFailure,
+    recordSessionVerificationSuccess,
+} from '@/lib/auth-rate-limit';
 
 function clearSessionCookie(response: NextResponse) {
     response.cookies.set({
@@ -17,6 +23,19 @@ function clearSessionCookie(response: NextResponse) {
 // POST: Verify Firebase ID token, then set HttpOnly session cookie
 export async function POST(request: Request) {
     try {
+        const ip = getClientIpFromHeaders(request);
+        const blocked = isAuthSessionIpBlocked(ip);
+        if (blocked.blocked) {
+            const res = NextResponse.json(
+                { error: 'Too many failed authentication attempts. Please try again later.' },
+                { status: 429 },
+            );
+            if (blocked.retryAfterSec != null) {
+                res.headers.set('Retry-After', String(blocked.retryAfterSec));
+            }
+            return res;
+        }
+
         const { token } = await request.json();
 
         if (!token || typeof token !== 'string') {
@@ -27,8 +46,11 @@ export async function POST(request: Request) {
         try {
             payload = await verifyFirebaseIdToken(token);
         } catch {
+            recordSessionVerificationFailure(ip);
             return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
         }
+
+        recordSessionVerificationSuccess(ip);
 
         const nowSec = Math.floor(Date.now() / 1000);
         const expSec = typeof payload.exp === 'number' ? payload.exp : nowSec + 3600;
