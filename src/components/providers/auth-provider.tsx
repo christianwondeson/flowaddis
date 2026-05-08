@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import type { MultiFactorResolver } from 'firebase/auth';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -11,6 +12,7 @@ import {
 
     GoogleAuthProvider,
     signInWithPopup,
+    reauthenticateWithPopup,
     sendEmailVerification,
     sendPasswordResetEmail,
     RecaptchaVerifier,
@@ -21,6 +23,10 @@ import {
     reauthenticateWithCredential,
     updatePassword,
     updateProfile,
+    getMultiFactorResolver,
+    multiFactor,
+    PhoneAuthProvider,
+    PhoneMultiFactorGenerator,
 } from 'firebase/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
@@ -41,6 +47,7 @@ import {
     assertPasswordResetAllowed,
     recordPasswordResetRequest,
 } from '@/lib/password-reset-attempt-guard';
+import { MfaSignInRequiredError } from '@/lib/mfa-sign-in-error';
 
 async function postSessionCookie(token: string): Promise<Response> {
     return fetch('/api/auth/session', {
@@ -144,6 +151,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // reCAPTCHA
             case 'auth/captcha-check-failed':
                 return 'Verification failed. Please solve the reCAPTCHA again.';
+            case 'auth/invalid-verification-code':
+                return 'Invalid verification code. Please check the SMS and try again.';
+            case 'auth/code-expired':
+                return 'That code has expired. Request a new SMS code.';
 
             default:
                 // Return a generic user-facing message but log the technical detail
@@ -201,7 +212,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             checkUser();
         });
-    }, [queryClient]);
+        }, [queryClient]);
+
+    const completeLoginAfterUser = useCallback(
+        async (firebaseUser: FirebaseUser, loginEmail?: string): Promise<UserRole> => {
+            if (loginEmail) clearEmailLoginGuard(loginEmail);
+            const token = await firebaseUser.getIdToken();
+            const sessRes = await postSessionCookie(token);
+            if (sessRes.status === 429) {
+                await signOut(auth!);
+                throw new Error(
+                    'Too many authentication attempts from this network. Please wait and try again.',
+                );
+            }
+            if (!sessRes.ok) {
+                await signOut(auth!);
+                throw new Error('Could not complete sign-in securely. Please try again.');
+            }
+
+            if (db) {
+                const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+
+                    const userProfileData: User = {
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email!,
+                        role,
+                        emailVerified: firebaseUser.emailVerified,
+                        name: userData.name || firebaseUser.displayName || '',
+                        adminStatus: userData.adminStatus || 'none',
+                    };
+
+                    queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
+                    await waitForUserUpdate(role, 5000);
+                    return role;
+                }
+            }
+            return APP_CONSTANTS.ROLES.USER;
+        },
+        [auth, db, queryClient, waitForUserUpdate],
+    );
 
     const login = async (email: string, password?: string): Promise<UserRole> => {
         if (!auth) throw new Error("Auth not initialized");
@@ -211,51 +263,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            clearEmailLoginGuard(email);
-            const token = await userCredential.user.getIdToken();
-            const sessRes = await postSessionCookie(token);
-            if (sessRes.status === 429) {
-                await signOut(auth);
-                throw new Error(
-                    'Too many authentication attempts from this network. Please wait and try again.',
-                );
-            }
-            if (!sessRes.ok) {
-                await signOut(auth);
-                throw new Error('Could not complete sign-in securely. Please try again.');
-            }
-
-            if (db) {
-                const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    const role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
-
-                    // Pre-populate the query cache to avoid immediate refetch
-                    const userProfileData: User = {
-                        id: userCredential.user.uid,
-                        email: userCredential.user.email!,
-                        role: role,
-                        emailVerified: userCredential.user.emailVerified,
-                        name: userData.name || userCredential.user.displayName || '',
-                        adminStatus: userData.adminStatus || 'none'
-                    };
-
-                    queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
-
-                    // CRITICAL: Wait for the user state to synchronize before returning
-                    // This prevents race conditions where navigation occurs before state updates
-                    await waitForUserUpdate(role, 5000);
-
-                    return role;
-                }
-            }
-            return APP_CONSTANTS.ROLES.USER;
+            return await completeLoginAfterUser(userCredential.user, email);
         } catch (error: unknown) {
             const code =
                 typeof error === 'object' && error && 'code' in error
                     ? String((error as { code?: string }).code)
                     : '';
+            if (code === 'auth/multi-factor-auth-required' && auth) {
+                const resolver = getMultiFactorResolver(auth, error as never);
+                throw new MfaSignInRequiredError(resolver, email);
+            }
             if (
                 code === 'auth/wrong-password' ||
                 code === 'auth/user-not-found' ||
@@ -331,65 +348,106 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!db) throw new Error("Firestore not initialized. Please check your Firebase configuration.");
 
         const provider = new GoogleAuthProvider();
-        const userCredential = await signInWithPopup(auth, provider);
-        const user = userCredential.user;
-        const token = await user.getIdToken();
-        const sessRes = await postSessionCookie(token);
-        if (sessRes.status === 429) {
-            await signOut(auth);
-            throw new Error(
-                'Too many authentication attempts from this network. Please wait and try again.',
-            );
+        try {
+            const userCredential = await signInWithPopup(auth, provider);
+            return await completeLoginAfterUser(userCredential.user);
+        } catch (error: unknown) {
+            const code =
+                typeof error === 'object' && error && 'code' in error
+                    ? String((error as { code?: string }).code)
+                    : '';
+            if (code === 'auth/multi-factor-auth-required' && auth) {
+                const resolver = getMultiFactorResolver(auth, error as never);
+                throw new MfaSignInRequiredError(resolver);
+            }
+            if (code.startsWith('auth/')) {
+                throw new Error(handleAuthError(error));
+            }
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error(handleAuthError(error));
         }
-        if (!sessRes.ok) {
-            await signOut(auth);
-            throw new Error('Could not complete sign-in securely. Please try again.');
-        }
-
-        const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        let role: UserRole;
-        if (!userDoc.exists()) {
-            const newUserData = {
-                name: user.displayName || "Unknown",
-                email: user.email,
-                role: APP_CONSTANTS.ROLES.USER,
-                adminStatus: 'none' as const,
-                createdAt: serverTimestamp()
-            };
-            await setDoc(userDocRef, newUserData);
-            role = APP_CONSTANTS.ROLES.USER;
-
-            // Pre-populate cache for new user
-            queryClient.setQueryData(queryKeys.user.profile(), {
-                id: user.uid,
-                email: user.email!,
-                role: role,
-                emailVerified: user.emailVerified,
-                name: user.displayName || "Unknown",
-                adminStatus: 'none' as const
-            });
-        } else {
-            const userData = userDoc.data();
-            role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
-
-            // Pre-populate cache for existing user
-            queryClient.setQueryData(queryKeys.user.profile(), {
-                id: user.uid,
-                email: user.email!,
-                role: role,
-                emailVerified: user.emailVerified,
-                name: userData.name || user.displayName || "Unknown",
-                adminStatus: userData.adminStatus || 'none'
-            });
-        }
-
-        // CRITICAL: Wait for the user state to synchronize before returning
-        await waitForUserUpdate(role, 5000);
-
-        return role;
     };
+
+    const sendSmsForMfaSignIn = useCallback(
+        async (
+            resolver: MultiFactorResolver,
+            hintIndex: number,
+            recaptchaVerifier: RecaptchaVerifier,
+        ): Promise<string> => {
+            if (!auth) throw new Error('Auth not initialized');
+            const hint = resolver.hints[hintIndex];
+            if (!hint || hint.factorId !== PhoneMultiFactorGenerator.FACTOR_ID) {
+                throw new Error('SMS verification is not available for this account.');
+            }
+            const phoneAuthProvider = new PhoneAuthProvider(auth);
+            return phoneAuthProvider.verifyPhoneNumber(
+                { multiFactorHint: hint, session: resolver.session },
+                recaptchaVerifier,
+            );
+        },
+        [auth],
+    );
+
+    const completeSmsMfaSignIn = useCallback(
+        async (
+            resolver: MultiFactorResolver,
+            verificationId: string,
+            smsCode: string,
+            emailForRateLimitGuard?: string,
+        ): Promise<UserRole> => {
+            if (!auth) throw new Error('Auth not initialized');
+            const cred = PhoneAuthProvider.credential(verificationId, smsCode.trim());
+            const assertion = PhoneMultiFactorGenerator.assertion(cred);
+            const userCred = await resolver.resolveSignIn(assertion);
+            return completeLoginAfterUser(userCred.user, emailForRateLimitGuard);
+        },
+        [auth, completeLoginAfterUser],
+    );
+
+    const reauthenticateForMfaEnrollment = useCallback(
+        async (password?: string) => {
+            if (!auth?.currentUser) throw new Error('Not signed in');
+            const u = auth.currentUser;
+            const hasPwd = u.providerData.some((p) => p.providerId === 'password');
+            if (hasPwd) {
+                const email = u.email;
+                if (!email) throw new Error('No email on account');
+                if (!password?.trim()) throw new Error('Enter your password to continue');
+                await reauthenticateWithCredential(u, EmailAuthProvider.credential(email, password));
+                return;
+            }
+            const gp = new GoogleAuthProvider();
+            await reauthenticateWithPopup(u, gp);
+        },
+        [auth],
+    );
+
+    const sendMfaEnrollmentSms = useCallback(
+        async (e164Phone: string, recaptchaVerifier: RecaptchaVerifier): Promise<string> => {
+            if (!auth?.currentUser) throw new Error('Not signed in');
+            const session = await multiFactor(auth.currentUser).getSession();
+            const phoneAuthProvider = new PhoneAuthProvider(auth);
+            return phoneAuthProvider.verifyPhoneNumber(
+                { phoneNumber: e164Phone.trim(), session },
+                recaptchaVerifier,
+            );
+        },
+        [auth],
+    );
+
+    const completeMfaEnrollment = useCallback(
+        async (verificationId: string, smsCode: string, displayName = 'Mobile phone') => {
+            if (!auth?.currentUser) throw new Error('Not signed in');
+            const cred = PhoneAuthProvider.credential(verificationId, smsCode.trim());
+            const assertion = PhoneMultiFactorGenerator.assertion(cred);
+            await multiFactor(auth.currentUser).enroll(assertion, displayName);
+            toast.success('Two-factor authentication is enabled for your account.');
+            await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
+        },
+        [auth, queryClient],
+    );
 
     const sendVerificationEmail = async () => {
         if (!auth?.currentUser) throw new Error("No user logged in");
@@ -586,6 +644,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         loginWithGoogle,
+        sendSmsForMfaSignIn,
+        completeSmsMfaSignIn,
+        reauthenticateForMfaEnrollment,
+        sendMfaEnrollmentSms,
+        completeMfaEnrollment,
         sendVerificationEmail,
         sendPasswordReset,
         changePassword,

@@ -12,6 +12,8 @@ import { AuthLayout } from "@/components/layout/auth-layout"
 import { FormField } from "@/components/auth/form-field"
 import { validatePasswordStrength, PASSWORD_POLICY_HINT } from "@/lib/password-policy"
 import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter"
+import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
+import { verifyRecaptchaEnterpriseWithApi } from "@/lib/recaptcha-verify-client"
 
 export default function SignUpPage() {
     const [name, setName] = useState("")
@@ -67,6 +69,25 @@ export default function SignUpPage() {
         if (!recaptchaSolved) {
             toast.error("Please verify that you are not a robot.")
             return
+        }
+
+        if (getRecaptchaEnterpriseSiteKey()) {
+            let enterpriseToken: string | undefined
+            try {
+                enterpriseToken = await executeRecaptchaEnterprise("SIGNUP")
+            } catch {
+                toast.error("Security verification failed. Refresh the page and try again.")
+                return
+            }
+            if (!enterpriseToken) {
+                toast.error("Security verification failed. Refresh the page and try again.")
+                return
+            }
+            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, "SIGNUP")
+            if (!verified.ok) {
+                toast.error(verified.reason || "Verification failed. Please try again.")
+                return
+            }
         }
 
         setLoading(true)

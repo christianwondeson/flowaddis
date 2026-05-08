@@ -70,6 +70,17 @@ export default function SettingsPage() {
                             <div className="space-y-4 pl-0 sm:pl-7">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div className="space-y-0.5">
+                                        <Label className="text-base text-foreground">Two-factor (SMS)</Label>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            Add a phone for sign-in codes (Firebase Identity Platform).
+                                        </p>
+                                    </div>
+                                    <Button variant="outline" size="sm" asChild className="dark:border-slate-600 dark:hover:bg-slate-800 shrink-0">
+                                        <Link href="/settings/mfa">Set up</Link>
+                                    </Button>
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div className="space-y-0.5">
                                         <Label className="text-base text-foreground">Password</Label>
                                         <p className="text-sm text-slate-500 dark:text-slate-400">
                                             Update your password (email/password sign-in only).

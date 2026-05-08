@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import type { MultiFactorResolver } from "firebase/auth"
 import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
@@ -11,6 +12,11 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { AuthLayout } from "@/components/layout/auth-layout"
 import { FormField } from "@/components/auth/form-field"
+import { isMfaSignInRequiredError } from "@/lib/mfa-sign-in-error"
+import { MfaSignInPanel } from "@/components/auth/mfa-sign-in-panel"
+import type { UserRole } from "@/types/auth"
+import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
+import { verifyRecaptchaEnterpriseWithApi } from "@/lib/recaptcha-verify-client"
 
 function SignInContent() {
     const [email, setEmail] = useState("")
@@ -25,20 +31,29 @@ function SignInContent() {
 
     const from = searchParams.get("redirect") || searchParams.get("from") || "/"
 
+    const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
+    const [mfaEmail, setMfaEmail] = useState("")
+
+    const pushAfterLogin = (role: UserRole) => {
+        if (role === "admin" && from === "/") {
+            router.push("/admin")
+        } else {
+            router.push(from)
+        }
+    }
+
     useEffect(() => {
-        // Render visible reCAPTCHA for Email mode
-        // Note: We don't include recaptchaSolved in dependencies to avoid re-rendering/clearing when solved
+        if (mfaResolver) return;
         if (!recaptchaSolved) {
             renderRecaptcha('recaptcha-container', 'normal', () => {
                 setRecaptchaSolved(true);
             });
         }
 
-        // Cleanup on unmount
         return () => {
             clearRecaptcha();
         };
-    }, [renderRecaptcha, clearRecaptcha, true]); // Restored size 3 to fix hook error, but 'true' is stable
+    }, [renderRecaptcha, clearRecaptcha, mfaResolver]);
 
     const validateForm = () => {
         const newErrors: typeof errors = {}
@@ -58,18 +73,37 @@ function SignInContent() {
             return
         }
 
+        if (getRecaptchaEnterpriseSiteKey()) {
+            let enterpriseToken: string | undefined
+            try {
+                enterpriseToken = await executeRecaptchaEnterprise("LOGIN")
+            } catch {
+                toast.error("Security verification failed. Refresh the page and try again.")
+                return
+            }
+            if (!enterpriseToken) {
+                toast.error("Security verification failed. Refresh the page and try again.")
+                return
+            }
+            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, "LOGIN")
+            if (!verified.ok) {
+                toast.error(verified.reason || "Verification failed. Please try again.")
+                return
+            }
+        }
+
         setLoading(true)
         try {
             const role = await login(email, password)
-            // Use Next.js router for smooth client-side navigation
-            if (role === 'admin' && from === '/') {
-                router.push('/admin')
-            } else {
-                router.push(from)
+            pushAfterLogin(role)
+        } catch (error: unknown) {
+            if (isMfaSignInRequiredError(error)) {
+                setMfaEmail(email)
+                setMfaResolver(error.resolver)
+                return
             }
-        } catch (error: any) {
-            // console.error("Error during sign-in:", error)
-            toast.error(error.message || "An unexpected error occurred during sign-in.")
+            const message = error instanceof Error ? error.message : "An unexpected error occurred during sign-in."
+            toast.error(message)
         } finally {
             setLoading(false)
         }
@@ -78,19 +112,53 @@ function SignInContent() {
     const handleGoogleSignIn = async () => {
         setLoading(true)
         try {
-            const role = await loginWithGoogle()
-            // Use Next.js router for smooth client-side navigation
-            if (role === 'admin' && from === '/') {
-                router.push('/admin')
-            } else {
-                router.push(from)
+            if (getRecaptchaEnterpriseSiteKey()) {
+                let enterpriseToken: string | undefined
+                try {
+                    enterpriseToken = await executeRecaptchaEnterprise("GOOGLE_SIGNIN")
+                } catch {
+                    toast.error("Security verification failed. Refresh the page and try again.")
+                    return
+                }
+                if (!enterpriseToken) {
+                    toast.error("Security verification failed. Refresh the page and try again.")
+                    return
+                }
+                const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, "GOOGLE_SIGNIN")
+                if (!verified.ok) {
+                    toast.error(verified.reason || "Verification failed. Please try again.")
+                    return
+                }
             }
-        } catch (error: any) {
-            // console.error(error)
-            toast.error(error.message || "An unexpected error occurred during registration.")
+            const role = await loginWithGoogle()
+            pushAfterLogin(role)
+        } catch (error: unknown) {
+            if (isMfaSignInRequiredError(error)) {
+                setMfaEmail("")
+                setMfaResolver(error.resolver)
+                return
+            }
+            const message = error instanceof Error ? error.message : "An unexpected error occurred during sign-in."
+            toast.error(message)
         } finally {
             setLoading(false)
         }
+    }
+
+    if (mfaResolver) {
+        return (
+            <AuthLayout title="Two-step verification" subtitle="Complete sign-in with your phone">
+                <MfaSignInPanel
+                    resolver={mfaResolver}
+                    loginEmail={mfaEmail || undefined}
+                    onSuccess={(role) => {
+                        setMfaResolver(null);
+                        pushAfterLogin(role);
+                    }}
+                    onCancel={() => setMfaResolver(null)}
+                />
+            </AuthLayout>
+        );
     }
 
     return (
