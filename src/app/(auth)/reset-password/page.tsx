@@ -11,6 +11,7 @@ import { FormField } from "@/components/auth/form-field";
 import { validatePasswordStrength, PASSWORD_POLICY_HINT } from "@/lib/password-policy";
 import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 import { toast } from "sonner";
+import { getFirebaseAuthUserMessage } from "@/lib/firebase-auth-user-message";
 
 function ResetPasswordForm() {
     const searchParams = useSearchParams();
@@ -37,9 +38,9 @@ function ResetPasswordForm() {
             .then((email) => {
                 setEmailHint(email);
             })
-            .catch(() => {
+            .catch((err: unknown) => {
                 setOobCode(null);
-                toast.error("This reset link is invalid or has expired. Request a new one.");
+                toast.error(getFirebaseAuthUserMessage(err, "verifyPasswordResetCode"));
             })
             .finally(() => setVerifying(false));
     }, [searchParams]);
@@ -66,7 +67,7 @@ function ResetPasswordForm() {
             toast.success("Password updated. You can sign in with your new password.");
             router.push("/signin");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Could not reset password.";
+            const message = getFirebaseAuthUserMessage(err, "confirmPasswordReset");
             setError(message);
             toast.error(message);
         } finally {

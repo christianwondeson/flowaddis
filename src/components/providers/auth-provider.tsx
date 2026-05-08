@@ -48,6 +48,7 @@ import {
     recordPasswordResetRequest,
 } from '@/lib/password-reset-attempt-guard';
 import { MfaSignInRequiredError } from '@/lib/mfa-sign-in-error';
+import { getFirebaseAuthUserMessage } from '@/lib/firebase-auth-user-message';
 
 async function postSessionCookie(token: string): Promise<Response> {
     return fetch('/api/auth/session', {
@@ -112,55 +113,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             unsubscribe();
         };
     }, [queryClient]);
-
-    const handleAuthError = (error: any): string => {
-        const code = error?.code;
-        // console.error(`Auth Error [${code}]:`, error);
-
-        switch (code) {
-            // Sign In / General
-            case 'auth/invalid-credential':
-            case 'auth/wrong-password':
-            case 'auth/user-not-found':
-                return 'Invalid email or password. Please check your credentials and try again.';
-            case 'auth/user-disabled':
-                return 'This account has been disabled. Please contact support for assistance.';
-            case 'auth/too-many-requests':
-                return 'Too many failed attempts. Please wait a few minutes before trying again.';
-            case 'auth/network-request-failed':
-                return 'Network connection error. Please check your internet and try again.';
-
-            // Sign Up
-            case 'auth/email-already-in-use':
-                return 'An account with this email already exists. Try signing in instead.';
-            case 'auth/weak-password':
-                return 'Your password is too weak. Use at least 12 characters with uppercase, lowercase, a number, and a symbol.';
-            case 'auth/invalid-email':
-                return 'Please enter a valid email address.';
-            case 'auth/operation-not-allowed':
-                return 'Email/password sign-in is currently disabled. Please contact support.';
-            case 'auth/requires-recent-login':
-                return 'For security, sign out and sign in again, then try changing your password.';
-
-            // Password Reset
-            case 'auth/expired-action-code':
-                return 'The reset link has expired. Please request a new one.';
-            case 'auth/invalid-action-code':
-                return 'The reset link is invalid or has already been used.';
-
-            // reCAPTCHA
-            case 'auth/captcha-check-failed':
-                return 'Verification failed. Please solve the reCAPTCHA again.';
-            case 'auth/invalid-verification-code':
-                return 'Invalid verification code. Please check the SMS and try again.';
-            case 'auth/code-expired':
-                return 'That code has expired. Request a new SMS code.';
-
-            default:
-                // Return a generic user-facing message but log the technical detail
-                return error?.message || 'An unexpected authentication error occurred. Please try again.';
-        }
-    };
 
     const { data: userProfile, isLoading: profileLoading } = useUserProfile(firebaseUser);
 
@@ -280,13 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ) {
                 recordEmailLoginFailure(email);
             }
-            if (code.startsWith('auth/')) {
-                throw new Error(handleAuthError(error));
-            }
-            if (error instanceof Error) {
-                throw error;
-            }
-            throw new Error(handleAuthError(error));
+            throw new Error(getFirebaseAuthUserMessage(error, 'login'));
         }
     };
 
@@ -328,7 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.error('❌ Warning: Document was not found after creation!');
             }
         } catch (error) {
-            throw new Error(handleAuthError(error));
+            throw new Error(getFirebaseAuthUserMessage(error, 'register'));
         }
     }, [auth, db, queryClient]);
 
@@ -360,13 +306,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const resolver = getMultiFactorResolver(auth, error as never);
                 throw new MfaSignInRequiredError(resolver);
             }
-            if (code.startsWith('auth/')) {
-                throw new Error(handleAuthError(error));
-            }
-            if (error instanceof Error) {
-                throw error;
-            }
-            throw new Error(handleAuthError(error));
+            throw new Error(getFirebaseAuthUserMessage(error, 'loginWithGoogle'));
         }
     };
 
@@ -469,7 +409,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             recordPasswordResetRequest(email);
         } catch (error) {
-            throw new Error(handleAuthError(error));
+            throw new Error(getFirebaseAuthUserMessage(error, 'sendPasswordReset'));
         }
     };
 
@@ -499,7 +439,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 toast.success('Password updated successfully');
                 await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
             } catch (error) {
-                throw new Error(handleAuthError(error));
+                throw new Error(getFirebaseAuthUserMessage(error, 'changePassword'));
             }
         },
         [auth, queryClient],
