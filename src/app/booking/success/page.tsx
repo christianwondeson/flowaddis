@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return-url';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 function SuccessContent() {
+    const { t } = useTranslations();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('session_id');
     const returnUrl = sanitizeCheckoutReturnUrl(searchParams.get('return_url'), BOOKADDIS_HOME);
@@ -37,9 +39,9 @@ function SuccessContent() {
                 </motion.div>
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-3">Booking Confirmed!</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">{t('bookingFlow.successTitle')}</h1>
             <p className="text-gray-500 mb-8">
-                Thank you for choosing BookAddis. Your payment has been processed successfully and your booking is secured.
+                {t('bookingFlow.successThankYou')}
             </p>
 
             <div className="space-y-4 mb-10">
@@ -48,8 +50,8 @@ function SuccessContent() {
                         <Mail className="w-5 h-5 text-brand-primary" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">E-Ticket Sent</p>
-                        <p className="text-sm font-semibold text-gray-700">Check your inbox for details</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.eticketLabel')}</p>
+                        <p className="text-sm font-semibold text-gray-700">{t('bookingFlow.eticketHint')}</p>
                     </div>
                 </div>
 
@@ -58,8 +60,8 @@ function SuccessContent() {
                         <Download className="w-5 h-5 text-brand-primary" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Booking ID</p>
-                        <p className="text-sm font-semibold text-gray-700">#{sessionId ? sessionId.slice(-8).toUpperCase() : 'PROCESSED'}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.bookingIdLabel')}</p>
+                        <p className="text-sm font-semibold text-gray-700">#{sessionId ? sessionId.slice(-8).toUpperCase() : t('bookingFlow.bookingIdFallback')}</p>
                     </div>
                 </div>
             </div>
@@ -72,13 +74,13 @@ function SuccessContent() {
                         window.location.href = returnUrl;
                     }}
                 >
-                    Back to BookAddis <Home className="ml-2 w-4 h-4" />
+                    {t('bookingFlow.backToBookAddis')} <Home className="ml-2 w-4 h-4" />
                 </Button>
                 <Button asChild variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
-                    <Link href="/">Stay on FlowAddis</Link>
+                    <Link href="/">{t('bookingFlow.stayOnBookAddis')}</Link>
                 </Button>
                 <Button variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
-                    View Booking Details <ArrowRight className="ml-2 w-4 h-4" />
+                    {t('bookingFlow.viewBookingDetails')} <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
             </div>
         </motion.div>

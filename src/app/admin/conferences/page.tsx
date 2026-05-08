@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Search, MoreVertical, MapPin, Calendar, Users, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Search, MoreVertical, MapPin, Calendar, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -10,6 +10,7 @@ import { AdContainer } from "@/components/ads/ad-container";
 import { AdConfig } from "@/lib/types/ads";
 import { useCmsList } from "@/hooks/use-cms-list";
 import { getStrapiSingleMediaUrl } from "@/lib/admin-cms-client";
+import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
 
 const CONFERENCE_ADS_LEFT: AdConfig[] = [
     {
@@ -39,7 +40,7 @@ function fmtDate(iso: unknown): string {
 
 export default function AdminConferencesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { items, loading, error, refetch } = useCmsList("conferences");
+    const { items, loading, error, errorCode, refetch } = useCmsList("conferences");
 
     return (
         <AdContainer leftAds={CONFERENCE_ADS_LEFT} rightAds={CONFERENCE_ADS_RIGHT}>
@@ -58,15 +59,7 @@ export default function AdminConferencesPage() {
                     </Button>
                 </div>
 
-                {error ? (
-                    <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                        <div>
-                            <p className="font-semibold">Could not load CMS</p>
-                            <p>{error}</p>
-                        </div>
-                    </div>
-                ) : null}
+                <AdminCmsErrorBanner error={error} errorCode={errorCode} />
 
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
                     <div className="relative flex-1">

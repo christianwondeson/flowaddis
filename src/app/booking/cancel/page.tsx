@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return-url';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 function CancelContent() {
+    const { t } = useTranslations();
     const searchParams = useSearchParams();
     const returnUrl = sanitizeCheckoutReturnUrl(searchParams.get('return_url'), BOOKADDIS_HOME);
 
@@ -29,16 +31,16 @@ function CancelContent() {
                 </motion.div>
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-3">Booking Cancelled</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">{t('bookingFlow.cancelTitle')}</h1>
             <p className="text-gray-500 mb-8">
-                Your payment was not completed and the booking was cancelled. No charges were made to your card.
+                {t('bookingFlow.cancelBody')}
             </p>
 
             <div className="bg-orange-50 p-4 rounded-2xl text-left border border-orange-100 mb-10">
                 <div className="flex gap-3">
                     <HelpCircle className="w-5 h-5 text-orange-500 shrink-0" />
                     <p className="text-sm text-orange-700 italic">
-                        &quot;My bank was charged but I see this page&quot; - Don&apos;t worry, any pending authorization will be automatically reversed by your bank within a few days.
+                        {t('bookingFlow.cancelBankHint')}
                     </p>
                 </div>
             </div>
@@ -52,10 +54,10 @@ function CancelContent() {
                     className="w-full bg-brand-primary hover:bg-brand-dark text-white rounded-xl h-12 font-bold shadow-lg shadow-brand-primary/20"
                 >
                     <ArrowLeft className="mr-2 w-4 h-4" />
-                    Back to BookAddis
+                    {t('bookingFlow.backToBookAddis')}
                 </Button>
                 <Button asChild variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
-                    <Link href="/">Continue on FlowAddis</Link>
+                    <Link href="/">{t('bookingFlow.continueOnBookAddis')}</Link>
                 </Button>
             </div>
         </motion.div>

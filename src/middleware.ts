@@ -3,8 +3,9 @@ import { APP_CONSTANTS } from '@/lib/constants';
 import type { NextRequest } from 'next/server';
 import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
 import { getSafeAppRedirectPath } from '@/lib/safe-redirect';
+import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, isAppLocale } from '@/lib/i18n/config';
 
-const protectedRoutes = ['/dashboard', '/admin'];
+const protectedRoutes = ['/dashboard', '/admin', '/trips', '/profile', '/settings'];
 const authRoutes = ['/signin', '/signup'];
 
 function clearSessionCookie(response: NextResponse) {
@@ -19,6 +20,19 @@ function clearSessionCookie(response: NextResponse) {
     });
 }
 
+function ensureLocaleCookie(request: NextRequest, response: NextResponse) {
+    const raw = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
+    if (!raw || !isAppLocale(raw)) {
+        response.cookies.set({
+            name: LOCALE_COOKIE_NAME,
+            value: DEFAULT_LOCALE,
+            path: '/',
+            maxAge: 31536000,
+            sameSite: 'lax',
+        });
+    }
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const token = request.cookies.get(APP_CONSTANTS.AUTH.COOKIE_NAME)?.value;
@@ -30,7 +44,9 @@ export async function middleware(request: NextRequest) {
         if (!token) {
             const url = new URL('/signin', request.url);
             url.searchParams.set('redirect', pathname);
-            return NextResponse.redirect(url);
+            const res = NextResponse.redirect(url);
+            ensureLocaleCookie(request, res);
+            return res;
         }
         try {
             await verifyFirebaseIdToken(token);
@@ -39,9 +55,12 @@ export async function middleware(request: NextRequest) {
             url.searchParams.set('redirect', pathname);
             const res = NextResponse.redirect(url);
             clearSessionCookie(res);
+            ensureLocaleCookie(request, res);
             return res;
         }
-        return NextResponse.next();
+        const ok = NextResponse.next();
+        ensureLocaleCookie(request, ok);
+        return ok;
     }
 
     if (isAuthRoute && token) {
@@ -50,6 +69,7 @@ export async function middleware(request: NextRequest) {
         } catch {
             const res = NextResponse.next();
             clearSessionCookie(res);
+            ensureLocaleCookie(request, res);
             return res;
         }
         const rawRedirect = request.nextUrl.searchParams.get('redirect');
@@ -57,7 +77,9 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(redirectPath, request.url));
     }
 
-    return NextResponse.next();
+    const out = NextResponse.next();
+    ensureLocaleCookie(request, out);
+    return out;
 }
 
 export const config = {

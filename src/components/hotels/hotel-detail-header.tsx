@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useTripStore } from '@/store/trip-store';
 import { Popover } from '@/components/ui/popover';
 import Link from 'next/link';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 interface HotelDetailHeaderProps {
     hotel: any;
@@ -18,6 +19,7 @@ interface HotelDetailHeaderProps {
 }
 
 export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook, detailMapHref }) => {
+    const { t } = useTranslations();
     const router = useRouter();
     const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
     const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
@@ -42,11 +44,11 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
     };
 
     const tabs = [
-        { id: 'overview', label: 'Overview', icon: 'home' },
-        { id: 'pricing', label: 'Pricing', icon: 'dollar' },
-        { id: 'facilities', label: 'Facilities', icon: 'grid' },
-        { id: 'rules', label: 'House rules', icon: 'book' },
-        { id: 'reviews', label: 'Guest reviews', icon: 'star' },
+        { id: 'overview', label: t('hotelDetail.tabs.overview'), icon: 'home' },
+        { id: 'pricing', label: t('hotelDetail.tabs.pricing'), icon: 'dollar' },
+        { id: 'facilities', label: t('hotelDetail.tabs.facilities'), icon: 'grid' },
+        { id: 'rules', label: t('hotelDetail.tabs.rules'), icon: 'book' },
+        { id: 'reviews', label: t('hotelDetail.tabs.reviews'), icon: 'star' },
     ];
 
     const getTabIcon = (iconName: string) => {
@@ -79,7 +81,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                         className="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-brand-primary transition-colors"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Back
+                        {t('hotelDetail.back')}
                     </button>
                 </div>
 
@@ -95,7 +97,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                 </div>
                                 <span className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-[10px] font-bold px-1.5 py-0.5 rounded-sm border border-green-100 dark:border-green-900/50 flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 bg-green-600 rounded-full"></span>
-                                    Free taxi available
+                                    {t('hotelDetail.freeTaxiBadge')}
                                 </span>
                             </div>
                             <h1 className="text-xl md:text-2xl font-bold text-brand-dark dark:text-foreground mb-1 leading-tight">
@@ -111,7 +113,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                     }}
                                     className="text-brand-primary font-bold hover:underline"
                                 >
-                                    Excellent location – show map
+                                    {t('hotelDetail.locationShowMap')}
                                 </button>
                             </div>
                             {(hotel.rating || hotel.reviews) && (
@@ -120,8 +122,8 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                         {Math.round(hotel.rating || 0)}
                                     </div>
                                     <div className="text-sm">
-                                        <span className="font-bold text-brand-dark dark:text-foreground">{hotel.reviewWord || 'Very Good'}</span>
-                                        {hotel.reviews ? <span className="text-gray-500 dark:text-slate-400"> · {hotel.reviews} reviews</span> : null}
+                                        <span className="font-bold text-brand-dark dark:text-foreground">{hotel.reviewWord || t('hotelDetail.reviewFallback')}</span>
+                                        {hotel.reviews ? <span className="text-gray-500 dark:text-slate-400"> · {t('hotelDetail.reviewsCount', { count: hotel.reviews })}</span> : null}
                                     </div>
                                 </div>
                             )}
@@ -137,8 +139,8 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                         size="icon"
                                         onClick={handleHeartClick}
                                         className={`rounded-full ${inTrip ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40' : 'text-brand-primary hover:bg-brand-primary/10'}`}
-                                        aria-label={inTrip ? 'Remove from Trip' : 'Add to Trip'}
-                                        title={inTrip ? 'Remove from Trip' : 'Add to Trip'}
+                                        aria-label={inTrip ? t('hotelDetail.ariaRemoveFromTrip') : t('hotelDetail.ariaAddToTrip')}
+                                        title={inTrip ? t('hotelDetail.ariaRemoveFromTrip') : t('hotelDetail.ariaAddToTrip')}
                                     >
                                         <Heart className={`w-5 h-5 ${inTrip ? 'fill-current' : ''}`} />
                                     </Button>
@@ -151,7 +153,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                                 <Share2 className="w-5 h-5" />
                             </Button>
                             <Button onClick={() => onBook?.()} className="bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-6 sm:px-8 py-2.5 rounded-full shadow-lg shadow-brand-primary/20 transition-all hover:scale-105 active:scale-95 text-sm sm:text-base min-h-[44px]">
-                                Book now
+                                {t('hotelDetail.bookNow')}
                             </Button>
                         </div>
                     </div>
@@ -195,14 +197,15 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
 };
 
 function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: boolean, onClose: () => void }) {
+    const { t } = useTranslations();
     return (
         <div className="p-4 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 min-w-[240px] animate-in fade-in zoom-in duration-200 relative z-[10010]">
             <div className="flex flex-col gap-4">
                 <div>
                     <p className="text-sm text-gray-600 dark:text-slate-300 mb-1 flex items-center gap-1">
-                        Saved to:
+                        {t('hotelDetail.savedTo')}
                         <Link href="/trips" className="text-brand-primary font-bold hover:underline">
-                            My next trip
+                            {t('hotelDetail.myNextTrip')}
                         </Link>
                     </p>
                 </div>
@@ -211,7 +214,7 @@ function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: bo
                     <div className="w-5 h-5 rounded-full border-2 border-brand-primary flex items-center justify-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-slate-100">My next trip</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-slate-100">{t('hotelDetail.myNextTrip')}</span>
                 </label>
             </div>
         </div>

@@ -17,8 +17,10 @@ import { Button } from '@/components/ui/button';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
 import { buildHotelDetailMapUrl, deriveDestinationQueryFromHotelLocation } from '@/lib/hotel-search-url';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 function HotelDetailPageInner() {
+    const { t } = useTranslations();
     const { id } = useParams();
     const sp = useSearchParams();
     const [activeTab, setActiveTab] = useState('overview');
@@ -128,8 +130,8 @@ function HotelDetailPageInner() {
             if (hasCriticalError || anyRateLimit) {
                 setApiError({
                     message: anyRateLimit
-                        ? "We're experiencing high demand. Hotel photos and details are temporarily limited. Please try again in a moment."
-                        : "We couldn't load some hotel details. Please try again.",
+                        ? t('hotelDetail.errors.rateLimit')
+                        : t('hotelDetail.errors.partialLoad'),
                     isRateLimit: anyRateLimit,
                 });
             }
@@ -195,7 +197,7 @@ function HotelDetailPageInner() {
                 checkout: checkout ?? prev.checkout,
             }));
         } catch (e) {
-            setApiError({ message: "We couldn't load hotel details. Please try again." });
+            setApiError({ message: t('hotelDetail.errors.generic') });
             setHotel((prev: any) => ({
                 ...prev,
                 images: [placeholder],
@@ -203,7 +205,7 @@ function HotelDetailPageInner() {
         } finally {
             setIsGalleryLoading(false);
         }
-    }, [id]);
+    }, [id, t]);
 
     const detailMapHref = useMemo(
         () =>
@@ -280,7 +282,7 @@ function HotelDetailPageInner() {
                                             onClick={() => fetchDetails()}
                                             className="shrink-0 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950/50"
                                         >
-                                            Try again
+                                            {t('common.tryAgain')}
                                         </Button>
                                     </div>
                                 )}
@@ -324,26 +326,26 @@ function HotelDetailPageInner() {
 
                         {activeTab === 'facilities' && (
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
-                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">Facilities & Amenities</h2>
+                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">{t('hotelDetail.facilitiesSectionTitle')}</h2>
                                 <HotelDetailAbout hotel={hotel} facilities={facilities} loading={isGalleryLoading} />
                             </div>
                         )}
 
                         {activeTab === 'rules' && (
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
-                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">House Rules</h2>
+                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">{t('hotelDetail.houseRulesTitle')}</h2>
                                 <div className="space-y-6">
                                     <div className="flex gap-4 p-4 bg-brand-gray dark:bg-slate-800/80 rounded-xl">
-                                        <div className="font-bold w-32">Check-in</div>
-                                        <div>{hotel.checkin || 'From 14:00'}</div>
+                                        <div className="font-bold w-32">{t('hotelDetail.checkIn')}</div>
+                                        <div>{hotel.checkin || t('hotelDetail.defaultCheckIn')}</div>
                                     </div>
                                     <div className="flex gap-4 p-4 bg-brand-gray dark:bg-slate-800/80 rounded-xl">
-                                        <div className="font-bold w-32">Check-out</div>
-                                        <div>{hotel.checkout || 'Until 12:00'}</div>
+                                        <div className="font-bold w-32">{t('hotelDetail.checkOut')}</div>
+                                        <div>{hotel.checkout || t('hotelDetail.defaultCheckOut')}</div>
                                     </div>
                                     <div className="flex gap-4 p-4 bg-brand-gray dark:bg-slate-800/80 rounded-xl">
-                                        <div className="font-bold w-32">Cancellation</div>
-                                        <div>Cancellation and prepayment policies vary according to accommodation type. See each room option for details.</div>
+                                        <div className="font-bold w-32">{t('hotelDetail.cancellation')}</div>
+                                        <div>{t('hotelDetail.cancellationBody')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -351,7 +353,7 @@ function HotelDetailPageInner() {
 
                         {activeTab === 'reviews' && (
                             <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700">
-                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">Guest Reviews</h2>
+                                <h2 className="text-2xl font-bold text-brand-dark dark:text-foreground mb-6">{t('hotelDetail.guestReviewsTitle')}</h2>
                                 <HotelDetailSidebar
                                     hotel={hotel}
                                     reviews={reviewsList}
@@ -430,9 +432,9 @@ function HotelDetailPageInner() {
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 px-4 py-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                 <div className="container mx-auto flex items-center justify-between gap-4 max-w-lg">
                     <div>
-                        <p className="text-xs text-gray-500 dark:text-slate-400">From</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{t('hotelDetail.priceFrom')}</p>
                         <p className="text-xl font-bold text-brand-dark dark:text-foreground">
-                            ${hotel.price}<span className="text-sm font-normal text-gray-500 dark:text-slate-400">/night</span>
+                            ${hotel.price}<span className="text-sm font-normal text-gray-500 dark:text-slate-400">{t('hotelDetail.perNight')}</span>
                         </p>
                     </div>
                     <Button
@@ -445,7 +447,7 @@ function HotelDetailPageInner() {
                         }}
                         className="bg-brand-primary hover:bg-brand-primary/90 active:scale-[0.98] text-white font-bold px-8 py-3 rounded-2xl shrink-0 shadow-lg shadow-brand-primary/25 min-h-[48px]"
                     >
-                        Book now
+                        {t('hotelDetail.bookNow')}
                     </Button>
                 </div>
             </div>

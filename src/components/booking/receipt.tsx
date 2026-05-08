@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import { Download, CheckCircle } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 interface BookingDetails {
     id: string;
@@ -26,6 +27,8 @@ interface ReceiptProps {
 
 export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose, kind = 'paid' }) => {
     const receiptRef = useRef<HTMLDivElement>(null);
+    const { t, locale } = useTranslations();
+    const generatedDate = new Date().toLocaleDateString(locale === 'am' ? 'am-ET' : 'en-US');
 
     const handleDownload = async () => {
         if (!receiptRef.current) return;
@@ -59,7 +62,9 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose, kind = 'paid
                 : 'bg-brand-primary/10 text-brand-dark border-brand-primary/20'
                 }`}>
                 <CheckCircle className={`w-5 h-5 ${kind === 'paid' ? 'text-green-600' : 'text-brand-primary'}`} />
-                <span className="font-bold">{kind === 'paid' ? 'Booking Confirmed' : 'Reservation Confirmed'}</span>
+                <span className="font-bold">
+                    {kind === 'paid' ? t('bookingUi.receipt.bookingConfirmed') : t('bookingUi.receipt.reservationConfirmed')}
+                </span>
             </div>
 
             {/* Receipt Card */}
@@ -75,31 +80,33 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose, kind = 'paid
                         <Logo size="lg" />
                     </div>
                     <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">
-                        {kind === 'paid' ? 'Official Digital Receipt' : 'Reservation Confirmation'}
+                        {kind === 'paid' ? t('bookingUi.receipt.officialReceipt') : t('bookingUi.receipt.reservationDoc')}
                     </p>
                 </div>
 
                 <div className="space-y-6">
                     <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-                        <span className="text-gray-500 font-medium">Booking ID</span>
+                        <span className="text-gray-500 font-medium">{t('bookingUi.receipt.bookingId')}</span>
                         <span className="font-mono font-bold text-brand-dark bg-gray-50 px-2 py-1 rounded">{booking.id}</span>
                     </div>
 
                     <div className="space-y-3">
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Client</span>
+                            <span className="text-gray-500">{t('bookingUi.receipt.client')}</span>
                             <span className="font-bold text-brand-dark">{booking.clientName}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Service</span>
+                            <span className="text-gray-500">{t('bookingUi.receipt.service')}</span>
                             <span className="font-bold text-brand-dark">{booking.service}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Date</span>
+                            <span className="text-gray-500">{t('bookingUi.receipt.date')}</span>
                             <span className="font-bold text-brand-dark">{booking.date}</span>
                         </div>
                         <div className="flex justify-between items-center pt-2">
-                            <span className="text-gray-500">{kind === 'paid' ? 'Amount Paid' : 'Amount (pay on site)'}</span>
+                            <span className="text-gray-500">
+                                {kind === 'paid' ? t('bookingUi.receipt.amountPaid') : t('bookingUi.receipt.amountOnSite')}
+                            </span>
                             <span className="font-extrabold text-2xl text-brand-primary">${booking.amount.toFixed(2)}</span>
                         </div>
                     </div>
@@ -119,13 +126,13 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose, kind = 'paid
                                     includeMargin={false}
                                 />
                             </div>
-                            <p className="text-xs text-gray-400 mt-3 font-medium">Scan to verify booking</p>
+                            <p className="text-xs text-gray-400 mt-3 font-medium">{t('bookingUi.receipt.scanVerify')}</p>
                         </div>
                     )}
 
                     <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-50 mt-4">
-                        <p>Generated on {new Date().toLocaleDateString()}</p>
-                        <p className="mt-1">Thank you for choosing BookAddis</p>
+                        <p>{t('bookingUi.receipt.generatedOn', { date: generatedDate })}</p>
+                        <p className="mt-1">{t('bookingUi.receipt.thankYou')}</p>
                     </div>
                 </div>
             </div>
@@ -135,12 +142,12 @@ export const Receipt: React.FC<ReceiptProps> = ({ booking, onClose, kind = 'paid
                 {kind === 'paid' && (
                     <Button onClick={handleDownload} className="flex-1 flex items-center justify-center gap-2">
                         <Download className="w-4 h-4" />
-                        Download PDF
+                        {t('bookingUi.receipt.downloadPdf')}
                     </Button>
                 )}
                 {onClose && (
                     <Button variant="outline" onClick={onClose} className={kind === 'paid' ? 'flex-1' : 'w-full'}>
-                        Close
+                        {t('bookingUi.receipt.close')}
                     </Button>
                 )}
             </div>

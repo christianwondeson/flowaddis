@@ -23,6 +23,7 @@ import {
     saveHotelBookingDraftForAuthRedirect,
     consumeMatchedHotelDraft,
 } from '@/lib/booking-draft-storage';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -61,24 +62,13 @@ const COUNTRIES: Country[] = [
     { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳', min: 10, max: 10 },
     { code: 'CN', name: 'China', dial: '+86', flag: '🇨🇳', min: 11, max: 11 },
 ];
-const bookingSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Invalid email address'),
-    phone: z.string()
-        .transform(normalizePhone)
-        .refine((v) => /^\+?[1-9]\d{7,14}$/.test(v), 'Enter a valid international phone number (e.g. +14155552671)'),
-    checkIn: z.string().min(1, 'Check-in is required'),
-    checkOut: z.string().min(1, 'Check-out is required'),
-}).refine((data) => {
-    const ci = new Date(data.checkIn);
-    const co = new Date(data.checkOut);
-    return co.getTime() > ci.getTime();
-}, {
-    message: 'Check-out must be after check-in',
-    path: ['checkOut']
-});
-
-type BookingFormData = z.infer<typeof bookingSchema>;
+type BookingFormData = {
+    name: string;
+    email: string;
+    phone: string;
+    checkIn: string;
+    checkOut: string;
+};
 
 export const BookingModal: React.FC<BookingModalProps> = ({
     isOpen,
@@ -94,7 +84,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     roomBookQuantity = 1,
     hotelAdults,
 }) => {
+    const { t, locale } = useTranslations();
     const pathname = usePathname();
+
+    const bookingSchema = useMemo(
+        () =>
+            z
+                .object({
+                    name: z.string().min(2, t('bookingUi.validation.nameMin')),
+                    email: z.string().email(t('bookingUi.validation.emailInvalid')),
+                    phone: z
+                        .string()
+                        .transform(normalizePhone)
+                        .refine((v) => /^\+?[1-9]\d{7,14}$/.test(v), t('bookingUi.validation.phoneInvalid')),
+                    checkIn: z.string().min(1, t('bookingUi.validation.checkInRequired')),
+                    checkOut: z.string().min(1, t('bookingUi.validation.checkOutRequired')),
+                })
+                .refine(
+                    (data) => {
+                        const ci = new Date(data.checkIn);
+                        const co = new Date(data.checkOut);
+                        return co.getTime() > ci.getTime();
+                    },
+                    {
+                        message: t('bookingUi.validation.checkoutAfterCheckin'),
+                        path: ['checkOut'],
+                    },
+                ),
+        [t],
+    );
+
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
     const { user, requireAuth } = useAuth();
     const [step, setStep] = useState<'form' | 'payment' | 'receipt'>('form');
@@ -198,7 +217,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             });
             setCountryCode('ET');
             setNationalNumber('');
-            toast.success('Your dates were restored. Please complete your name and phone to continue.');
+            toast.success(t('bookingUi.toastDatesRestored'));
             return;
         }
         if (initialCheckIn) setValue('checkIn', initialCheckIn, { shouldValidate: true });
@@ -234,7 +253,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         });
         onClose();
         reset();
-        toast.success('Added to Trip! You can continue booking other services.');
+        toast.success(t('bookingUi.toastAddedToTrip'));
     };
 
     const handleFormSubmit = (data: BookingFormData) => {
@@ -245,7 +264,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         // Additional country-based length validation
         const natDigits = nationalNumber.replace(/\D/g, '');
         if (natDigits.length < selectedCountry.min || natDigits.length > selectedCountry.max) {
-            setError('phone', { type: 'validate', message: `Phone number length should be ${selectedCountry.min === selectedCountry.max ? selectedCountry.min : `${selectedCountry.min}-${selectedCountry.max}`} digits for ${selectedCountry.name}` });
+            setError('phone', {
+                type: 'validate',
+                message:
+                    selectedCountry.min === selectedCountry.max
+                        ? t('bookingUi.phoneLengthExact', {
+                              n: selectedCountry.min,
+                              country: selectedCountry.name,
+                          })
+                        : t('bookingUi.phoneLengthRange', {
+                              min: selectedCountry.min,
+                              max: selectedCountry.max,
+                              country: selectedCountry.name,
+                          }),
+            });
             return;
         }
         setBookingData({ ...data, email: resolveBookingEmail(data) });
@@ -289,7 +321,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         };
         setBookingData(newBooking);
         setStep('receipt');
-        toast.success(paymentMethod === 'pay_on_site' ? 'Booking reserved. Pay on site.' : 'Payment successful! Your booking is confirmed.');
+        toast.success(paymentMethod === 'pay_on_site' ? t('bookingUi.toastReserveDone') : t('bookingUi.toastPaymentDone'));
     };
 
     const handleClose = () => {
@@ -313,10 +345,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
                         <h2 className="text-xl font-bold text-brand-dark dark:text-foreground">
                             {step === 'form'
-                                ? 'Complete Your Booking'
+                                ? t('bookingUi.modalTitleForm')
                                 : step === 'payment'
-                                    ? 'Secure Payment'
-                                    : 'Booking Confirmed'}
+                                    ? t('bookingUi.modalTitlePayment')
+                                    : t('bookingUi.modalTitleReceipt')}
                         </h2>
                         <button
                             onClick={handleClose}
@@ -328,40 +360,39 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                     <div className="p-6">
                         {step === 'form' && (
-                            <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+                            <form key={locale} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
                                 <div className="bg-brand-gray p-5 rounded-2xl border border-gray-100">
                                     <h3 className="font-bold text-brand-dark text-lg mb-1">{serviceName}</h3>
                                     <p className="text-brand-primary font-extrabold text-2xl">
                                         {formatCurrency(price)}{' '}
-                                        <span className="text-gray-500 font-medium text-sm">/ unit</span>
+                                        <span className="text-gray-500 font-medium text-sm">{t('bookingUi.unitSuffix')}</span>
                                     </p>
                                 </div>
 
                                 <Input
                                     id="name"
-                                    label="Full Name"
+                                    label={t('bookingUi.fullName')}
                                     {...register('name')}
                                     error={errors.name?.message}
                                 />
                                 <Input
                                     id="email"
-                                    label="Email Address"
+                                    label={t('bookingUi.emailAddress')}
                                     type="email"
                                     readOnly={!!user?.email}
-                                    title={user?.email ? 'Bookings use your signed-in account email' : undefined}
+                                    title={user?.email ? t('bookingUi.emailReadonlyTitle') : undefined}
                                     className={user?.email ? 'bg-gray-50 text-gray-800 cursor-not-allowed' : undefined}
                                     {...register('email')}
                                     error={errors.email?.message}
                                 />
                                 {user?.email && (
                                     <p className="text-xs text-gray-500 -mt-2">
-                                        Confirmations are sent to your account email. To use another address, sign out and
-                                        book as a guest or use a different account.
+                                        {t('bookingUi.emailLockedHint')}
                                     </p>
                                 )}
                                 {/* Country selector + phone input */}
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Phone Number</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">{t('bookingUi.phoneNumber')}</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                         <div className="col-span-1">
                                             <Select value={countryCode} onValueChange={(v) => {
@@ -408,10 +439,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     <Popover
                                         trigger={
                                             <div className="w-full cursor-pointer">
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-in</label>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">{t('bookingUi.checkIn')}</label>
                                                 <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                                                     <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckIn) || 'Select date'}</span>
+                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckIn) || t('bookingUi.selectDate')}</span>
                                                 </div>
                                             </div>
                                         }
@@ -430,10 +461,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     <Popover
                                         trigger={
                                             <div className="w-full cursor-pointer">
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">Check-out</label>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">{t('bookingUi.checkOut')}</label>
                                                 <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-white hover:border-brand-primary/50 transition-all group">
                                                     <CalendarIcon className="w-5 h-5 text-gray-400 group-hover:text-brand-primary transition-colors" />
-                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckOut) || 'Select date'}</span>
+                                                    <span className="text-gray-900 font-medium">{formatDateEnglishStr(selectedCheckOut) || t('bookingUi.selectDate')}</span>
                                                 </div>
                                             </div>
                                         }
@@ -457,10 +488,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         onClick={handleSubmit(handleAddToTrip)}
                                         className="w-full sm:flex-1"
                                     >
-                                        <ShoppingBag className="w-4 h-4 mr-2" /> Add to Trip
+                                        <ShoppingBag className="w-4 h-4 mr-2" /> {t('bookingUi.addToTrip')}
                                     </Button>
                                     <Button type="submit" className="w-full sm:flex-1">
-                                        Book Now
+                                        {t('bookingUi.bookNow')}
                                     </Button>
                                 </div>
                             </form>

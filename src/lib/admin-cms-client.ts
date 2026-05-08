@@ -1,4 +1,25 @@
 import { auth } from '@/lib/firebase';
+import type { AdminCmsErrorCode } from '@/lib/admin-cms-error-codes';
+
+export class AdminCmsFetchError extends Error {
+    constructor(
+        message: string,
+        readonly status: number,
+        readonly code?: AdminCmsErrorCode,
+    ) {
+        super(message);
+        this.name = 'AdminCmsFetchError';
+    }
+}
+
+function cmsHttpFailure(res: Response, payload: unknown): AdminCmsFetchError {
+    const p = payload as { error?: string; code?: AdminCmsErrorCode };
+    const msg =
+        (typeof p.error === 'string' && p.error) ||
+        res.statusText ||
+        'Request failed';
+    return new AdminCmsFetchError(msg, res.status, p.code);
+}
 
 async function getBearer(): Promise<string> {
     if (!auth?.currentUser) throw new Error('Please sign in.');
@@ -21,7 +42,7 @@ export async function uploadCmsFiles(files: File[]): Promise<number[]> {
     });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) {
-        throw new Error((payload as { error?: string }).error || res.statusText || 'Upload failed');
+        throw cmsHttpFailure(res, payload);
     }
     const arr = Array.isArray(payload) ? payload : (payload as { data?: unknown }).data;
     const list = Array.isArray(arr) ? arr : [];
@@ -44,10 +65,14 @@ export async function cmsCreate(resource: string, data: Record<string, unknown>)
     });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) {
-        const err = (payload as { error?: { message?: string }; message?: string }).error?.message
+        const nested = (payload as { error?: { message?: string }; message?: string }).error?.message
             || (payload as { error?: string }).error
             || (payload as { message?: string }).message;
-        throw new Error(err || `Create failed (${res.status})`);
+        if (nested) {
+            const p = payload as { code?: AdminCmsErrorCode };
+            throw new AdminCmsFetchError(nested, res.status, p.code);
+        }
+        throw cmsHttpFailure(res, payload);
     }
     return payload;
 }
@@ -62,7 +87,7 @@ export async function cmsList(resource: string, searchParams?: Record<string, st
     });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok) {
-        throw new Error((payload as { error?: string }).error || 'Failed to load list');
+        throw cmsHttpFailure(res, payload);
     }
     return payload;
 }

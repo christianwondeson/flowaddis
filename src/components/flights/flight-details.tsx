@@ -1,12 +1,16 @@
+"use client";
+
 import React from 'react';
-import { Plane, Clock, Calendar, Luggage, ArrowRight, Backpack, Briefcase, CheckCircle2 } from 'lucide-react';
+import { Plane, Clock, ArrowRight, Luggage, Backpack, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 interface FlightDetailsProps {
     detail: any;
 }
 
 export function FlightDetails({ detail }: FlightDetailsProps) {
+    const { t } = useTranslations();
     if (!detail) return null;
 
     const segments = detail.segments || [];
@@ -34,7 +38,6 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
         return `${h}h ${m}m`;
     };
 
-    // Calculate layover time between two legs
     const getLayover = (leg1: any, leg2: any) => {
         const arrival = new Date(leg1.arrivalTime).getTime();
         const departure = new Date(leg2.departureTime).getTime();
@@ -44,18 +47,18 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
 
     return (
         <div className="space-y-8">
-            {/* Flight Segments */}
             <div className="space-y-6">
                 {segments.map((segment: any, segIdx: number) => (
                     <div key={segIdx} className="relative">
-                        {/* Segment Header */}
                         <div className="flex items-center gap-3 mb-4 sticky top-0 bg-white dark:bg-slate-900 z-10 py-2 border-b border-gray-100 dark:border-slate-700">
                             <div className="w-8 h-8 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 flex items-center justify-center">
                                 <span className="text-brand-primary font-bold text-xs">{segIdx === 0 ? '1' : '2'}</span>
                             </div>
                             <div>
                                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                    {segment.departureAirport.city} <ArrowRight className="w-4 h-4 text-gray-400 dark:text-slate-500" /> {segment.arrivalAirport.city}
+                                    {segment.departureAirport.city}{' '}
+                                    <ArrowRight className="w-4 h-4 text-gray-400 dark:text-slate-500" />{' '}
+                                    {segment.arrivalAirport.city}
                                 </h3>
                                 <div className="text-xs text-gray-500 dark:text-slate-400">
                                     {formatDate(segment.departureTime)} • {getDuration(segment.totalTime)}
@@ -63,7 +66,6 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                             </div>
                         </div>
 
-                        {/* Legs */}
                         <div className="pl-4 space-y-6">
                             {segment.legs.map((leg: any, legIdx: number) => {
                                 const airline = leg.carriersData?.[0];
@@ -72,11 +74,9 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                                 return (
                                     <div key={legIdx}>
                                         <div className="bg-gray-50 dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-700 overflow-hidden relative">
-                                            {/* Carrier Ribbon */}
                                             <div className="h-1.5 w-full bg-brand-primary/10" />
 
                                             <div className="p-5">
-                                                {/* Airline Header */}
                                                 <div className="flex items-center justify-between mb-6">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-lg p-1 border border-gray-100 dark:border-slate-600 shadow-sm flex items-center justify-center">
@@ -88,10 +88,18 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                                                         </div>
                                                         <div>
                                                             <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">{airline?.name || leg.carriers[0]}</div>
-                                                            <div className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
-                                                                <span>Flight {leg.flightInfo.flightNumber}</span>
+                                                            <div className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                                                                <span>
+                                                                    {t('flightSearch.detail.flightLabel', {
+                                                                        number: leg.flightInfo.flightNumber,
+                                                                    })}
+                                                                </span>
                                                                 <span className="w-1 h-1 bg-gray-300 dark:bg-slate-600 rounded-full" />
-                                                                <span>{leg.planeType ? `Airbus ${leg.planeType}` : 'Aircraft'}</span>
+                                                                <span>
+                                                                    {leg.planeType
+                                                                        ? t('flightSearch.detail.airbus', { type: leg.planeType })
+                                                                        : t('flightSearch.detail.aircraft')}
+                                                                </span>
                                                                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
                                                                 <span className="text-brand-primary font-medium">{leg.cabinClass}</span>
                                                             </div>
@@ -99,16 +107,13 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                                                     </div>
                                                 </div>
 
-                                                {/* Flight Times */}
                                                 <div className="flex items-start justify-between gap-4">
-                                                    {/* Departure */}
                                                     <div className="flex-1">
                                                         <div className="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{formatTime(leg.departureTime)}</div>
                                                         <div className="text-sm font-bold text-gray-700 dark:text-slate-300 mb-0.5">{leg.departureAirport.code}</div>
                                                         <div className="text-xs text-gray-500 dark:text-slate-400 leading-snug">{leg.departureAirport.name}</div>
                                                     </div>
 
-                                                    {/* Duration & Visual */}
                                                     <div className="flex flex-col items-center justify-center px-4 pt-1 w-24">
                                                         <div className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">{getDuration(leg.totalTime)}</div>
                                                         <div className="w-full h-[2px] bg-gray-200 dark:bg-slate-600 relative">
@@ -118,7 +123,6 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                                                         </div>
                                                     </div>
 
-                                                    {/* Arrival */}
                                                     <div className="flex-1 text-right">
                                                         <div className="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none mb-1">{formatTime(leg.arrivalTime)}</div>
                                                         <div className="text-sm font-bold text-gray-700 dark:text-slate-300 mb-0.5">{leg.arrivalAirport.code}</div>
@@ -128,13 +132,15 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                                             </div>
                                         </div>
 
-                                        {/* Layover */}
                                         {!isLastLeg && (
                                             <div className="flex items-center gap-3 py-6 px-4">
                                                 <div className="h-16 w-[2px] bg-dashed bg-gradient-to-b from-transparent via-gray-300 to-transparent mx-auto opacity-50 absolute left-[31px]"></div>
                                                 <div className="flex-1 text-center py-2 bg-yellow-50 dark:bg-yellow-950/35 border border-yellow-100 dark:border-yellow-900/50 rounded-xl text-yellow-700 dark:text-yellow-200 text-xs font-bold flex items-center justify-center gap-2">
                                                     <Clock className="w-3.5 h-3.5" />
-                                                    {getLayover(leg, segment.legs[legIdx + 1])} layover in {leg.arrivalAirport.cityName}
+                                                    {t('flightSearch.detail.layover', {
+                                                        duration: getLayover(leg, segment.legs[legIdx + 1]),
+                                                        city: leg.arrivalAirport.cityName,
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
@@ -146,19 +152,35 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                 ))}
             </div>
 
-            {/* Included Amenities (Baggage) */}
             {brandedFare && brandedFare.features && (
                 <div className="bg-white dark:bg-slate-800/60 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6">
                     <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
                         <span className="w-1 h-5 bg-brand-primary rounded-full"></span>
-                        Included in {brandedFare.fareName}
+                        {t('flightSearch.detail.includedInFare', { fare: brandedFare.fareName })}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {brandedFare.features.map((feature: any, idx: number) => (
-                            <div key={idx} className={`flex items-start gap-3 p-3 rounded-xl border ${feature.availability === 'INCLUDED' ? 'bg-green-50/50 dark:bg-green-950/25 border-green-100 dark:border-green-900/40' : 'bg-gray-50 dark:bg-slate-900/50 border-gray-100 dark:border-slate-600 opacity-60'}`}>
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${feature.availability === 'INCLUDED' ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400' : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400'}`}>
+                            <div
+                                key={idx}
+                                className={`flex items-start gap-3 p-3 rounded-xl border ${
+                                    feature.availability === 'INCLUDED'
+                                        ? 'bg-green-50/50 dark:bg-green-950/25 border-green-100 dark:border-green-900/40'
+                                        : 'bg-gray-50 dark:bg-slate-900/50 border-gray-100 dark:border-slate-600 opacity-60'
+                                }`}
+                            >
+                                <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                        feature.availability === 'INCLUDED'
+                                            ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'
+                                            : 'bg-gray-200 dark:bg-slate-700 text-gray-500 dark:text-slate-400'
+                                    }`}
+                                >
                                     {feature.category === 'BAGGAGE' ? (
-                                        feature.code === 'BK03' ? <Backpack className="w-4 h-4" /> : <Luggage className="w-4 h-4" />
+                                        feature.code === 'BK03' ? (
+                                            <Backpack className="w-4 h-4" />
+                                        ) : (
+                                            <Luggage className="w-4 h-4" />
+                                        )
                                     ) : feature.category === 'SEATS' ? (
                                         <Plane className="w-4 h-4" />
                                     ) : (
@@ -166,11 +188,19 @@ export function FlightDetails({ detail }: FlightDetailsProps) {
                                     )}
                                 </div>
                                 <div>
-                                    <div className={`text-sm font-bold ${feature.availability === 'INCLUDED' ? 'text-slate-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'}`}>
+                                    <div
+                                        className={`text-sm font-bold ${
+                                            feature.availability === 'INCLUDED'
+                                                ? 'text-slate-900 dark:text-slate-100'
+                                                : 'text-gray-500 dark:text-slate-400'
+                                        }`}
+                                    >
                                         {feature.label}
                                     </div>
                                     <div className="text-[10px] text-gray-500 dark:text-slate-400 font-medium uppercase tracking-wide mt-0.5">
-                                        {feature.availability === 'INCLUDED' ? 'Included' : 'Not Included'}
+                                        {feature.availability === 'INCLUDED'
+                                            ? t('flightSearch.detail.included')
+                                            : t('flightSearch.detail.notIncluded')}
                                     </div>
                                 </div>
                             </div>

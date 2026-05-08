@@ -1,8 +1,11 @@
-import React from 'react';
-import Link from 'next/link';
-import { Facebook, Instagram, Linkedin, Mail, Phone, MessageCircle } from 'lucide-react';
-import { Logo } from '@/components/shared/logo';
-import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from '@/lib/contact-phones';
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { Facebook, Instagram, Linkedin, Mail, Phone, MessageCircle } from "lucide-react";
+import { Logo } from "@/components/shared/logo";
+import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from "@/lib/contact-phones";
+import { useTranslations } from "@/components/providers/locale-provider";
 
 function TikTokIcon({ className }: { className?: string }) {
     return (
@@ -13,37 +16,51 @@ function TikTokIcon({ className }: { className?: string }) {
 }
 
 export const Footer: React.FC = () => {
+    const { t } = useTranslations();
+    const year = new Date().getFullYear();
+
     return (
         <footer className="bg-brand-dark text-white pt-20 pb-10">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
-                    {/* Brand */}
                     <div className="space-y-6 lg:col-span-2">
                         <Logo light={false} showText={true} textLight={true} />
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                            Your premium gateway to Ethiopia. Experience seamless booking for flights, hotels, conferences, and transportation.
-                        </p>
+                        <p className="text-gray-400 text-sm leading-relaxed">{t("footer.tagline")}</p>
                     </div>
 
-                    {/* Company */}
                     <div>
-                        <h3 className="text-lg font-bold mb-6 text-white">Company</h3>
+                        <h3 className="text-lg font-bold mb-6 text-white">{t("footer.company")}</h3>
                         <ul className="space-y-4 text-gray-400 text-sm">
-                            <li><Link href="/about" className="hover:text-teal-400 transition-colors">About Us</Link></li>
-                            <li><Link href="/contact" className="hover:text-teal-400 transition-colors">Contact Us</Link></li>
-                            <li><Link href="/privacy" className="hover:text-teal-400 transition-colors">Privacy Policy</Link></li>
-                            <li><Link href="/terms" className="hover:text-teal-400 transition-colors">Terms of Service</Link></li>
+                            <li>
+                                <Link href="/about" className="hover:text-teal-400 transition-colors">
+                                    {t("footer.aboutUs")}
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/contact" className="hover:text-teal-400 transition-colors">
+                                    {t("footer.contactUs")}
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/privacy" className="hover:text-teal-400 transition-colors">
+                                    {t("footer.privacyPolicy")}
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/terms" className="hover:text-teal-400 transition-colors">
+                                    {t("footer.termsOfService")}
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
-                    {/* Support */}
                     <div>
-                        <h3 className="text-lg font-bold mb-6 text-white">Support</h3>
+                        <h3 className="text-lg font-bold mb-6 text-white">{t("footer.support")}</h3>
                         <ul className="space-y-4 text-gray-400 text-sm">
                             <li className="flex items-start gap-3">
                                 <Phone className="w-4 h-4 text-brand-primary shrink-0 mt-0.5" />
                                 <div>
-                                    <span className="text-gray-500 text-xs block uppercase tracking-wide">Ethiopia</span>
+                                    <span className="text-gray-500 text-xs block uppercase tracking-wide">{t("footer.ethiopia")}</span>
                                     <a href={`tel:${BOOKADDIS_ETHIOPIA_PHONE.tel}`} className="hover:text-teal-400 transition-colors">
                                         {BOOKADDIS_ETHIOPIA_PHONE.display}
                                     </a>
@@ -68,43 +85,101 @@ export const Footer: React.FC = () => {
                             </li>
                             <li className="flex items-center gap-3">
                                 <MessageCircle className="w-4 h-4 text-green-500" />
-                                <a href="https://wa.me/251921929159" target="_blank" rel="noopener noreferrer" className="hover:text-green-400 transition-colors">
-                                    WhatsApp
+                                <a
+                                    href="https://wa.me/251921929159"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-green-400 transition-colors"
+                                >
+                                    {t("footer.whatsApp")}
                                 </a>
                             </li>
-                            <li><Link href="/help" className="hover:text-teal-400 transition-colors">Help Center</Link></li>
+                            <li>
+                                <Link href="/help" className="hover:text-teal-400 transition-colors">
+                                    {t("footer.helpCenter")}
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
-                    {/* Destinations */}
                     <div>
-                        <h3 className="text-lg font-bold mb-6 text-white">Destinations</h3>
+                        <h3 className="text-lg font-bold mb-6 text-white">{t("footer.destinations")}</h3>
                         <ul className="space-y-4 text-gray-400 text-sm">
-                            <li><Link href="/hotels?query=Addis Ababa" className="hover:text-teal-400 transition-colors">Addis Ababa</Link></li>
-                            <li><Link href="/hotels?query=Bahir Dar" className="hover:text-teal-400 transition-colors">Bahir Dar</Link></li>
-                            <li><Link href="/hotels?query=Lalibela" className="hover:text-teal-400 transition-colors">Lalibela</Link></li>
-                            <li><Link href="/flights" className="hover:text-teal-400 transition-colors">Flights</Link></li>
+                            <li>
+                                <Link href="/hotels?query=Addis Ababa" className="hover:text-teal-400 transition-colors">
+                                    Addis Ababa
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/hotels?query=Bahir Dar" className="hover:text-teal-400 transition-colors">
+                                    Bahir Dar
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/hotels?query=Lalibela" className="hover:text-teal-400 transition-colors">
+                                    Lalibela
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/flights" className="hover:text-teal-400 transition-colors">
+                                    {t("nav.flights")}
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
-                    {/* Newsletter */}
                     <div>
-                        <h3 className="text-lg font-bold mb-6 text-white">Follow Us</h3>
+                        <h3 className="text-lg font-bold mb-6 text-white">{t("footer.followUs")}</h3>
                         <div className="flex flex-wrap gap-3 mb-6">
-                            <a href="https://facebook.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="Facebook"><Facebook className="w-5 h-5" /></a>
-                            <a href="https://instagram.com/bookaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="Instagram"><Instagram className="w-5 h-5" /></a>
-                            <a href="https://www.tiktok.com/@flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="TikTok"><TikTokIcon className="w-5 h-5" /></a>
-                            <a href="https://www.linkedin.com/company/flowaddis" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-400 transition-colors" aria-label="LinkedIn"><Linkedin className="w-5 h-5" /></a>
+                            <a
+                                href="https://facebook.com/bookaddis"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-teal-400 transition-colors"
+                                aria-label="Facebook"
+                            >
+                                <Facebook className="w-5 h-5" />
+                            </a>
+                            <a
+                                href="https://instagram.com/bookaddis"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-teal-400 transition-colors"
+                                aria-label="Instagram"
+                            >
+                                <Instagram className="w-5 h-5" />
+                            </a>
+                            <a
+                                href="https://www.tiktok.com/@flowaddis"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-teal-400 transition-colors"
+                                aria-label="TikTok"
+                            >
+                                <TikTokIcon className="w-5 h-5" />
+                            </a>
+                            <a
+                                href="https://www.linkedin.com/company/flowaddis"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-400 hover:text-teal-400 transition-colors"
+                                aria-label="LinkedIn"
+                            >
+                                <Linkedin className="w-5 h-5" />
+                            </a>
                         </div>
-                        <p className="text-gray-400 text-sm mb-4">Subscribe to our newsletter</p>
+                        <p className="text-gray-400 text-sm mb-4">{t("footer.newsletterHint")}</p>
                         <div className="flex gap-2">
                             <input
                                 type="email"
-                                placeholder="Email"
+                                placeholder={t("common.email")}
                                 className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary w-full transition-colors"
                             />
-                            <button className="bg-teal-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 text-white transition-colors shrink-0">
-                                Subscribe
+                            <button
+                                type="button"
+                                className="bg-teal-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 text-white transition-colors shrink-0"
+                            >
+                                {t("common.subscribe")}
                             </button>
                         </div>
                     </div>
@@ -112,10 +187,14 @@ export const Footer: React.FC = () => {
 
                 <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-                        <p className="text-gray-500 text-sm">© 2025 BookAddis. All rights reserved.</p>
+                        <p className="text-gray-500 text-sm">{t("footer.copyright", { year })}</p>
                         <div className="flex gap-6">
-                            <Link href="/privacy" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">Privacy Policy</Link>
-                            <Link href="/terms" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">Terms of Service</Link>
+                            <Link href="/privacy" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">
+                                {t("footer.privacyPolicy")}
+                            </Link>
+                            <Link href="/terms" className="text-gray-500 hover:text-teal-400 text-sm transition-colors">
+                                {t("footer.termsOfService")}
+                            </Link>
                         </div>
                     </div>
                 </div>

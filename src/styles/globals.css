@@ -33,6 +33,11 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
+/* Amharic / Ethiopic script — stacks with Latin UI via layout body class */
+.font-ethiopic {
+  font-family: 'Noto Sans Ethiopic', var(--font-sans);
+}
+
 @layer base {
   html {
     /* App-like: prevent overscroll bounce on iOS, smooth scroll */

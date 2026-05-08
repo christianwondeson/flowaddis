@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, Plane, Hotel, Users, Bus, Home, Briefcase, User } from 'lucide-react';
+import { Menu, X, Plane, Hotel, Users, Bus, Home, Briefcase, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
 import { UserMenu } from '@/components/shared/user-menu';
+import { HeaderLanguageSwitch } from '@/components/shared/header-language-switch';
+import { useTranslations } from '@/components/providers/locale-provider';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const Header: React.FC = () => {
@@ -16,7 +18,8 @@ export const Header: React.FC = () => {
     const [scrolled, setScrolled] = useState(false);
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { user, logout, loading } = useAuth();
+    const { user, logout } = useAuth();
+    const { t } = useTranslations();
 
     const currentPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
     const redirectQuery = `redirect=${encodeURIComponent(currentPath)}`;
@@ -29,12 +32,15 @@ export const Header: React.FC = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const navItems = [
-        { name: 'Flights', path: '/flights', icon: Plane },
-        { name: 'Hotels', path: '/hotels', icon: Hotel },
-        { name: 'Conferences', path: '/conferences', icon: Users },
-        { name: 'Shuttles', path: '/shuttles', icon: Bus },
-    ];
+    const navItems = useMemo(
+        () => [
+            { name: t('nav.flights'), path: '/flights', icon: Plane },
+            { name: t('nav.hotels'), path: '/hotels', icon: Hotel },
+            { name: t('nav.conferences'), path: '/conferences', icon: Users },
+            { name: t('nav.shuttles'), path: '/shuttles', icon: Bus },
+        ],
+        [t],
+    );
 
     const isActive = (path: string) => pathname === path;
     const isTransparentPage = pathname === '/' || ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
@@ -86,8 +92,9 @@ export const Header: React.FC = () => {
                         })}
                     </nav>
 
-                    {/* Auth Buttons / User Menu - always visible */}
-                    <div className="hidden md:flex items-center gap-3">
+                    {/* Auth / locale — desktop */}
+                    <div className="hidden md:flex items-center gap-2">
+                        <HeaderLanguageSwitch transparentLight={isTransparentPage && !showSolidHeader} />
                         <UserMenu isHomePage={isTransparentPage} scrolled={showSolidHeader} />
                     </div>
 
@@ -116,6 +123,9 @@ export const Header: React.FC = () => {
                         transition={{ duration: 0.25, ease: 'easeInOut' }}
                         className="md:hidden bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800 py-4 px-4 shadow-lg absolute w-full z-[70] overflow-hidden"
                     >
+                        <div className="md:hidden pb-3 mb-3 border-b border-gray-100 dark:border-slate-800">
+                            <HeaderLanguageSwitch transparentLight={false} />
+                        </div>
                         <nav className="flex flex-col gap-2">
                             <Link
                                 href="/"
@@ -128,7 +138,7 @@ export const Header: React.FC = () => {
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 <Home className="w-5 h-5" />
-                                Home
+                                {t('nav.home')}
                             </Link>
                             {navItems.map((item) => (
                                 <Link
@@ -147,35 +157,36 @@ export const Header: React.FC = () => {
                                 </Link>
                             ))}
                             <Link
-                                href="/dashboard"
+                                href="/trips"
                                 className={clsx(
                                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium',
-                                    pathname === '/dashboard' || pathname?.startsWith('/dashboard/')
+                                    pathname === '/trips' || pathname === '/dashboard' || pathname?.startsWith('/dashboard/')
                                         ? 'bg-teal-100 text-teal-600'
                                         : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
                                 )}
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 <Briefcase className="w-5 h-5" />
-                                Trips
+                                {t('nav.myTrips')}
                             </Link>
                             <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
                                 {user ? (
                                     <>
-                                        <div className="px-4 py-2 text-sm font-medium text-brand-dark dark:text-slate-100">Hi, {user.name}</div>
+                                        <div className="px-4 py-2 text-sm font-medium text-brand-dark dark:text-slate-100">{t('header.hi')}, {user.name}</div>
                                         <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium" onClick={() => setIsMenuOpen(false)}>
                                             <User className="w-5 h-5 shrink-0" />
-                                            Profile
+                                            {t('nav.profile')}
                                         </Link>
                                         <Link href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 font-medium" onClick={() => setIsMenuOpen(false)}>
-                                            Settings
+                                            <Settings className="w-5 h-5 shrink-0" />
+                                            {t('nav.settings')}
                                         </Link>
                                         {user.role === 'admin' && (
                                             <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
-                                                <Button variant="outline" className="w-full justify-center">Dashboard</Button>
+                                                <Button variant="outline" className="w-full justify-center">{t('nav.dashboard')}</Button>
                                             </Link>
                                         )}
-                                        <Button variant="ghost" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { logout(); setIsMenuOpen(false); }}>Sign Out</Button>
+                                        <Button variant="ghost" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { logout(); setIsMenuOpen(false); }}>{t('common.signOut')}</Button>
                                     </>
                                 ) : (
                                     <>
@@ -185,13 +196,13 @@ export const Header: React.FC = () => {
                                             onClick={() => setIsMenuOpen(false)}
                                         >
                                             <User className="w-5 h-5 shrink-0" />
-                                            Profile
+                                            {t('nav.profile')}
                                         </Link>
                                         <Link href={`/signin?${redirectQuery}`} onClick={() => setIsMenuOpen(false)}>
-                                            <Button variant="outline" className="w-full justify-center">Sign In</Button>
+                                            <Button variant="outline" className="w-full justify-center">{t('common.signIn')}</Button>
                                         </Link>
                                         <Link href={`/signup?${redirectQuery}`} onClick={() => setIsMenuOpen(false)}>
-                                            <Button className="w-full justify-center">Sign Up</Button>
+                                            <Button className="w-full justify-center">{t('common.signUp')}</Button>
                                         </Link>
                                     </>
                                 )}

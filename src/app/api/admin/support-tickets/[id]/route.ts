@@ -63,7 +63,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
             await assertFirebaseAndNestAdmin(req);
         } catch (e) {
             if (e instanceof CmsAuthError) {
-                return NextResponse.json({ error: e.message }, { status: e.status });
+                return NextResponse.json({ error: e.message, code: e.code }, { status: e.status });
             }
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

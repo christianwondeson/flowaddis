@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Building2, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { auth } from '@/lib/firebase';
 import { getStripe } from '@/lib/stripe';
 import { resolveCheckoutReturnUrlForRequest } from '@/lib/checkout-return-url';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 interface PaymentFormProps {
     amount: number;
@@ -33,22 +34,28 @@ type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe' | 'pay_on_site';
 /** Set to true to show Telebirr, CBE / bank transfer, and pay-on-site again. */
 const SHOW_LOCAL_PAYMENT_METHODS = false;
 
-// Validation schemas
-const telebirrSchema = z.object({
-    phone: z.string().regex(/^(09|07)\d{8}$/, 'Invalid Ethiopian phone number (e.g., 0912345678)'),
-});
-
-const cbebirrSchema = z.object({
-    accountNumber: z.string().min(10, 'Account number must be at least 10 digits').regex(/^\d+$/, 'Only numbers allowed'),
-});
-
-const stripeSchema = z.object({
-    cardNumber: z.string().regex(/^\d{16}$/, 'Card number must be 16 digits'),
-    expiry: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Format: MM/YY'),
-    cvc: z.string().regex(/^\d{3,4}$/, 'CVC must be 3-4 digits'),
-});
-
 export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true, bookingType = 'flight', source = 'local', externalItemId = 'N/A', currencyCode = 'USD', externalSnapshot = {} }) => {
+    const { t, locale } = useTranslations();
+
+    const telebirrSchema = useMemo(
+        () =>
+            z.object({
+                phone: z.string().regex(/^(09|07)\d{8}$/, t('bookingUi.payment.validationTelebirr')),
+            }),
+        [t],
+    );
+
+    const cbebirrSchema = useMemo(
+        () =>
+            z.object({
+                accountNumber: z
+                    .string()
+                    .min(10, t('bookingUi.payment.validationCbeMin'))
+                    .regex(/^\d+$/, t('bookingUi.payment.validationCbeDigits')),
+            }),
+        [t],
+    );
+
     const [method, setMethod] = useState<PaymentMethod>(
         SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'telebirr' : 'stripe',
     );
@@ -94,7 +101,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
         if (method === 'pay_on_site') {
             setLoading(false);
-            toast.success('Booking reserved. You can pay on site.');
+            toast.success(t('bookingUi.payment.toastReserveOnSite'));
             onSuccess(method);
             return;
         }
@@ -103,7 +110,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             try {
                 // Ensure user is logged in
                 if (!auth?.currentUser) {
-                    toast.error('Please sign in to continue to payment.');
+                    toast.error(t('bookingUi.payment.toastSignIn'));
                     setLoading(false);
                     return;
                 }
@@ -114,8 +121,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 ) {
                     toast.error(
                         bookingType === 'flight'
-                            ? 'Card checkout needs a valid flight offer from search. Try another flight.'
-                            : 'Card checkout needs a valid hotel. Open the hotel from search again.',
+                            ? t('bookingUi.payment.toastNeedFlight')
+                            : t('bookingUi.payment.toastNeedHotel'),
                     );
                     setLoading(false);
                     return;
@@ -143,7 +150,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
                 // Handle response
                 if (response.status === 401) {
-                    toast.error('Authentication failed. Please sign out and sign in again.');
+                    toast.error(t('bookingUi.payment.toastAuthFailed'));
                 }
                 const payload = await response.json();
                 const { url, error, sessionId } = payload || {};
@@ -155,12 +162,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 if (sessionId) {
                     const stripe = await getStripe();
                     if (!stripe) {
-                        toast.error('Stripe failed to load.');
+                        toast.error(t('bookingUi.payment.toastStripeLoad'));
                     } else {
                         const { error: stripeError } = await (stripe as any).redirectToCheckout({ sessionId });
                         if (stripeError) {
                             console.error('Stripe redirect error:', stripeError);
-                            toast.error(stripeError.message || 'Unable to redirect to Stripe.');
+                            toast.error(stripeError.message || t('bookingUi.payment.toastStripeRedirect'));
                         }
                     }
                     return;
@@ -169,7 +176,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     toast.error(error);
                 }
             } catch (err) {
-                toast.error('Failed to initialize Stripe checkout');
+                toast.error(t('bookingUi.payment.toastStripeInit'));
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -191,9 +198,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     return (
         <div className="space-y-8 overflow-x-hidden">
             <div className="text-center space-y-2">
-                <h3 className="text-2xl font-bold text-brand-dark dark:text-foreground">Choose Payment Method</h3>
+                <h3 className="text-2xl font-bold text-brand-dark dark:text-foreground">{t('bookingUi.payment.chooseMethod')}</h3>
                 <p className="text-gray-600 dark:text-slate-300 text-base">
-                    Total Amount:{' '}
+                    {t('bookingUi.payment.totalAmount')}{' '}
                     <span className="text-brand-primary font-bold text-2xl">
                         {formatCurrency(displayAmount, currency)}
                     </span>
@@ -218,12 +225,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             <div className="w-12 h-12 md:w-20 md:h-20 relative">
                                 <Image
                                     src="/assets/images/telebirr.png"
-                                    alt="Telebirr"
+                                    alt={t('bookingUi.payment.telebirr')}
                                     fill
                                     className={`object-contain transition-all duration-300 ${method === 'telebirr' ? 'scale-110' : 'opacity-80'}`}
                                 />
                             </div>
-                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'telebirr' ? 'text-[#5C2D91]' : 'text-gray-600'}`}>Telebirr</span>
+                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'telebirr' ? 'text-[#5C2D91]' : 'text-gray-600'}`}>{t('bookingUi.payment.telebirr')}</span>
                         </button>
 
                         <button
@@ -237,12 +244,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             <div className="w-12 h-12 md:w-20 md:h-20 relative">
                                 <Image
                                     src="/assets/images/branch.png"
-                                    alt="CBE Birr"
+                                    alt={t('bookingUi.payment.bankTransfer')}
                                     fill
                                     className={`object-contain transition-all duration-300 ${method === 'cbebirr' ? 'scale-110' : 'opacity-80'}`}
                                 />
                             </div>
-                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'cbebirr' ? 'text-[#006838]' : 'text-gray-600'}`}>Bank Transfer</span>
+                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'cbebirr' ? 'text-[#006838]' : 'text-gray-600'}`}>{t('bookingUi.payment.bankTransfer')}</span>
                         </button>
                     </>
                 )}
@@ -261,8 +268,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             <Building2 className="w-6 h-6 md:w-10 md:h-10" />
                         </div>
                         <div className="text-center">
-                            <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'pay_on_site' ? 'text-brand-primary' : 'text-gray-600'}`}>Pay on site</span>
-                            <span className="text-[10px] text-gray-500 font-medium mt-1 block">Reserve now, pay later</span>
+                            <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'pay_on_site' ? 'text-brand-primary' : 'text-gray-600'}`}>{t('bookingUi.payment.payOnSite')}</span>
+                            <span className="text-[10px] text-gray-500 font-medium mt-1 block">{t('bookingUi.payment.reservePayLater')}</span>
                         </div>
                     </button>
                 )}
@@ -287,13 +294,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         <CreditCard className="w-6 h-6 md:w-10 md:h-10 text-white relative z-10" />
                     </div>
                     <div className="text-center">
-                        <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'stripe' ? 'text-[#635BFF]' : 'text-gray-600'}`}>International Cards</span>
+                        <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'stripe' ? 'text-[#635BFF]' : 'text-gray-600'}`}>{t('bookingUi.payment.internationalCards')}</span>
                         <div className="flex items-center justify-center gap-1 mt-1">
-                            <span className="text-[10px] text-gray-500 font-medium">Visa</span>
+                            <span className="text-[10px] text-gray-500 font-medium">{t('bookingUi.payment.visa')}</span>
                             <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                            <span className="text-[10px] text-gray-500 font-medium">Mastercard</span>
+                            <span className="text-[10px] text-gray-500 font-medium">{t('bookingUi.payment.mastercard')}</span>
                             <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                            <span className="text-[10px] text-gray-500 font-medium">Amex</span>
+                            <span className="text-[10px] text-gray-500 font-medium">{t('bookingUi.payment.amex')}</span>
                         </div>
                     </div>
                 </button>
@@ -301,25 +308,25 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
             <div className="space-y-4">
                 {SHOW_LOCAL_PAYMENT_METHODS && method === 'telebirr' && isLocal && (
-                    <form onSubmit={telebirrForm.handleSubmit(onSubmit)} className="space-y-4">
+                    <form key={locale} onSubmit={telebirrForm.handleSubmit(onSubmit)} className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             <Input
-                                label="Telebirr Phone Number"
+                                label={t('bookingUi.payment.telebirrPhone')}
                                 placeholder="0912345678"
                                 {...telebirrForm.register('phone')}
                                 error={telebirrForm.formState.errors.phone?.message}
                             />
-                            <p className="text-xs text-gray-500 mt-1">Enter your Telebirr registered phone number</p>
+                            <p className="text-xs text-gray-500 mt-1">{t('bookingUi.payment.telebirrHint')}</p>
                         </motion.div>
                         <div className="flex gap-3 pt-4">
                             <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                Cancel
+                                {t('bookingUi.payment.cancel')}
                             </Button>
                             <Button className="flex-1" disabled={loading} type="submit">
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    `Pay ${formatCurrency(displayAmount, currency)}`
+                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
                                 )}
                             </Button>
                         </div>
@@ -327,25 +334,25 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 )}
 
                 {SHOW_LOCAL_PAYMENT_METHODS && method === 'cbebirr' && isLocal && (
-                    <form onSubmit={cbebirrForm.handleSubmit(onSubmit)} className="space-y-4">
+                    <form key={locale} onSubmit={cbebirrForm.handleSubmit(onSubmit)} className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                             <Input
-                                label="CBE Account Number"
+                                label={t('bookingUi.payment.cbeAccount')}
                                 placeholder="1000123456"
                                 {...cbebirrForm.register('accountNumber')}
                                 error={cbebirrForm.formState.errors.accountNumber?.message}
                             />
-                            <p className="text-xs text-gray-500 mt-1">Enter your CBE Birr account number</p>
+                            <p className="text-xs text-gray-500 mt-1">{t('bookingUi.payment.cbeHint')}</p>
                         </motion.div>
                         <div className="flex gap-3 pt-4">
                             <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                Cancel
+                                {t('bookingUi.payment.cancel')}
                             </Button>
                             <Button className="flex-1" disabled={loading} type="submit">
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    `Pay ${formatCurrency(displayAmount, currency)}`
+                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
                                 )}
                             </Button>
                         </div>
@@ -358,14 +365,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             <div className="bg-teal-50 p-4 rounded-xl text-sm text-teal-700 border border-teal-100 flex items-center gap-3">
                                 <CreditCard className="w-5 h-5 shrink-0" />
                                 <div>
-                                    <p className="font-bold">Secure Stripe Payment</p>
-                                    <p className="text-xs opacity-80">You will be redirected to Stripe's secure checkout page to complete your payment.</p>
+                                    <p className="font-bold">{t('bookingUi.payment.secureStripeTitle')}</p>
+                                    <p className="text-xs opacity-80">{t('bookingUi.payment.secureStripeHint')}</p>
                                 </div>
                             </div>
                         </motion.div>
                         <div className="flex gap-3 pt-4">
                             <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                Cancel
+                                {t('bookingUi.payment.cancel')}
                             </Button>
                             <Button
                                 className="flex-1"
@@ -375,7 +382,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    `Pay ${formatCurrency(displayAmount, currency)}`
+                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
                                 )}
                             </Button>
                         </div>
@@ -388,14 +395,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             <div className="bg-brand-primary/10 p-4 rounded-xl text-sm text-brand-dark border border-brand-primary/20 flex items-center gap-3">
                                 <Building2 className="w-5 h-5 shrink-0 text-brand-primary" />
                                 <div>
-                                    <p className="font-extrabold">Pay on site</p>
-                                    <p className="text-xs text-gray-600">We’ll reserve your booking now. You’ll pay at the property / venue.</p>
+                                    <p className="font-extrabold">{t('bookingUi.payment.payOnSiteTitle')}</p>
+                                    <p className="text-xs text-gray-600">{t('bookingUi.payment.payOnSiteHint')}</p>
                                 </div>
                             </div>
                         </motion.div>
                         <div className="flex gap-3 pt-4">
                             <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                Cancel
+                                {t('bookingUi.payment.cancel')}
                             </Button>
                             <Button
                                 className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white"
@@ -406,7 +413,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    'Confirm reservation'
+                                    t('bookingUi.payment.confirmReservation')
                                 )}
                             </Button>
                         </div>

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useHotels } from '@/hooks/use-hotels';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 interface Venue {
     id: number | string;
@@ -25,6 +26,7 @@ interface VenueCardProps {
 }
 
 export function VenueCard({ venue, index, onBook }: VenueCardProps) {
+    const { t } = useTranslations();
     const [isReadyToFetch, setIsReadyToFetch] = React.useState(false);
     const [imgFailed, setImgFailed] = React.useState(false);
 
@@ -146,12 +148,12 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
                 {/* Capacity */}
                 <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 text-sm">
                     <Users className="w-4 h-4 text-brand-primary shrink-0" />
-                    <span className="font-medium">Up to {venue.capacity} people</span>
+                    <span className="font-medium">{t('conferences.venueCapacity', { count: venue.capacity })}</span>
                 </div>
 
                 {/* Features */}
                 <div className="space-y-2 grow">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Amenities</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{t('conferences.amenitiesLabel')}</p>
                     <div className="grid grid-cols-2 gap-2">
                         {isLoading ? (
                             Array(4).fill(0).map((_, i) => (
@@ -171,7 +173,7 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
                 {/* Price & CTA */}
                 <div className="pt-4 border-t border-border space-y-3 sm:space-y-4">
                     <div>
-                        <p className="text-xs text-muted-foreground mb-0.5">Starting from</p>
+                        <p className="text-xs text-muted-foreground mb-0.5">{t('conferences.startingFrom')}</p>
                         <p className="text-2xl sm:text-3xl font-bold text-brand-primary">
                             ${displayPrice.toLocaleString()}
                         </p>
@@ -180,7 +182,7 @@ export function VenueCard({ venue, index, onBook }: VenueCardProps) {
                         onClick={() => onBook(venue)}
                         className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold py-2.5 sm:py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
                     >
-                        Book Venue
+                        {t('conferences.bookVenue')}
                     </Button>
                 </div>
             </div>

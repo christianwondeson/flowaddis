@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, Suspense } from 'react';
-import { Plane, Calendar as CalendarIcon, Users, Search, ArrowRight } from 'lucide-react';
+import { Plane, Calendar as CalendarIcon, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { LocationInput } from '@/components/search/location-input';
@@ -23,6 +23,21 @@ import { SeatMap } from '@/components/flights/seat-map';
 import { FlightDetails } from '@/components/flights/flight-details';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
+import { useTranslations } from '@/components/providers/locale-provider';
+
+function cabinClassLabel(t: (key: string, vars?: Record<string, string | number>) => string, cls: string) {
+    switch (cls) {
+        case 'PREMIUM_ECONOMY':
+            return t('flightSearch.cabinPremiumEconomy');
+        case 'BUSINESS':
+            return t('flightSearch.cabinBusiness');
+        case 'FIRST':
+            return t('flightSearch.cabinFirst');
+        case 'ECONOMY':
+        default:
+            return t('flightSearch.cabinEconomy');
+    }
+}
 
 // Left sidebar ads (sticky with filters)
 const FLIGHT_ADS_LEFT: AdConfig[] = [
@@ -71,6 +86,7 @@ const getLocationName = (id: string) => {
 };
 
 function FlightsPageContent() {
+    const { t } = useTranslations();
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
 
@@ -168,7 +184,7 @@ function FlightsPageContent() {
 
     const handleSearch = () => {
         if (!fromCode || !toCode || !departDate) {
-            toast.error('Please fill in all search fields');
+            toast.error(t('flightSearch.toastFillFields'));
             return;
         }
         setSearchParams({
@@ -205,7 +221,7 @@ function FlightsPageContent() {
 
     const handleViewDetails = (flight: any) => {
         if (!flight?.selectionKey) {
-            toast.error('Flight selection key missing');
+            toast.error(t('flightSearch.toastSelectionKeyMissing'));
             return;
         }
         setDetailKey(flight.selectionKey);
@@ -219,6 +235,16 @@ function FlightsPageContent() {
     // For now, using the raw data or fallback
     const displayFlights = flights && flights.length > 0 ? flights : [];
 
+    const adultsPart =
+        trav.adults === 1
+            ? t('flightSearch.summaryAdultOne')
+            : t('flightSearch.summaryAdults', { count: trav.adults });
+    const childrenPart =
+        trav.children && trav.children > 0
+            ? `, ${t('flightSearch.summaryChildren', { count: trav.children })}`
+            : '';
+    const cabinStr = cabinClassLabel(t, trav.cabinClass || 'ECONOMY');
+
     return (
         <AdContainer leftAds={FLIGHT_ADS_LEFT} rightAds={FLIGHT_ADS_RIGHT}>
             <div className="min-h-screen pb-8 md:pb-20 page-muted">
@@ -226,10 +252,10 @@ function FlightsPageContent() {
                 <div className="bg-teal-600 text-white py-6 sm:py-8 md:py-12 lg:py-16">
                     <div className="container mx-auto px-4 sm:px-6">
                         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4 tracking-tight">
-                            Find Your Perfect Flight
+                            {t('flightSearch.heroTitle')}
                         </h1>
                         <p className="text-teal-100/90 text-sm sm:text-base md:text-lg max-w-2xl">
-                            Search and book international and domestic flights with the best airlines.
+                            {t('flightSearch.heroSubtitle')}
                         </p>
                     </div>
                 </div>
@@ -246,21 +272,21 @@ function FlightsPageContent() {
                                             onClick={() => setFlightType('ROUNDTRIP')}
                                             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ROUNDTRIP' ? 'bg-white dark:bg-slate-900 text-teal-600 shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:text-teal-600'}`}
                                         >
-                                            Round trip
+                                            {t('flightSearch.tripRound')}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('ONEWAY')}
                                             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'ONEWAY' ? 'bg-white dark:bg-slate-900 text-teal-600 shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:text-teal-600'}`}
                                         >
-                                            One way
+                                            {t('flightSearch.tripOneWay')}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFlightType('MULTISTOP')}
                                             className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${flightType === 'MULTISTOP' ? 'bg-white dark:bg-slate-900 text-teal-600 shadow-sm' : 'text-gray-700 dark:text-slate-300 hover:text-teal-600'}`}
                                         >
-                                            Multi-city
+                                            {t('flightSearch.tripMulti')}
                                         </button>
                                     </div>
                                 </div>
@@ -290,10 +316,10 @@ function FlightsPageContent() {
                                                         <Popover
                                                             trigger={
                                                                 <div className="w-full cursor-pointer">
-                                                                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Date</label>
+                                                                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">{t('flightSearch.labelDate')}</label>
                                                                     <div className="flex items-center gap-2 w-full px-3 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl hover:border-brand-primary/50 transition-all group-hover:border-gray-300 dark:group-hover:border-slate-500">
                                                                         <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
-                                                                        <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{segment.date ? formatDateEnglish(parseDateLocal(segment.date)) : 'Select Date'}</span>
+                                                                        <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{segment.date ? formatDateEnglish(parseDateLocal(segment.date)) : t('flightSearch.selectDate')}</span>
                                                                     </div>
                                                                 </div>
                                                             }
@@ -332,7 +358,7 @@ function FlightsPageContent() {
                                                 className="w-full md:w-auto rounded-xl border-dashed border-2 hover:border-brand-primary hover:text-brand-primary h-[52px] px-6"
                                                 disabled={segments.length >= 5}
                                             >
-                                                + Add another flight
+                                                {t('flightSearch.addFlight')}
                                             </Button>
                                             <div className="flex items-center gap-3 w-full md:w-auto">
                                                 <div className="flex-1 md:w-56">
@@ -343,7 +369,7 @@ function FlightsPageContent() {
                                                     onClick={handleSearch}
                                                     disabled={isLoading}
                                                 >
-                                                    {isLoading ? 'Searching...' : <><Search className="w-5 h-5" /> Search</>}
+                                                    {isLoading ? t('flightSearch.searching') : <><Search className="w-5 h-5" /> {t('flightSearch.search')}</>}
                                                 </Button>
                                             </div>
                                         </div>
@@ -365,10 +391,10 @@ function FlightsPageContent() {
                                                 <Popover
                                                     trigger={
                                                         <div className="w-full cursor-pointer">
-                                                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Departure</label>
+                                                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">{t('flightSearch.labelDeparture')}</label>
                                                             <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
                                                                 <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
-                                                                <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{departDate ? formatDateEnglish(parseDateLocal(departDate)) : 'Select Date'}</span>
+                                                                <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{departDate ? formatDateEnglish(parseDateLocal(departDate)) : t('flightSearch.selectDate')}</span>
                                                             </div>
                                                         </div>
                                                     }
@@ -385,10 +411,10 @@ function FlightsPageContent() {
                                                 <Popover
                                                     trigger={
                                                         <div className={`w-full cursor-pointer ${flightType === 'ONEWAY' ? 'opacity-50 pointer-events-none' : ''}`}>
-                                                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Return</label>
+                                                            <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">{t('flightSearch.labelReturn')}</label>
                                                             <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
                                                                 <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
-                                                                <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{flightReturnDate ? formatDateEnglish(parseDateLocal(flightReturnDate)) : 'Select Date'}</span>
+                                                                <span className="text-gray-900 dark:text-slate-100 font-medium text-xs truncate">{flightReturnDate ? formatDateEnglish(parseDateLocal(flightReturnDate)) : t('flightSearch.selectDate')}</span>
                                                             </div>
                                                         </div>
                                                     }
@@ -413,7 +439,7 @@ function FlightsPageContent() {
                                                 onClick={handleSearch}
                                                 disabled={isLoading}
                                             >
-                                                {isLoading ? 'Searching...' : <><Search className="w-5 h-5" /> Search</>}
+                                                {isLoading ? t('flightSearch.searching') : <><Search className="w-5 h-5" /> {t('flightSearch.search')}</>}
                                             </Button>
                                         </div>
                                     </div>
@@ -423,20 +449,20 @@ function FlightsPageContent() {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm">
                                     <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
-                                        {flightType === 'ROUNDTRIP' ? 'Round trip' : flightType === 'MULTISTOP' ? 'Multi-city' : 'One way'}
+                                        {flightType === 'ROUNDTRIP' ? t('flightSearch.tripRound') : flightType === 'MULTISTOP' ? t('flightSearch.tripMulti') : t('flightSearch.tripOneWay')}
                                     </span>
                                     <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
-                                        {flightType === 'MULTISTOP' ? `${segments.length} flights` : `${fromCode} → ${toCode}`}
+                                        {flightType === 'MULTISTOP' ? t('flightSearch.flightsCount', { count: segments.length }) : `${fromCode} → ${toCode}`}
                                     </span>
                                     <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
                                         {flightType === 'MULTISTOP' ? `${formatDateEnglishStr(segments[0].date)} — ${formatDateEnglishStr(segments[segments.length - 1].date)}` : `${formatDateEnglishStr(departDate)}${flightType === 'ROUNDTRIP' && flightReturnDate ? ` — ${formatDateEnglishStr(flightReturnDate)}` : ''}`}
                                     </span>
                                     <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
-                                        {trav.adults} adult{trav.adults > 1 ? 's' : ''}{trav.children ? `, ${trav.children} child` : ''} • {trav.cabinClass?.toLowerCase().replace('_', ' ')}
+                                        {`${adultsPart}${childrenPart} • ${cabinStr}`}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="outline" onClick={() => setHasSearched(false)} size="sm">Edit search</Button>
+                                    <Button variant="outline" onClick={() => setHasSearched(false)} size="sm">{t('flightSearch.editSearch')}</Button>
                                 </div>
                             </div>
                         )}
@@ -448,23 +474,23 @@ function FlightsPageContent() {
                         <aside className="lg:col-span-3 space-y-6">
                             <Card className="p-6 shadow-sm sticky top-24">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Filters</h3>
+                                    <h3 className="font-bold text-slate-900 dark:text-slate-100">{t('flightSearch.filtersTitle')}</h3>
                                     <button
                                         onClick={() => setSearchParams(prev => ({ ...prev, stops: undefined, airlines: undefined }))}
                                         className="text-xs text-brand-primary hover:underline"
                                     >
-                                        Clear all
+                                        {t('flightSearch.clearAll')}
                                     </button>
                                 </div>
 
                                 {/* Stops Filter */}
                                 <div className="space-y-4 mb-8">
-                                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Stops</h4>
+                                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('flightSearch.stopsTitle')}</h4>
                                     <div className="space-y-2">
                                         {[
-                                            { label: 'All', value: 'all' },
-                                            { label: 'Non-stop', value: 'nonstop_flights' },
-                                            { label: 'Max 1 stop', value: 'maximum_one_stop' },
+                                            { labelKey: 'flightSearch.stopAll', value: 'all' },
+                                            { labelKey: 'flightSearch.stopNonstop', value: 'nonstop_flights' },
+                                            { labelKey: 'flightSearch.stopMaxOne', value: 'maximum_one_stop' },
                                         ].map((stop) => (
                                             <label key={stop.value} className="flex items-center gap-3 cursor-pointer group">
                                                 <input
@@ -474,7 +500,7 @@ function FlightsPageContent() {
                                                     onChange={() => handleFilterChange('stops', stop.value)}
                                                     className="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary"
                                                 />
-                                                <span className="text-sm text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-100 transition-colors">{stop.label}</span>
+                                                <span className="text-sm text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-100 transition-colors">{t(stop.labelKey)}</span>
                                             </label>
                                         ))}
                                     </div>
@@ -482,7 +508,7 @@ function FlightsPageContent() {
 
                                 {/* Cabin Class Filter (Quick Switch) */}
                                 <div className="space-y-4 mb-8">
-                                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Cabin Class</h4>
+                                    <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('flightSearch.cabinTitle')}</h4>
                                     <div className="space-y-2">
                                         {['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'].map((cls) => (
                                             <label key={cls} className="flex items-center gap-3 cursor-pointer group">
@@ -494,7 +520,7 @@ function FlightsPageContent() {
                                                     className="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary"
                                                 />
                                                 <span className="text-sm text-gray-600 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-slate-100 transition-colors">
-                                                    {cls.toLowerCase().replace('_', ' ')}
+                                                    {cabinClassLabel(t, cls)}
                                                 </span>
                                             </label>
                                         ))}
@@ -507,13 +533,13 @@ function FlightsPageContent() {
                                 <Card className="p-6 shadow-sm">
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">Airlines</h4>
+                                            <h4 className="text-sm font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider">{t('flightSearch.airlinesTitle')}</h4>
                                             {searchParams.airlines && (
                                                 <button
                                                     onClick={() => handleFilterChange('airlines', undefined)}
                                                     className="text-xs text-brand-primary hover:underline"
                                                 >
-                                                    Clear
+                                                    {t('flightSearch.clear')}
                                                 </button>
                                             )}
                                         </div>
@@ -547,11 +573,11 @@ function FlightsPageContent() {
                         <div className="lg:col-span-9 space-y-4">
                             <div className="flex items-center justify-between mb-2">
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                                    {isLoading ? 'Searching Flights...' : `Available Flights (${displayFlights.length})`}
+                                    {isLoading ? t('flightSearch.resultsSearching') : t('flightSearch.resultsAvailable', { count: displayFlights.length })}
                                 </h2>
                                 {!isLoading && displayFlights.length > 0 && (
                                     <div className="text-sm text-gray-500 dark:text-slate-400">
-                                        Showing results for <span className="font-semibold text-slate-900 dark:text-slate-100">{fromCode} to {toCode}</span>
+                                        {t('flightSearch.showingResults', { from: fromCode, to: toCode })}
                                     </div>
                                 )}
                             </div>
@@ -566,10 +592,10 @@ function FlightsPageContent() {
 
                             {error && (
                                 <Card className="p-8 text-center border-red-100 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/25">
-                                    <div className="text-red-600 dark:text-red-400 font-medium mb-2">Failed to fetch flights</div>
-                                    <p className="text-sm text-red-500/80 dark:text-red-300/90 mb-4">There was an error connecting to the flight search service.</p>
+                                    <div className="text-red-600 dark:text-red-400 font-medium mb-2">{t('flightSearch.errorTitle')}</div>
+                                    <p className="text-sm text-red-500/80 dark:text-red-300/90 mb-4">{t('flightSearch.errorHint')}</p>
                                     <Button variant="outline" size="sm" onClick={handleSearch} className="border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40">
-                                        Try again
+                                        {t('common.tryAgain')}
                                     </Button>
                                 </Card>
                             )}
@@ -579,12 +605,12 @@ function FlightsPageContent() {
                                     <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Plane className="w-8 h-8 text-gray-400 dark:text-slate-500" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">No flights found</h3>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{t('flightSearch.emptyTitle')}</h3>
                                     <p className="text-gray-500 dark:text-slate-400 max-w-xs mx-auto mb-6">
-                                        We couldn't find any flights matching your criteria. Try adjusting your dates or filters.
+                                        {t('flightSearch.emptyHint')}
                                     </p>
                                     <Button onClick={() => setHasSearched(false)} variant="outline">
-                                        Change search
+                                        {t('flightSearch.changeSearch')}
                                     </Button>
                                 </Card>
                             )}
@@ -605,7 +631,7 @@ function FlightsPageContent() {
                                                         )}
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{flight.airline || 'Airline'}</h3>
+                                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{flight.airline || t('flightSearch.airlineFallback')}</h3>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs text-gray-500 dark:text-slate-400">{flight.flightNumber}</span>
                                                             <span className="w-1 h-1 bg-gray-300 dark:bg-slate-600 rounded-full"></span>
@@ -643,22 +669,22 @@ function FlightsPageContent() {
                                         {/* Price Section */}
                                         <div className="md:w-56 bg-gray-50/50 dark:bg-slate-800/50 border-t md:border-t-0 md:border-l border-gray-100 dark:border-slate-700 p-5 md:p-6 flex flex-row md:flex-col items-center md:items-center justify-between md:justify-center gap-4">
                                             <div className="text-left md:text-center">
-                                                <div className="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Price from</div>
+                                                <div className="text-xs text-gray-500 dark:text-slate-400 mb-0.5">{t('flightSearch.priceFrom')}</div>
                                                 <div className="text-2xl md:text-3xl font-black text-brand-primary">{formatCurrency(flight.price?.amount || 0)}</div>
-                                                <div className="text-[10px] text-gray-400 dark:text-slate-500 uppercase font-bold tracking-wider">incl. taxes & fees</div>
+                                                <div className="text-[10px] text-gray-400 dark:text-slate-500 uppercase font-bold tracking-wider">{t('flightSearch.inclTaxesFees')}</div>
                                             </div>
                                             <div className="flex flex-col gap-2 w-full max-w-[140px] md:max-w-none">
                                                 <Button
                                                     onClick={() => handleBook(flight)}
                                                     className="w-full bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-xl shadow-lg shadow-brand-primary/10 transition-all"
                                                 >
-                                                    Select
+                                                    {t('flightSearch.select')}
                                                 </Button>
                                                 <button
                                                     onClick={() => handleViewDetails(flight)}
                                                     className="text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-brand-primary transition-colors py-1"
                                                 >
-                                                    View Details
+                                                    {t('flightSearch.viewDetails')}
                                                 </button>
                                             </div>
                                         </div>
@@ -672,7 +698,15 @@ function FlightsPageContent() {
                 <FlightBookingModal
                     isOpen={isBookingOpen}
                     onClose={() => setIsBookingOpen(false)}
-                    serviceName={selectedFlight ? `${selectedFlight.airline || 'Flight'} - ${fromCode} to ${toCode}` : 'Flight Booking'}
+                    serviceName={
+                        selectedFlight
+                            ? t('flightSearch.bookingServiceName', {
+                                  airline: selectedFlight.airline || t('flightSearch.airlineFallback'),
+                                  from: fromCode,
+                                  to: toCode,
+                              })
+                            : t('flightSearch.bookingDefaultName')
+                    }
                     price={selectedFlight?.price?.amount || 0}
                     flightData={selectedFlight}
                     isLocal={isLocal}
@@ -689,13 +723,13 @@ function FlightsPageContent() {
                                             onClick={() => setShowSeatMap(false)}
                                             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${!showSeatMap ? 'bg-brand-primary text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:text-brand-primary'}`}
                                         >
-                                            Journey
+                                            {t('flightSearch.modalJourney')}
                                         </button>
                                         <button
                                             onClick={() => setShowSeatMap(true)}
                                             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${showSeatMap ? 'bg-brand-primary text-white shadow-md' : 'text-gray-500 dark:text-slate-400 hover:text-brand-primary'}`}
                                         >
-                                            Seat Map
+                                            {t('flightSearch.modalSeatMap')}
                                         </button>
                                     </div>
                                 </div>
@@ -711,7 +745,7 @@ function FlightsPageContent() {
                                 {isDetailLoading && (
                                     <div className="flex flex-col items-center justify-center py-20 space-y-4">
                                         <div className="w-12 h-12 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
-                                        <p className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">Fetching latest flight info...</p>
+                                        <p className="text-gray-500 dark:text-slate-400 font-medium animate-pulse">{t('flightSearch.fetchingDetail')}</p>
                                     </div>
                                 )}
 
@@ -720,11 +754,11 @@ function FlightsPageContent() {
                                         <div className="w-16 h-16 bg-red-50 dark:bg-red-950/40 rounded-full flex items-center justify-center mx-auto mb-4">
                                             <Plane className="w-8 h-8 text-red-400 rotate-45" />
                                         </div>
-                                        <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">Details unavailable</h4>
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{t('flightSearch.detailUnavailableTitle')}</h4>
                                         <p className="text-gray-500 dark:text-slate-400 max-w-xs mx-auto mb-6 text-sm">
-                                            We couldn't retrieve the specific details for this flight right now. Please try again or select another flight.
+                                            {t('flightSearch.detailUnavailableHint')}
                                         </p>
-                                        <Button onClick={() => setIsDetailOpen(false)} variant="outline" size="sm">Close</Button>
+                                        <Button onClick={() => setIsDetailOpen(false)} variant="outline" size="sm">{t('flightSearch.close')}</Button>
                                     </div>
                                 ) : null}
 
@@ -745,7 +779,7 @@ function FlightsPageContent() {
                             {!isDetailLoading && flightDetail && (
                                 <div className="p-6 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/80 flex items-center justify-between">
                                     <div className="text-xs text-gray-500 dark:text-slate-400 max-w-[200px]">
-                                        Prices and availability are subject to change until booking is confirmed.
+                                        {t('flightSearch.pricesDisclaimer')}
                                     </div>
                                     <Button
                                         onClick={() => {
@@ -754,7 +788,7 @@ function FlightsPageContent() {
                                         }}
                                         className="bg-brand-primary hover:bg-brand-dark text-white font-bold rounded-xl px-8 shadow-lg shadow-brand-primary/20"
                                     >
-                                        Book Now
+                                        {t('flightSearch.bookNow')}
                                     </Button>
                                 </div>
                             )}

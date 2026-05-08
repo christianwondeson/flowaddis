@@ -1,118 +1,39 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/components/providers/auth-provider';
-import { Trip } from '@/store/trip-store';
-import { Card } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/currency';
-import { Plane, Hotel, Bus, Users, Calendar, CheckCircle, Loader2 } from 'lucide-react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import React from "react";
+import { useAuth } from "@/components/providers/auth-provider";
+import { AccountShell } from "@/components/account/account-shell";
+import { AccountOverviewStats } from "@/components/account/account-overview-stats";
+import { MyTripsList } from "@/components/trips/my-trips-list";
+import { useMyTripsData } from "@/hooks/use-my-trips-data";
+import { Loader2 } from "lucide-react";
 
 export default function CustomerDashboard() {
-    const { user } = useAuth();
-    const [trips, setTrips] = useState<Trip[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { user, loading } = useAuth();
+    const tripsData = useMyTripsData(user?.id, { enabled: !!user?.id });
 
-    useEffect(() => {
-        if (!user?.id || !db) {
-            setTrips([]);
-            setLoading(false);
-            return;
-        }
+    if (loading) {
+        return (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center bg-brand-gray/30 pt-24 dark:bg-background">
+                <Loader2 className="h-9 w-9 animate-spin text-brand-primary" aria-hidden />
+                <p className="mt-3 text-sm text-muted-foreground">Loading your account…</p>
+            </div>
+        );
+    }
 
-        (async () => {
-            try {
-                try {
-                    localStorage.removeItem('bookaddis_trips');
-                    localStorage.removeItem('flowaddis_trips');
-                    localStorage.removeItem('trip-storage');
-                } catch {
-                    /* ignore */
-                }
+    if (!user) {
+        return null;
+    }
 
-                const q = query(collection(db, 'trips'), where('userId', '==', user.id), limit(50));
-                const snap = await getDocs(q);
-                const list: Trip[] = [];
-                snap.forEach((docSnap) => {
-                    const data = docSnap.data() as Omit<Trip, 'id'>;
-                    list.push({ ...data, id: docSnap.id });
-                });
-                list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                setTrips(list);
-            } catch (e) {
-                console.error('Failed to load trips', e);
-                setTrips([]);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, [user?.id]);
+    const firstName = user.name?.trim()?.split(/\s+/)[0];
 
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
-            <h1 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">My Trips</h1>
-            <p className="text-gray-500 mb-6 md:mb-8">Manage your bookings and digital tickets.</p>
-
-            <div className="space-y-4 md:space-y-6">
-                {loading ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-                    </div>
-                ) : trips.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                        <p className="text-gray-500">No trips found. Start booking!</p>
-                    </div>
-                ) : (
-                    trips.map((trip) => (
-                        <Card key={trip.id} className="p-4 md:p-6 border border-gray-100">
-                            <div className="flex flex-col sm:flex-row justify-between items-start mb-4 border-b border-gray-100 pb-4 gap-3">
-                                <div>
-                                    <h3 className="font-bold text-base md:text-lg text-brand-dark">
-                                        Trip #{trip.id.slice(0, 8)}
-                                    </h3>
-                                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                                        <Calendar className="w-4 h-4" />
-                                        {new Date(trip.date).toLocaleDateString()}
-                                    </div>
-                                </div>
-                                <div className="text-left sm:text-right w-full sm:w-auto">
-                                    <div className="font-bold text-xl text-brand-primary">
-                                        {formatCurrency(trip.totalAmount)}
-                                    </div>
-                                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">
-                                        <CheckCircle className="w-3 h-3" /> {trip.status}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 md:space-y-4">
-                                {trip.items.map((item, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 md:gap-4 p-3 bg-gray-50 rounded-lg">
-                                        <div className="p-2 bg-white rounded-full shadow-sm flex-shrink-0">
-                                            {item.type === 'flight' && <Plane className="w-4 h-4 md:w-5 md:h-5 text-teal-500" />}
-                                            {item.type === 'hotel' && <Hotel className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />}
-                                            {item.type === 'shuttle' && <Bus className="w-4 h-4 md:w-5 md:h-5 text-green-500" />}
-                                            {item.type === 'conference' && <Users className="w-4 h-4 md:w-5 md:h-5 text-purple-500" />}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-brand-dark capitalize text-sm md:text-base">
-                                                {item.type} Booking
-                                            </p>
-                                            <p className="text-xs md:text-sm text-gray-500 truncate">
-                                                {item.details.name || item.details.airline || item.details.type}
-                                            </p>
-                                        </div>
-                                        <div className="font-bold text-gray-700 text-sm md:text-base flex-shrink-0">
-                                            {formatCurrency(item.price)}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    ))
-                )}
-            </div>
-        </div>
+        <AccountShell
+            title="Overview"
+            description="Track bookings from secure checkout and any trip bundles on your account."
+        >
+            <AccountOverviewStats data={tripsData} userFirstName={firstName} />
+            <MyTripsList data={tripsData} variant="summary" summaryLimit={3} />
+        </AccountShell>
     );
 }

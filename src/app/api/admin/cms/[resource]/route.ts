@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { assertFirebaseAndNestAdmin, CmsAuthError } from '@/lib/assert-admin-cms';
+import { ADMIN_CMS_ERROR_CODE } from '@/lib/admin-cms-error-codes';
 import { isCmsResource, pickStrapiData, strapiFetch, type CmsResource } from '@/lib/strapi-server';
+
+export const dynamic = 'force-dynamic';
 
 function mergePopulate(search: string): string {
     const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
@@ -20,10 +23,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ resource: strin
         await assertFirebaseAndNestAdmin(req);
     } catch (e) {
         if (e instanceof CmsAuthError) {
-            return NextResponse.json({ error: e.message }, { status: e.status });
+            return NextResponse.json({ error: e.message, code: e.code }, { status: e.status });
         }
         if (e instanceof Error && e.message.includes('STRAPI')) {
-            return NextResponse.json({ error: 'CMS is not configured (STRAPI_URL / STRAPI_API_TOKEN).' }, { status: 503 });
+            return NextResponse.json(
+                {
+                    error: 'CMS is not configured (STRAPI_URL / STRAPI_API_TOKEN).',
+                    code: ADMIN_CMS_ERROR_CODE.STRAPI_CONFIG,
+                },
+                { status: 503 },
+            );
         }
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -46,7 +55,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ resource: strin
     } catch (e) {
         console.error('CMS GET error:', e);
         if (e instanceof Error && e.message.includes('STRAPI')) {
-            return NextResponse.json({ error: e.message }, { status: 503 });
+            return NextResponse.json(
+                { error: e.message, code: ADMIN_CMS_ERROR_CODE.STRAPI_CONFIG },
+                { status: 503 },
+            );
         }
         return NextResponse.json({ error: 'CMS request failed' }, { status: 502 });
     }
@@ -63,10 +75,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ resource: stri
         await assertFirebaseAndNestAdmin(req);
     } catch (e) {
         if (e instanceof CmsAuthError) {
-            return NextResponse.json({ error: e.message }, { status: e.status });
+            return NextResponse.json({ error: e.message, code: e.code }, { status: e.status });
         }
         if (e instanceof Error && e.message.includes('STRAPI')) {
-            return NextResponse.json({ error: 'CMS is not configured (STRAPI_URL / STRAPI_API_TOKEN).' }, { status: 503 });
+            return NextResponse.json(
+                {
+                    error: 'CMS is not configured (STRAPI_URL / STRAPI_API_TOKEN).',
+                    code: ADMIN_CMS_ERROR_CODE.STRAPI_CONFIG,
+                },
+                { status: 503 },
+            );
         }
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -99,7 +117,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ resource: stri
     } catch (e) {
         console.error('CMS POST error:', e);
         if (e instanceof Error && e.message.includes('STRAPI')) {
-            return NextResponse.json({ error: e.message }, { status: 503 });
+            return NextResponse.json(
+                { error: e.message, code: ADMIN_CMS_ERROR_CODE.STRAPI_CONFIG },
+                { status: 503 },
+            );
         }
         return NextResponse.json({ error: 'CMS create failed' }, { status: 400 });
     }

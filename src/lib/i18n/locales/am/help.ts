@@ -1,0 +1,48 @@
+export const helpAm = {
+    help: {
+        title: 'የእገዛ ማዕከል',
+        subtitle:
+            'የመያዣ፣ ክፍያ፣ ድርቅ ትራንዛክሽን ወይም ቴክኒካል ችግር ሪፖርት ያድርጉ። በፍጥነት እንገኛለን።',
+        contactSupport: 'ድጋፍ ያግኙ',
+        contactSupportHint:
+            'የመያዣ እና የትራንዛክሽን መለያ ካለዎት ያክሉ።',
+        phoneLabel: 'ስልክ',
+        emailLabel: 'ኢሜይል',
+        whatsAppLabel: 'ዋትስአፕ',
+        chatWithUs: 'ይወያዩ',
+        createTicket: 'የድጋፍ ትኬት ይፍጠሩ',
+        createTicketHint: 'ለአስተዳዳሪ ቡድናችን ይታያል።',
+        ticketSuccess: 'ትኬቱ ተልኳል። የትኬት መለያዎ {id} ነው።',
+        ticketSubmitError: 'ትኬቱ ላይ ማስላለፍ አልተቻለም',
+        genericError: 'ስህተት ተፈጥሯል',
+        fullName: 'ሙሉ ስም',
+        phoneOptional: 'ስልክ (አማራጭ)',
+        service: 'አገልግሎት',
+        issueType: 'የችግር አይነት',
+        bookingIdOptional: 'የመያዣ መለያ (አማራጭ)',
+        transactionIdOptional: 'የትራንዛክሽን መለያ (አማራጭ)',
+        bookingIdPlaceholder: 'ለምሳሌ BK-1234',
+        transactionIdPlaceholder: 'ለምሳሌ TX-9821',
+        subject: 'ርዕስ',
+        message: 'መልዕክት',
+        messagePlaceholder:
+            'ችግሩን ያብራሩ (ምን ሆነ፣ የተጠበቀው፣ ድርቅ ዝርዝር…)።',
+        submitting: 'በመላክ ላይ…',
+        submitTicket: 'ትኬት ላክ',
+        services: {
+            hotels: 'ሆቴሎች',
+            flights: 'የአውሮፕላን',
+            conferences: 'ስብሰባ / ዝግጅቶች',
+            shuttles: 'ሻትል',
+            other: 'ሌላ',
+        },
+        categories: {
+            booking_issue: 'የመያዣ ችግር',
+            duplicate_transaction: 'ድርቅ ትራንዛክሽን',
+            payment_dispute: 'የክፍያ ክርክር',
+            refund_request: 'መመለስ ጥያቄ',
+            technical_issue: 'ቴክኒካል ችግር',
+            other: 'ሌላ',
+        },
+    },
+} as const;

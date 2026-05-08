@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Search, MoreVertical, Plane, Calendar, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Search, MoreVertical, Plane, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { FlightForm } from "@/components/admin/forms/flight-form";
 import { useCmsList } from "@/hooks/use-cms-list";
+import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
 
 function fmtDate(iso: unknown): string {
     if (!iso || typeof iso !== "string") return "—";
@@ -16,7 +17,7 @@ function fmtDate(iso: unknown): string {
 
 export default function AdminFlightsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { items, loading, error, refetch } = useCmsList("flights");
+    const { items, loading, error, errorCode, refetch } = useCmsList("flights");
 
     return (
         <div className="space-y-8">
@@ -34,15 +35,7 @@ export default function AdminFlightsPage() {
                 </Button>
             </div>
 
-            {error ? (
-                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                    <div>
-                        <p className="font-semibold">Could not load CMS</p>
-                        <p>{error}</p>
-                    </div>
-                </div>
-            ) : null}
+            <AdminCmsErrorBanner error={error} errorCode={errorCode} />
 
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">

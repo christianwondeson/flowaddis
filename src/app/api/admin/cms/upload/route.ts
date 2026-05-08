@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { assertFirebaseAndNestAdmin, CmsAuthError } from '@/lib/assert-admin-cms';
+import { ADMIN_CMS_ERROR_CODE } from '@/lib/admin-cms-error-codes';
 import { strapiFetch } from '@/lib/strapi-server';
+
+export const dynamic = 'force-dynamic';
 
 const MAX_FILES = 10;
 const MAX_BYTES_PER_FILE = 10 * 1024 * 1024;
@@ -11,10 +14,16 @@ export async function POST(req: Request) {
         await assertFirebaseAndNestAdmin(req);
     } catch (e) {
         if (e instanceof CmsAuthError) {
-            return NextResponse.json({ error: e.message }, { status: e.status });
+            return NextResponse.json({ error: e.message, code: e.code }, { status: e.status });
         }
         if (e instanceof Error && e.message.includes('STRAPI')) {
-            return NextResponse.json({ error: 'CMS is not configured (STRAPI_URL / STRAPI_API_TOKEN).' }, { status: 503 });
+            return NextResponse.json(
+                {
+                    error: 'CMS is not configured (STRAPI_URL / STRAPI_API_TOKEN).',
+                    code: ADMIN_CMS_ERROR_CODE.STRAPI_CONFIG,
+                },
+                { status: 503 },
+            );
         }
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

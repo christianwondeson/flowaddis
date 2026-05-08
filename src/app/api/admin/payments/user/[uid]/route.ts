@@ -12,7 +12,7 @@ export async function GET(
             await assertFirebaseAndNestAdmin(req);
         } catch (e) {
             if (e instanceof CmsAuthError) {
-                return NextResponse.json({ error: e.message }, { status: e.status });
+                return NextResponse.json({ error: e.message, code: e.code }, { status: e.status });
             }
             throw e;
         }

@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers/locale-provider';
 import { clsx } from 'clsx';
-import { LogOut, User, LayoutDashboard, Settings } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Settings, Briefcase } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +23,7 @@ interface UserMenuProps {
 
 export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
     const { user, logout, loading } = useAuth();
+    const { t } = useTranslations();
     const [isOpen, setIsOpen] = useState(false);
 
     if (loading) {
@@ -39,10 +41,10 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                         isHomePage && !scrolled
                             ? "text-white hover:bg-white/20"
                             : "text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    )}>Sign In</Button>
+                    )}>{t('common.signIn')}</Button>
                 </Link>
                 <Link href={`/signup?${redirectQuery}`}>
-                    <Button size="sm" className={clsx(isHomePage && !scrolled ? "bg-white text-teal-600 hover:bg-gray-100" : "bg-teal-600 text-white hover:bg-teal-700")}>Register</Button>
+                    <Button size="sm" className={clsx(isHomePage && !scrolled ? "bg-white text-teal-600 hover:bg-gray-100" : "bg-teal-600 text-white hover:bg-teal-700")}>{t('common.register')}</Button>
                 </Link>
             </div>
         );
@@ -88,22 +90,29 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                         <Link href="/admin" className="flex items-center w-full gap-2">
                             <LayoutDashboard className="h-4 w-4 shrink-0" />
-                            <span>Admin Dashboard</span>
+                            <span>{t('userMenu.adminDashboard')}</span>
                         </Link>
                     </DropdownMenuItem>
                 )}
 
                 <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
+                    <Link href="/trips" className="flex items-center w-full gap-2">
+                        <Briefcase className="h-4 w-4 shrink-0" />
+                        <span>{t('userMenu.myTrips')}</span>
+                    </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/profile" className="flex items-center w-full gap-2">
                         <User className="h-4 w-4 shrink-0" />
-                        <span>Profile</span>
+                        <span>{t('userMenu.profile')}</span>
                     </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/settings" className="flex items-center w-full gap-2">
                         <Settings className="h-4 w-4 shrink-0" />
-                        <span>Settings</span>
+                        <span>{t('userMenu.settings')}</span>
                     </Link>
                 </DropdownMenuItem>
 
@@ -114,7 +123,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     onClick={() => logout()}
                 >
                     <LogOut className="mr-2 h-4 w-4 shrink-0" />
-                    <span>Log out</span>
+                    <span>{t('common.logOut')}</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

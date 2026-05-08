@@ -1,5 +1,14 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { Users, Check, Info, Tag, Ban, Loader2, UtensilsCrossed, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCurrency } from '@/lib/currency';
+import { sanitizeHtml } from '@/lib/utils/sanitize';
+import { Hotel, RoomBlock, RoomDetails } from '@/types/api';
+import axios from 'axios';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 /** Returns a display-safe room name; never returns 0 or "0". */
 function safeRoomName(val: unknown): string | null {
@@ -7,12 +16,6 @@ function safeRoomName(val: unknown): string | null {
     const s = String(val).trim();
     return s || null;
 }
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/lib/currency';
-import { sanitizeHtml } from '@/lib/utils/sanitize';
-import { Hotel, RoomBlock, RoomDetails } from '@/types/api';
-import axios from 'axios';
 
 interface HotelDetailAvailabilityProps {
     hotel: Hotel;
@@ -35,6 +38,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     roomsCount = 1,
     onBook
 }) => {
+    const { t } = useTranslations();
     const [rooms, setRooms] = useState<RoomBlock[]>([]);
     const [roomDetails, setRoomDetails] = useState<Record<string, RoomDetails>>({});
     const [selectedRooms, setSelectedRooms] = useState<Record<string, number>>({});
@@ -74,20 +78,20 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                 }
             } catch (err: any) {
                 console.error('Error fetching rooms:', err);
-                setError('Failed to load room availability. Please try again later.');
+                setError(t('hotelDetail.availability.loadFailed'));
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchRooms();
-    }, [hotel.id, checkInDate, checkOutDate, adults, childrenCount, roomsCount]);
+    }, [hotel.id, checkInDate, checkOutDate, adults, childrenCount, roomsCount, t]);
 
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
-                <p className="text-gray-500 dark:text-slate-400 font-medium">Checking availability...</p>
+                <p className="text-gray-500 dark:text-slate-400 font-medium">{t('hotelDetail.availability.checking')}</p>
             </div>
         );
     }
@@ -101,7 +105,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                     className="mt-4 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
                     onClick={() => window.location.reload()}
                 >
-                    Retry
+                    {t('common.tryAgain')}
                 </Button>
             </div>
         );
@@ -110,22 +114,27 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     return (
         <div className="space-y-6 pt-12 border-t border-border">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">Availability</h2>
-                <button className="text-brand-primary text-xs font-bold flex items-center gap-1 hover:underline">
+                <h2 className="text-2xl font-bold text-foreground">{t('hotelDetail.availability.title')}</h2>
+                <button type="button" className="text-brand-primary text-xs font-bold flex items-center gap-1 hover:underline">
                     <Tag className="w-3 h-3" />
-                    We Price Match
+                    {t('hotelDetail.availability.wePriceMatch')}
                 </button>
             </div>
-            <div className="text-xs text-muted-foreground mb-6">Prices converted to {rooms[0]?.price_breakdown?.currency || rooms[0]?.min_price?.currency || 'USD'} <Info className="w-3 h-3 inline" /></div>
+            <div className="text-xs text-muted-foreground mb-6">
+                {t('hotelDetail.availability.pricesConverted', {
+                    currency: rooms[0]?.price_breakdown?.currency || rooms[0]?.min_price?.currency || 'USD',
+                })}{' '}
+                <Info className="w-3 h-3 inline" />
+            </div>
 
             {/* Mobile Cards (md:hidden) */}
             <div className="space-y-3 md:hidden">
                 {rooms.length === 0 ? (
-                    <div className="p-6 text-center text-muted-foreground border border-border rounded-xl">No rooms available for the selected dates.</div>
+                    <div className="p-6 text-center text-muted-foreground border border-border rounded-xl">{t('hotelDetail.availability.noRooms')}</div>
                 ) : (
                     rooms.map((block, index) => {
                         const details = roomDetails[String(block.room_id)] || {};
-                        const roomName = safeRoomName((block as any).room_name) || safeRoomName((block as any).name_without_policy) || safeRoomName(details?.room_name) || 'Standard Room';
+                        const roomName = safeRoomName((block as any).room_name) || safeRoomName((block as any).name_without_policy) || safeRoomName(details?.room_name) || t('hotelDetail.availability.standardRoom');
                         const price = block.price_breakdown?.all_inclusive_price ?? block.min_price?.price ?? (typeof block.product_price_breakdown?.gross_amount === 'object' ? block.product_price_breakdown?.gross_amount?.value : block.product_price_breakdown?.gross_amount);
                         const currency = block.price_breakdown?.currency || block.min_price?.currency || 'USD';
                         const roomCount = Math.min(Math.max(1, Number(block.room_count) || 1), 10);
@@ -175,7 +184,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                             {formatCurrency(totalPrice, currency)}
                                         </div>
                                         <div className="text-[10px] text-gray-400 mt-0.5">
-                                            {block.price_breakdown?.charges_details?.translated_copy || block.product_price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
+                                            {block.price_breakdown?.charges_details?.translated_copy || block.product_price_breakdown?.charges_details?.translated_copy || t('hotelDetail.availability.includesTaxes')}
                                         </div>
                                     </div>
                                 </div>
@@ -190,7 +199,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         ))}
                                         {block.extrabed_available && (
                                             <span className="ml-2 inline-flex items-center gap-1 text-[11px] text-green-600 font-semibold">
-                                                <Check className="w-3 h-3" /> Extra bed
+                                                <Check className="w-3 h-3" /> {t('hotelDetail.availability.extraBed')}
                                             </span>
                                         )}
                                     </div>
@@ -206,7 +215,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                     {block.refundable === 0 && (
                                         <div className="flex items-start gap-1 text-[12px] text-red-500 font-medium">
                                             <Ban className="w-3 h-3 mt-0.5" />
-                                            <span>Non-refundable</span>
+                                            <span>{t('hotelDetail.availability.nonRefundable')}</span>
                                         </div>
                                     )}
                                 </div>
@@ -220,7 +229,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         }}
                                     >
                                         <SelectTrigger className="h-10 text-sm border-gray-200 rounded-lg w-[90px]">
-                                            <SelectValue placeholder="Rooms" />
+                                            <SelectValue placeholder={t('hotelDetail.availability.roomsSelect')} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {roomOptions.map((n) => (
@@ -230,10 +239,10 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                     </Select>
 
                                     <Button onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id), selectedCount)} className="flex-1 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-primary/10 active:scale-95">
-                                        Book now
+                                        {t('hotelDetail.bookNow')}
                                     </Button>
                                 </div>
-                                <div className="text-center text-[11px] text-gray-400 mt-2">• You won't be charged yet</div>
+                                <div className="text-center text-[11px] text-gray-400 mt-2">• {t('hotelDetail.sidebar.noChargeYet')}</div>
                             </div>
                         );
                     })
@@ -246,11 +255,11 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-border">
-                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Accommodation Type</th>
-                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-center">Guests</th>
-                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Today's Price</th>
-                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Your Choices</th>
-                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Select Rooms</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('hotelDetail.availability.tableAccommodation')}</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-center">{t('hotelDetail.availability.tableGuests')}</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('hotelDetail.availability.tablePrice')}</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('hotelDetail.availability.tableChoices')}</th>
+                            <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('hotelDetail.availability.tableSelectRooms')}</th>
                             <th className="px-6 py-4 bg-brand-primary/5"></th>
                         </tr>
                     </thead>
@@ -258,13 +267,13 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                         {rooms.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground font-medium">
-                                    No rooms available for the selected dates.
+                                    {t('hotelDetail.availability.noRooms')}
                                 </td>
                             </tr>
                         ) : (
                             rooms.map((block, index) => {
                                 const details = roomDetails[String(block.room_id)] || {};
-                                const roomName = safeRoomName((block as any).room_name) || safeRoomName((block as any).name_without_policy) || safeRoomName(details?.room_name) || 'Standard Room';
+                                const roomName = safeRoomName((block as any).room_name) || safeRoomName((block as any).name_without_policy) || safeRoomName(details?.room_name) || t('hotelDetail.availability.standardRoom');
                                 const price = block.price_breakdown?.all_inclusive_price ?? block.min_price?.price ?? (typeof block.product_price_breakdown?.gross_amount === 'object' ? block.product_price_breakdown?.gross_amount?.value : block.product_price_breakdown?.gross_amount);
                                 const currency = block.price_breakdown?.currency || block.min_price?.currency || 'USD';
                                 const roomCount = Math.min(Math.max(1, Number(block.room_count) || 1), 10);
@@ -298,7 +307,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                             {block.extrabed_available && (
                                                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-green-50 text-green-700 font-bold text-[10px] mb-3">
                                                     <Check className="w-3 h-3" />
-                                                    Extra bed available
+                                                    {t('hotelDetail.availability.extraBedAvailable')}
                                                 </div>
                                             )}
 
@@ -340,7 +349,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                 {formatCurrency(totalPrice, currency)}
                                             </div>
                                             <div className="text-[10px] font-medium text-gray-400 mt-0.5 leading-tight">
-                                                {block.price_breakdown?.charges_details?.translated_copy || block.product_price_breakdown?.charges_details?.translated_copy || 'Includes taxes and charges'}
+                                                {block.price_breakdown?.charges_details?.translated_copy || block.product_price_breakdown?.charges_details?.translated_copy || t('hotelDetail.availability.includesTaxes')}
                                             </div>
                                         </td>
 
@@ -359,7 +368,7 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                     <div className="mt-0.5 shrink-0">
                                                         <Ban className="w-3.5 h-3.5" />
                                                     </div>
-                                                    <span>Non-refundable</span>
+                                                    <span>{t('hotelDetail.availability.nonRefundable')}</span>
                                                 </div>
                                             )}
                                         </td>
@@ -391,11 +400,11 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                     onClick={() => onBook?.(totalPrice, roomName, block.block_id || String(block.room_id), selectedCount)}
                                                     className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-brand-primary/10 transition-all active:scale-[0.98] group-hover:translate-y-[-1px]"
                                                 >
-                                                    Book now
+                                                    {t('hotelDetail.bookNow')}
                                                 </Button>
                                                 <div className="text-center text-[10px] font-bold text-gray-400">
                                                     <span className="text-green-600 mr-1">●</span>
-                                                    Free cancellation
+                                                    {t('hotelDetail.availability.freeCancellation')}
                                                 </div>
                                             </div>
                                         </td>

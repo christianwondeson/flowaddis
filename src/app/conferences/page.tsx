@@ -7,6 +7,7 @@ import { VenueCard } from '@/components/conferences/venue-card';
 import { toast } from 'sonner';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 // Left sidebar ads (sticky when scrolling)
 const CONFERENCE_ADS_LEFT: AdConfig[] = [
@@ -132,16 +133,18 @@ const mockConferences = [
 ];
 
 export default function ConferencesPage() {
+    const { t } = useTranslations();
+
     const handleBook = (venue: { name: string }) => {
-        toast.success(`Starting booking for ${venue.name}`);
+        toast.success(t('conferences.toastBookingFor', { name: venue.name }));
     };
 
     return (
         <AdContainer leftAds={CONFERENCE_ADS_LEFT} rightAds={CONFERENCE_ADS_RIGHT}>
             <ServicePageWrapper
                 icon={Briefcase}
-                title="Conference & Event Venues"
-                description="Host your next event in world-class facilities with state-of-the-art technology and premium services."
+                title={t('conferences.title')}
+                description={t('conferences.description')}
                 accentColor="primary"
             >
                 {/* Venues Grid */}

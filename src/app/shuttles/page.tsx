@@ -11,6 +11,7 @@ import { Popover } from '@/components/ui/popover';
 import { formatCurrency } from '@/lib/currency';
 import { AdContainer } from '@/components/ads/ad-container';
 import { AdConfig } from '@/lib/types/ads';
+import { useTranslations } from '@/components/providers/locale-provider';
 
 // Left sidebar ads (sticky when scrolling)
 const SHUTTLE_ADS_LEFT: AdConfig[] = [
@@ -73,11 +74,12 @@ const mockShuttles = [
 ];
 
 export default function ShuttlesPage() {
+    const { t } = useTranslations();
     const [selectedShuttle, setSelectedShuttle] = useState<any>(null);
 
     const handleBook = (shuttle: any) => {
         setSelectedShuttle(shuttle);
-        alert(`Booking ${shuttle.type}`);
+        alert(t('shuttles.bookingAlert', { type: shuttle.type }));
     };
 
     return (
@@ -86,9 +88,9 @@ export default function ShuttlesPage() {
             {/* Header Section */}
             <div className="bg-teal-600 text-white py-12 md:py-16">
                 <div className="container mx-auto px-4">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">Airport & City Shuttles</h1>
+                    <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">{t('shuttles.heroTitle')}</h1>
                     <p className="text-teal-100 text-base md:text-lg max-w-2xl">
-                        Reliable, comfortable transportation for your journey in Addis Ababa.
+                        {t('shuttles.heroSubtitle')}
                     </p>
                 </div>
             </div>
@@ -99,8 +101,8 @@ export default function ShuttlesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                         <div className="md:col-span-4">
                             <LocationInput
-                                label="Pickup Location"
-                                placeholder="Enter address"
+                                label={t('shuttles.pickupLocation')}
+                                placeholder={t('shuttles.pickupPlaceholder')}
                                 value={""}
                                 onChange={() => { }}
                             />
@@ -109,10 +111,10 @@ export default function ShuttlesPage() {
                             <Popover
                                 trigger={
                                     <div className="w-full cursor-pointer">
-                                        <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Pickup Date</label>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">{t('shuttles.pickupDate')}</label>
                                         <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
                                             <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
-                                            <span className="text-gray-900 dark:text-slate-100 font-medium">Select Date</span>
+                                            <span className="text-gray-900 dark:text-slate-100 font-medium">{t('shuttles.selectDate')}</span>
                                         </div>
                                     </div>
                                 }
@@ -135,7 +137,7 @@ export default function ShuttlesPage() {
                         </div>
                         <div className="md:col-span-2">
                             <Button className="w-full h-[52px] min-h-[48px] flex items-center justify-center gap-2 text-white font-bold text-lg rounded-2xl shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/50 transition-all duration-300">
-                                <Search className="w-5 h-5" /> Search
+                                <Search className="w-5 h-5" /> {t('shuttles.search')}
                             </Button>
                         </div>
                     </div>
@@ -143,7 +145,7 @@ export default function ShuttlesPage() {
 
                 {/* Shuttle Results */}
                 <div className="space-y-6 md:space-y-8">
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 md:mb-6">Available Shuttles</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 md:mb-6">{t('shuttles.availableTitle')}</h2>
 
                     {mockShuttles.map((shuttle) => (
                         <Card key={shuttle.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 rounded-2xl">
@@ -153,7 +155,7 @@ export default function ShuttlesPage() {
                                     <img src={shuttle.image} alt={shuttle.type} className="w-full h-full object-cover" />
                                     <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur px-3 py-1 rounded-lg text-white text-sm font-medium flex items-center gap-2">
                                         <Users className="w-4 h-4" />
-                                        Up to {shuttle.capacity} passengers
+                                        {t('shuttles.upToPassengers', { count: shuttle.capacity })}
                                     </div>
                                 </div>
 
@@ -169,11 +171,11 @@ export default function ShuttlesPage() {
                                                 </div>
                                             </div>
                                             <div className="text-left sm:text-right">
-                                                <div className="text-sm text-gray-400 dark:text-slate-500 mb-1">Starting from</div>
+                                                <div className="text-sm text-gray-400 dark:text-slate-500 mb-1">{t('shuttles.startingFrom')}</div>
                                                 <div className="text-2xl md:text-3xl font-bold text-brand-primary">
                                                     {formatCurrency(shuttle.price)}
                                                 </div>
-                                                <div className="text-xs text-gray-400 dark:text-slate-500">per trip</div>
+                                                <div className="text-xs text-gray-400 dark:text-slate-500">{t('shuttles.perTrip')}</div>
                                             </div>
                                         </div>
 
@@ -190,7 +192,7 @@ export default function ShuttlesPage() {
 
                                     <div className="flex justify-end pt-4 border-t border-border">
                                         <Button onClick={() => handleBook(shuttle)} className="w-full md:w-auto rounded-2xl min-h-[48px]">
-                                            Book Now <ArrowRight className="w-4 h-4 ml-2" />
+                                            {t('shuttles.bookNow')} <ArrowRight className="w-4 h-4 ml-2" />
                                         </Button>
                                     </div>
                                 </div>

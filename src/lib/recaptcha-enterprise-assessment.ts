@@ -45,6 +45,13 @@ export type AssessmentOutcome =
     | { ok: true; score: number }
     | { ok: false; reason: string };
 
+function hasGcpCredentialsForRecaptcha(): boolean {
+    return Boolean(
+        process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim() ||
+            process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim(),
+    );
+}
+
 function parseMinScore(): number {
     const raw = process.env.RECAPTCHA_MIN_SCORE?.trim();
     if (!raw) return 0.5;
@@ -65,6 +72,18 @@ export async function assessRecaptchaEnterpriseToken(params: {
         process.env.RECAPTCHA_SKIP_SERVER_VERIFY === 'true'
     ) {
         console.warn('[recaptcha] RECAPTCHA_SKIP_SERVER_VERIFY=true — skipping CreateAssessment');
+        return { ok: true, score: 1 };
+    }
+
+    /**
+     * Local dev without a service account: `@google-cloud/*` uses Application Default Credentials;
+     * without `gcloud auth application-default login` or env JSON, CreateAssessment throws
+     * "Could not load the default credentials". Skip server verify in development only.
+     */
+    if (process.env.NODE_ENV !== 'production' && !hasGcpCredentialsForRecaptcha()) {
+        console.warn(
+            '[recaptcha] Development: skipping CreateAssessment (no GOOGLE_APPLICATION_CREDENTIALS / GOOGLE_APPLICATION_CREDENTIALS_JSON). Client-side Enterprise execute still runs.',
+        );
         return { ok: true, score: 1 };
     }
 

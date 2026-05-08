@@ -1,17 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Search, MoreVertical, MapPin, Star, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Search, MoreVertical, MapPin, Star, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { HotelForm } from "@/components/admin/forms/hotel-form";
 import { useCmsList } from "@/hooks/use-cms-list";
 import { getStrapiSingleMediaUrl } from "@/lib/admin-cms-client";
+import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
 
 export default function AdminHotelsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { items, loading, error, refetch } = useCmsList("hotels");
+    const { items, loading, error, errorCode, refetch } = useCmsList("hotels");
 
     return (
         <div className="space-y-8">
@@ -29,20 +30,7 @@ export default function AdminHotelsPage() {
                 </Button>
             </div>
 
-            {error ? (
-                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                    <div>
-                        <p className="font-semibold">Could not load CMS</p>
-                        <p className="text-amber-800/90">{error}</p>
-                        <p className="mt-2 text-xs text-amber-800/80">
-                            Ensure Strapi is running, <code className="rounded bg-white/80 px-1">STRAPI_URL</code> and{" "}
-                            <code className="rounded bg-white/80 px-1">STRAPI_API_TOKEN</code> are set on the Next server, and{" "}
-                            <code className="rounded bg-white/80 px-1">NEXT_PUBLIC_STRAPI_URL</code> is set for image URLs.
-                        </p>
-                    </div>
-                </div>
-            ) : null}
+            <AdminCmsErrorBanner error={error} errorCode={errorCode} />
 
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">

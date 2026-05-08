@@ -25,12 +25,17 @@ interface TripState {
     addToTrip: (item: Omit<TripItem, 'id'>) => void;
     removeFromTrip: (id: string) => void;
     clearTrip: () => void;
+    /** Replace cart (hydrate from session). */
+    replaceCart: (items: TripItem[]) => void;
+    /** Merge items saved before login (dedupe by type + details.id when present). */
+    mergeFromPendingSession: (incoming: TripItem[]) => number;
     checkoutTrip: (userId: string) => Promise<string>;
 }
 
 /**
- * Trip cart lives in memory only (no localStorage) to avoid exposing booking details
- * and identifiers to XSS or extensions. Confirmed trips are persisted in Firestore.
+ * Trip cart (currentTrip):
+ * - Zustand in-memory + sessionStorage sync via TripCartSessionBridge (same tab: refresh + sign-in merge).
+ * - Confirmed bundles persist to Firestore on checkoutTrip after payment / bundle save.
  */
 export const useTripStore = create<TripState>()((set, get) => ({
     currentTrip: [],
@@ -44,6 +49,26 @@ export const useTripStore = create<TripState>()((set, get) => ({
         }));
     },
     clearTrip: () => set({ currentTrip: [] }),
+    replaceCart: (items) => set({ currentTrip: Array.isArray(items) ? items : [] }),
+    mergeFromPendingSession: (incoming) => {
+        let added = 0;
+        set((state) => {
+            const keyOf = (it: TripItem) =>
+                `${it.type}:${it.details?.id != null ? String(it.details.id) : it.id}`;
+            const keys = new Set(state.currentTrip.map(keyOf));
+            const merged = [...state.currentTrip];
+            for (const it of incoming) {
+                const k = keyOf(it);
+                if (!keys.has(k)) {
+                    merged.push(it);
+                    keys.add(k);
+                    added++;
+                }
+            }
+            return { currentTrip: merged };
+        });
+        return added;
+    },
     checkoutTrip: async (userId) => {
         const { currentTrip, clearTrip } = get();
         const tripId = uuidv4();
