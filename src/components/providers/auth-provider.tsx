@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { MultiFactorResolver } from 'firebase/auth';
 import {
     signInWithEmailAndPassword,
+    signInWithCustomToken,
     createUserWithEmailAndPassword,
     signOut,
     onIdTokenChanged,
@@ -213,25 +214,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         assertEmailLoginAllowed(email);
 
+        /** Server-mediated password check — uniform HTTP responses; avoids Identity Toolkit response-size oracle on the client. */
+        let apiRes: Response;
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            apiRes = await fetch('/api/auth/password-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+        } catch {
+            recordEmailLoginFailure(email);
+            throw new Error(getFirebaseAuthUserMessage({ code: 'auth/network-request-failed' }, 'login'));
+        }
+
+        let payload: { ok?: boolean; customToken?: string; requiresClientMfa?: boolean; error?: string };
+        try {
+            payload = (await apiRes.json()) as typeof payload;
+        } catch {
+            payload = {};
+        }
+
+        if (apiRes.status === 429) {
+            throw new Error(
+                'Too many sign-in attempts from this network. Please wait a few minutes and try again.',
+            );
+        }
+
+        if (apiRes.status === 503 || payload.error === 'AUTH_UNAVAILABLE') {
+            throw new Error(
+                'Sign-in is temporarily unavailable. Please try again later or contact support.',
+            );
+        }
+
+        if (payload.requiresClientMfa === true && auth) {
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                return await completeLoginAfterUser(userCredential.user, email);
+            } catch (error: unknown) {
+                const code =
+                    typeof error === 'object' && error && 'code' in error
+                        ? String((error as { code?: string }).code)
+                        : '';
+                if (code === 'auth/multi-factor-auth-required' && auth) {
+                    const resolver = getMultiFactorResolver(auth, error as never);
+                    throw new MfaSignInRequiredError(resolver, email);
+                }
+                if (
+                    code === 'auth/wrong-password' ||
+                    code === 'auth/user-not-found' ||
+                    code === 'auth/invalid-credential'
+                ) {
+                    recordEmailLoginFailure(email);
+                }
+                throw new Error(getFirebaseAuthUserMessage(error, 'login'));
+            }
+        }
+
+        if (!apiRes.ok || !payload.ok || typeof payload.customToken !== 'string') {
+            recordEmailLoginFailure(email);
+            throw new Error(
+                getFirebaseAuthUserMessage({ code: 'auth/invalid-credential' }, 'login'),
+            );
+        }
+
+        try {
+            const userCredential = await signInWithCustomToken(auth, payload.customToken);
             return await completeLoginAfterUser(userCredential.user, email);
         } catch (error: unknown) {
-            const code =
-                typeof error === 'object' && error && 'code' in error
-                    ? String((error as { code?: string }).code)
-                    : '';
-            if (code === 'auth/multi-factor-auth-required' && auth) {
-                const resolver = getMultiFactorResolver(auth, error as never);
-                throw new MfaSignInRequiredError(resolver, email);
-            }
-            if (
-                code === 'auth/wrong-password' ||
-                code === 'auth/user-not-found' ||
-                code === 'auth/invalid-credential'
-            ) {
-                recordEmailLoginFailure(email);
-            }
+            recordEmailLoginFailure(email);
             throw new Error(getFirebaseAuthUserMessage(error, 'login'));
         }
     };
