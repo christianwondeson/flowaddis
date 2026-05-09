@@ -85,15 +85,36 @@ export async function POST(request: Request) {
             return failure401();
         }
 
-        const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim();
+        const apiKey =
+            process.env.FIREBASE_WEB_API_KEY?.trim() || process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim();
         if (!apiKey) {
-            console.error('[password-login] NEXT_PUBLIC_FIREBASE_API_KEY is not set');
+            console.error('[password-login] Set FIREBASE_WEB_API_KEY or NEXT_PUBLIC_FIREBASE_API_KEY');
             recordPasswordLoginFailure(ip);
             await enforceMinimumDuration(startedAt);
             return failure401();
         }
 
-        const result = await identityToolkitSignInWithPassword(apiKey, email, password);
+        /** Browser Origin when the SPA calls us; required for referrer-locked Web API keys. */
+        const originOrReferer =
+            request.headers.get('origin') ||
+            request.headers.get('referer') ||
+            process.env.NEXT_PUBLIC_APP_ORIGIN?.trim() ||
+            (process.env.VERCEL === '1' && process.env.VERCEL_URL
+                ? `https://${process.env.VERCEL_URL}`
+                : '') ||
+            (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000' : 'https://bookaddis.com');
+
+        const result = await identityToolkitSignInWithPassword(apiKey, email, password, {
+            referer: originOrReferer,
+        });
+
+        if (!result.ok && process.env.NODE_ENV !== 'production') {
+            const errBody = result.data as { error?: { message?: string; status?: string } };
+            console.warn(
+                '[password-login] Identity Toolkit error (dev)',
+                errBody?.error?.message ?? result.httpStatus,
+            );
+        }
 
         if (!result.ok) {
             recordPasswordLoginFailure(ip);

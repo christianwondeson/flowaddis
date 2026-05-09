@@ -18,14 +18,27 @@ export async function identityToolkitSignInWithPassword(
     apiKey: string,
     email: string,
     password: string,
+    options?: { referer?: string },
 ): Promise<
     | { ok: true; data: IdentityToolkitPasswordSuccess }
     | { ok: false; httpStatus: number; data: unknown }
 > {
     const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`;
+
+    /**
+     * Web API keys restricted to HTTP referrers require a matching Referer header.
+     * Server-side fetch does not send one by default — Identity Toolkit then rejects the call.
+     * Use the browser Origin from the incoming Next.js request (or configured fallback).
+     */
+    const referer = options?.referer?.trim();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (referer) {
+        headers.Referer = referer.endsWith('/') ? referer : `${referer}/`;
+    }
+
     const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
             email,
             password,
