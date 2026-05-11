@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy:hosting": "env FIREBASE_CLI_EXPERIMENTS=webframeworks firebase deploy --only hosting"
   },
   "dependencies": {
     "@google-cloud/recaptcha-enterprise": "^6.4.1",

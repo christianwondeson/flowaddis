@@ -14,9 +14,14 @@ function getJwks() {
 
 /** Server-side project id (prefer non-public env in production). */
 export function getFirebaseProjectIdForAuth(): string {
-    const id = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const id =
+        process.env.ADMIN_FIREBASE_PROJECT_ID ||
+        process.env.FIREBASE_PROJECT_ID ||
+        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     if (!id?.trim()) {
-        throw new Error('FIREBASE_PROJECT_ID or NEXT_PUBLIC_FIREBASE_PROJECT_ID must be set for JWT verification');
+        throw new Error(
+            'ADMIN_FIREBASE_PROJECT_ID (or NEXT_PUBLIC_FIREBASE_PROJECT_ID) must be set for JWT verification',
+        );
     }
     return id.trim();
 }

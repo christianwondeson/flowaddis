@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { identityToolkitSignInWithPassword } from '@/lib/identity-toolkit-password-sign-in';
-import { createFirebaseCustomToken } from '@/lib/server/firebase-admin';
+import {
+    createFirebaseCustomToken,
+    getFirebaseAdminCredentialPresence,
+} from '@/lib/server/firebase-admin';
 import {
     getClientIpFromHeaders,
     isPasswordLoginIpBlocked,
@@ -144,7 +147,8 @@ export async function POST(request: Request) {
         const customToken = await createFirebaseCustomToken(uid);
         if (!customToken) {
             console.error(
-                '[password-login] Firebase Admin unavailable — set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY on the Next.js server',
+                '[password-login] AUTH_UNAVAILABLE — Admin SDK could not mint custom token. Credential presence (no secrets):',
+                getFirebaseAdminCredentialPresence(),
             );
             recordPasswordLoginFailure(ip);
             await enforceMinimumDuration(startedAt);
