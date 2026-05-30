@@ -20,7 +20,10 @@ function clearSessionCookie(response: NextResponse) {
     });
 }
 
-// POST: Verify Firebase ID token, then set HttpOnly session cookie
+// POST body: { token } — Firebase **ID token** (JWT iss https://securetoken.google.com/…).
+// We store it in the httpOnly __session cookie and verify with JWKS in middleware (`verifyFirebaseIdToken`).
+// This is intentional: Edge middleware cannot run firebase-admin `verifySessionCookie`; ID-token verification fits Edge.
+// Do not pass this cookie to Admin `verifySessionCookie` (that expects iss https://session.firebase.google.com/…).
 export async function POST(request: Request) {
     try {
         const ip = getClientIpFromHeaders(request);

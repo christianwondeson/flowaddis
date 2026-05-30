@@ -41,7 +41,8 @@ export const queryKeys = {
     },
     user: {
         all: ['user'] as const,
-        profile: () => [...queryKeys.user.all, 'profile'] as const,
+        /** Per Firebase uid so switching accounts cannot reuse another user's cached role. */
+        profile: (uid: string) => [...queryKeys.user.all, 'profile', uid] as const,
         trips: () => [...queryKeys.user.all, 'trips'] as const,
     },
 } as const;

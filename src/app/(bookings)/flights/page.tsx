@@ -212,7 +212,7 @@ function FlightsPageContent() {
 
     const handleBook = (flight: any) => {
         if (!user) {
-            router.push('/signin?redirect=/flights');
+            router.push('/signin');
             return;
         }
         setSelectedFlight(flight);

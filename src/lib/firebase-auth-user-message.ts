@@ -43,6 +43,12 @@ export function getFirebaseAuthUserMessage(error: unknown, context: string): str
         case 'auth/network-request-failed':
             return 'Network connection error. Please check your internet and try again.';
 
+        case 'auth/invalid-custom-token':
+        case 'auth/custom-token-mismatch':
+            return 'Sign-in session was rejected. Please sign in again.';
+        case 'permission-denied':
+            return 'Your account signed in, but profile data could not be loaded. Try again or contact support if this persists.';
+
         case 'auth/email-already-in-use':
             return 'An account with this email already exists. Try signing in instead.';
         case 'auth/weak-password':

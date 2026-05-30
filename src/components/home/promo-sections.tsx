@@ -13,12 +13,12 @@ import { useTripStore } from '@/store/trip-store';
 import { Popover } from '@/components/ui/popover';
 import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
 import { hotelsDestinationPickUrl } from '@/lib/hotel-promo-links';
+import { buildSignInHref } from '@/lib/auth/post-login-path';
 
 export function SignInPromo() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const currentPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
-    const redirectQuery = `redirect=${encodeURIComponent(currentPath)}`;
 
     return (
         <Card className="p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white overflow-hidden relative group">
@@ -29,10 +29,10 @@ export function SignInPromo() {
                         Save 10% or more at participating properties – just look for the blue Genius label
                     </p>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                        <Link href={`/signin?${redirectQuery}`}>
+                        <Link href={buildSignInHref(currentPath, '/signin')}>
                             <Button className="rounded-md px-6">Sign in</Button>
                         </Link>
-                        <Link href={`/signup?${redirectQuery}`}>
+                        <Link href={buildSignInHref(currentPath, '/signup')}>
                             <Button variant="ghost" className="text-brand-primary font-bold hover:bg-brand-primary/5">
                                 Register
                             </Button>

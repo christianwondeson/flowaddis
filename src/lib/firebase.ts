@@ -52,7 +52,7 @@ if (typeof window !== "undefined") {
         } as const;
 
         if (databaseId && databaseId !== '(default)') {
-            // Use the explicitly provided database ID (e.g., 'flowaddis_db')
+            // Use the explicitly provided database ID (e.g. 'flowaddis-db' — see firebase.json)
             db = initializeFirestore(app, settings, databaseId as any);
         } else {
             // Use the default database

@@ -61,7 +61,7 @@ export function ProfileBackendSection({ embedded = false, onProfileSynced }: Pro
                     console.warn("Firestore profile merge", e);
                 }
             }
-            await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.user.all });
             onProfileSyncedRef.current?.(data);
         },
         [queryClient],

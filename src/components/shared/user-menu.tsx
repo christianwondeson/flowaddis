@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
+import { canAccessAdmin } from '@/lib/auth/admin-utils';
+import { buildSignInHref } from '@/lib/auth/post-login-path';
 import { useTranslations } from '@/components/providers/locale-provider';
 import { clsx } from 'clsx';
 import { LogOut, User, LayoutDashboard, Settings, Briefcase } from 'lucide-react';
@@ -31,19 +33,19 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
     }
 
     if (!user) {
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
-        const redirectQuery = `redirect=${encodeURIComponent(currentPath)}`;
+        const currentPath =
+            typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
 
         return (
             <div className="flex items-center gap-3">
-                <Link href={`/signin?${redirectQuery}`}>
+                <Link href={buildSignInHref(currentPath, '/signin')}>
                     <Button variant="ghost" size="sm" className={clsx(
                         isHomePage && !scrolled
                             ? "text-white hover:bg-white/20"
                             : "text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
                     )}>{t('common.signIn')}</Button>
                 </Link>
-                <Link href={`/signup?${redirectQuery}`}>
+                <Link href={buildSignInHref(currentPath, '/signup')}>
                     <Button size="sm" className={clsx(isHomePage && !scrolled ? "bg-white text-teal-600 hover:bg-gray-100" : "bg-teal-600 text-white hover:bg-teal-700")}>{t('common.register')}</Button>
                 </Link>
             </div>
@@ -86,7 +88,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="my-1" />
 
-                {user.role === 'admin' && (
+                {canAccessAdmin(user) && (
                     <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                         <Link href="/admin" className="flex items-center w-full gap-2">
                             <LayoutDashboard className="h-4 w-4 shrink-0" />

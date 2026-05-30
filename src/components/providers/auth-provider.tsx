@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import type { MultiFactorResolver } from 'firebase/auth';
 import {
     signInWithEmailAndPassword,
-    signInWithCustomToken,
     createUserWithEmailAndPassword,
     signOut,
     onIdTokenChanged,
@@ -32,6 +31,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getUserDocSnapshotPreferServer } from '@/lib/firestore-user-doc';
 import { AuthContextType, User, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 
@@ -49,7 +49,11 @@ import {
     recordPasswordResetRequest,
 } from '@/lib/password-reset-attempt-guard';
 import { MfaSignInRequiredError } from '@/lib/mfa-sign-in-error';
-import { getFirebaseAuthUserMessage } from '@/lib/firebase-auth-user-message';
+import {
+    getFirebaseAuthUserMessage,
+    logFirebaseAuthError,
+} from '@/lib/firebase-auth-user-message';
+import { clearAuthRelatedSessionStorage } from '@/lib/auth-client-storage-cleanup';
 
 async function postSessionCookie(token: string): Promise<Response> {
     return fetch('/api/auth/session', {
@@ -101,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // clearAuthCookie();
                 await fetch('/api/auth/session', { method: 'DELETE' });
                 setFirebaseUser(null);
-                queryClient.setQueryData(queryKeys.user.profile(), null);
+                queryClient.removeQueries({ queryKey: queryKeys.user.all });
             }
             setAuthLoading(false);
         });
@@ -119,14 +123,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Optimize: use useMemo to prevent recomputing on every render
     const user = useMemo(() => {
-        return userProfile || (firebaseUser ? {
-            id: firebaseUser.uid,
-            email: firebaseUser.email!,
-            role: APP_CONSTANTS.ROLES.USER as UserRole,
-            emailVerified: firebaseUser.emailVerified,
-            name: firebaseUser.displayName || ''
-        } : null);
-    }, [userProfile, firebaseUser]);
+        if (!firebaseUser) return null;
+        const uid = firebaseUser.uid;
+        const profileKey = queryKeys.user.profile(uid);
+        const fromCache = queryClient.getQueryData<User>(profileKey);
+        const resolved =
+            fromCache?.id === uid ? fromCache : userProfile?.id === uid ? userProfile : undefined;
+        return (
+            resolved ?? {
+                id: uid,
+                email: firebaseUser.email!,
+                role: APP_CONSTANTS.ROLES.USER as UserRole,
+                emailVerified: firebaseUser.emailVerified,
+                name: firebaseUser.displayName || '',
+            }
+        );
+    }, [userProfile, firebaseUser, queryClient]);
 
     const loading = authLoading || (!!firebaseUser && profileLoading);
 
@@ -137,35 +149,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
      * @param timeoutMs - Maximum time to wait (default 5000ms)
      * @returns Promise that resolves when user state matches expected role or timeout occurs
      */
-    const waitForUserUpdate = useCallback(async (expectedRole: UserRole, timeoutMs: number = 5000): Promise<void> => {
-        const startTime = Date.now();
-        const pollInterval = 50; // Check every 50ms
+    const waitForUserUpdate = useCallback(
+        async (uid: string, expectedRole: UserRole, timeoutMs: number = 2000): Promise<void> => {
+            const startTime = Date.now();
+            const pollInterval = 16;
+            const norm = (r: string | undefined) => String(r ?? '').toLowerCase().trim();
 
-        return new Promise((resolve) => {
-            const checkUser = () => {
-                // Get the current user from query cache
-                const currentUser = queryClient.getQueryData<User>(queryKeys.user.profile());
-
-                // Success: user state matches expected role
-                if (currentUser?.role === expectedRole) {
-                    resolve();
-                    return;
-                }
-
-                // Timeout: waited too long
-                if (Date.now() - startTime >= timeoutMs) {
-                    // console.warn(`waitForUserUpdate timed out after ${timeoutMs}ms. Expected role: ${expectedRole}, Current role: ${currentUser?.role}`);
-                    resolve(); // Resolve anyway to prevent blocking
-                    return;
-                }
-
-                // Continue polling
-                setTimeout(checkUser, pollInterval);
-            };
-
-            checkUser();
-        });
-        }, [queryClient]);
+            return new Promise((resolve) => {
+                const checkUser = () => {
+                    const currentUser = queryClient.getQueryData<User>(queryKeys.user.profile(uid));
+                    if (norm(currentUser?.role) === norm(expectedRole)) {
+                        resolve();
+                        return;
+                    }
+                    if (Date.now() - startTime >= timeoutMs) {
+                        resolve();
+                        return;
+                    }
+                    setTimeout(checkUser, pollInterval);
+                };
+                // React Query updates are synchronous for setQueryData, but allow one frame for subscribers
+                queueMicrotask(() => checkUser());
+            });
+        },
+        [queryClient],
+    );
 
     const completeLoginAfterUser = useCallback(
         async (firebaseUser: FirebaseUser, loginEmail?: string): Promise<UserRole> => {
@@ -184,23 +192,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             if (db) {
-                const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    const role = (userData.role as UserRole) || APP_CONSTANTS.ROLES.USER;
+                try {
+                    await queryClient.cancelQueries({
+                        queryKey: queryKeys.user.profile(firebaseUser.uid),
+                    });
+                    const userDoc = await getUserDocSnapshotPreferServer(
+                        doc(db, 'users', firebaseUser.uid),
+                    );
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        const rawRole = userData.role;
+                        const role: UserRole =
+                            typeof rawRole === 'string' && rawRole.toLowerCase().trim() === 'admin'
+                                ? APP_CONSTANTS.ROLES.ADMIN
+                                : APP_CONSTANTS.ROLES.USER;
 
-                    const userProfileData: User = {
-                        id: firebaseUser.uid,
-                        email: firebaseUser.email!,
-                        role,
-                        emailVerified: firebaseUser.emailVerified,
-                        name: userData.name || firebaseUser.displayName || '',
-                        adminStatus: userData.adminStatus || 'none',
-                    };
+                        const userProfileData: User = {
+                            id: firebaseUser.uid,
+                            email: firebaseUser.email!,
+                            role,
+                            emailVerified: firebaseUser.emailVerified,
+                            name: userData.name || firebaseUser.displayName || '',
+                            adminStatus: userData.adminStatus || 'none',
+                        };
 
-                    queryClient.setQueryData(queryKeys.user.profile(), userProfileData);
-                    await waitForUserUpdate(role, 5000);
-                    return role;
+                        queryClient.setQueryData(queryKeys.user.profile(firebaseUser.uid), userProfileData);
+                        await waitForUserUpdate(firebaseUser.uid, role, 2000);
+                        return role;
+                    }
+                } catch (e: unknown) {
+                    logFirebaseAuthError('completeLoginAfterUser.firestore', e);
+                    const code =
+                        typeof e === 'object' && e !== null && 'code' in e
+                            ? String((e as { code?: string }).code)
+                            : '';
+                    /** Rules/network: still signed in with Firebase Auth — avoid generic toast + blocked redirect */
+                    if (
+                        code === 'permission-denied' ||
+                        code === 'unavailable' ||
+                        code === 'failed-precondition'
+                    ) {
+                        const fallback: User = {
+                            id: firebaseUser.uid,
+                            email: firebaseUser.email!,
+                            role: APP_CONSTANTS.ROLES.USER,
+                            emailVerified: firebaseUser.emailVerified,
+                            name: firebaseUser.displayName || '',
+                            adminStatus: 'none',
+                        };
+                        queryClient.setQueryData(queryKeys.user.profile(firebaseUser.uid), fallback);
+                        return APP_CONSTANTS.ROLES.USER;
+                    }
+                    throw new Error(getFirebaseAuthUserMessage(e, 'completeLoginAfterUser'));
                 }
             }
             return APP_CONSTANTS.ROLES.USER;
@@ -209,79 +252,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     const login = async (email: string, password?: string): Promise<UserRole> => {
-        if (!auth) throw new Error("Auth not initialized");
-        if (!password) throw new Error("Password required");
+        if (!auth) throw new Error('Auth not initialized');
+        if (!password) throw new Error('Password required');
 
         assertEmailLoginAllowed(email);
 
-        /** Server-mediated password check — uniform HTTP responses; avoids Identity Toolkit response-size oracle on the client. */
-        let apiRes: Response;
         try {
-            apiRes = await fetch('/api/auth/password-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-        } catch {
-            recordEmailLoginFailure(email);
-            throw new Error(getFirebaseAuthUserMessage({ code: 'auth/network-request-failed' }, 'login'));
-        }
-
-        let payload: { ok?: boolean; customToken?: string; requiresClientMfa?: boolean; error?: string };
-        try {
-            payload = (await apiRes.json()) as typeof payload;
-        } catch {
-            payload = {};
-        }
-
-        if (apiRes.status === 429) {
-            throw new Error(
-                'Too many sign-in attempts from this network. Please wait a few minutes and try again.',
-            );
-        }
-
-        if (apiRes.status === 503 || payload.error === 'AUTH_UNAVAILABLE') {
-            throw new Error(
-                'Sign-in is temporarily unavailable. Please try again later or contact support.',
-            );
-        }
-
-        if (payload.requiresClientMfa === true && auth) {
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                return await completeLoginAfterUser(userCredential.user, email);
-            } catch (error: unknown) {
-                const code =
-                    typeof error === 'object' && error && 'code' in error
-                        ? String((error as { code?: string }).code)
-                        : '';
-                if (code === 'auth/multi-factor-auth-required' && auth) {
-                    const resolver = getMultiFactorResolver(auth, error as never);
-                    throw new MfaSignInRequiredError(resolver, email);
-                }
-                if (
-                    code === 'auth/wrong-password' ||
-                    code === 'auth/user-not-found' ||
-                    code === 'auth/invalid-credential'
-                ) {
-                    recordEmailLoginFailure(email);
-                }
-                throw new Error(getFirebaseAuthUserMessage(error, 'login'));
-            }
-        }
-
-        if (!apiRes.ok || !payload.ok || typeof payload.customToken !== 'string') {
-            recordEmailLoginFailure(email);
-            throw new Error(
-                getFirebaseAuthUserMessage({ code: 'auth/invalid-credential' }, 'login'),
-            );
-        }
-
-        try {
-            const userCredential = await signInWithCustomToken(auth, payload.customToken);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
             return await completeLoginAfterUser(userCredential.user, email);
         } catch (error: unknown) {
-            recordEmailLoginFailure(email);
+            const code =
+                typeof error === 'object' && error && 'code' in error
+                    ? String((error as { code?: string }).code)
+                    : '';
+            if (code === 'auth/multi-factor-auth-required' && auth) {
+                const resolver = getMultiFactorResolver(auth, error as never);
+                throw new MfaSignInRequiredError(resolver, email);
+            }
+            if (
+                code === 'auth/wrong-password' ||
+                code === 'auth/user-not-found' ||
+                code === 'auth/invalid-credential'
+            ) {
+                recordEmailLoginFailure(email);
+            }
             throw new Error(getFirebaseAuthUserMessage(error, 'login'));
         }
     };
@@ -328,16 +322,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [auth, db, queryClient]);
 
-
-
-    const logout = async () => {
-        if (!auth) throw new Error("Auth not initialized");
-        await signOut(auth);
-        // deleteAuthCookie();
-        await fetch('/api/auth/session', { method: 'DELETE' });
-        setFirebaseUser(null);
-        queryClient.setQueryData(queryKeys.user.profile(), null);
-    };
 
     const loginWithGoogle = async (): Promise<UserRole> => {
         if (!auth) throw new Error("Auth not initialized");
@@ -434,7 +418,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const assertion = PhoneMultiFactorGenerator.assertion(cred);
             await multiFactor(auth.currentUser).enroll(assertion, displayName);
             toast.success('Two-factor authentication is enabled for your account.');
-            await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.user.all });
         },
         [auth, queryClient],
     );
@@ -487,7 +471,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 await reauthenticateWithCredential(u, credential);
                 await updatePassword(u, newPassword);
                 toast.success('Password updated successfully');
-                await queryClient.invalidateQueries({ queryKey: queryKeys.user.profile() });
+                await queryClient.invalidateQueries({ queryKey: queryKeys.user.all });
             } catch (error) {
                 throw new Error(getFirebaseAuthUserMessage(error, 'changePassword'));
             }
@@ -537,6 +521,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isRenderingRef.current = false;
         renderPromiseRef.current = null;
     }, []);
+
+    const logout = useCallback(async () => {
+        if (!auth) throw new Error('Auth not initialized');
+        clearRecaptcha();
+        clearAuthRelatedSessionStorage();
+        await signOut(auth);
+        await fetch('/api/auth/session', { method: 'DELETE' });
+        setFirebaseUser(null);
+        queryClient.removeQueries({ queryKey: queryKeys.user.all });
+    }, [auth, clearRecaptcha, queryClient]);
 
     const renderRecaptcha = useCallback(async (containerId: string = 'recaptcha-container', size: 'invisible' | 'normal' = 'invisible', onSolved?: () => void) => {
         if (!auth || typeof window === 'undefined') return;

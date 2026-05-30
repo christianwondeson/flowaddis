@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
+import { canAccessAdmin } from '@/lib/auth/admin-utils';
+import { buildSignInHref } from '@/lib/auth/post-login-path';
 import { UserMenu } from '@/components/shared/user-menu';
 import { HeaderLanguageSwitch } from '@/components/shared/header-language-switch';
 import { useTranslations } from '@/components/providers/locale-provider';
@@ -22,7 +24,6 @@ export const Header: React.FC = () => {
     const { t } = useTranslations();
 
     const currentPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
-    const redirectQuery = `redirect=${encodeURIComponent(currentPath)}`;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -181,7 +182,7 @@ export const Header: React.FC = () => {
                                             <Settings className="w-5 h-5 shrink-0" />
                                             {t('nav.settings')}
                                         </Link>
-                                        {user.role === 'admin' && (
+                                        {canAccessAdmin(user) && (
                                             <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
                                                 <Button variant="outline" className="w-full justify-center">{t('nav.dashboard')}</Button>
                                             </Link>
@@ -198,10 +199,10 @@ export const Header: React.FC = () => {
                                             <User className="w-5 h-5 shrink-0" />
                                             {t('nav.profile')}
                                         </Link>
-                                        <Link href={`/signin?${redirectQuery}`} onClick={() => setIsMenuOpen(false)}>
+                                        <Link href={buildSignInHref(currentPath, '/signin')} onClick={() => setIsMenuOpen(false)}>
                                             <Button variant="outline" className="w-full justify-center">{t('common.signIn')}</Button>
                                         </Link>
-                                        <Link href={`/signup?${redirectQuery}`} onClick={() => setIsMenuOpen(false)}>
+                                        <Link href={buildSignInHref(currentPath, '/signup')} onClick={() => setIsMenuOpen(false)}>
                                             <Button className="w-full justify-center">{t('common.signUp')}</Button>
                                         </Link>
                                     </>

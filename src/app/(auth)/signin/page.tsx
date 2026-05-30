@@ -2,9 +2,10 @@
 
 import type React from "react"
 import type { MultiFactorResolver } from "firebase/auth"
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
+import type { UserRole } from "@/types/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
@@ -14,18 +15,18 @@ import { AuthLayout } from "@/components/layout/auth-layout"
 import { FormField } from "@/components/auth/form-field"
 import { isMfaSignInRequiredError } from "@/lib/mfa-sign-in-error"
 import { MfaSignInPanel } from "@/components/auth/mfa-sign-in-panel"
-import type { UserRole } from "@/types/auth"
+import { getPostLoginPath } from "@/lib/auth/post-login-path"
 import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
 import { verifyRecaptchaEnterpriseWithApi } from "@/lib/recaptcha-verify-client"
 
 function SignInContent() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [loading, setLoading] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
     const [recaptchaSolved, setRecaptchaSolved] = useState(false)
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
 
-    const { login, loginWithGoogle, renderRecaptcha, clearRecaptcha } = useAuth()
+    const { user, loading, login, loginWithGoogle, renderRecaptcha, clearRecaptcha } = useAuth()
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -33,14 +34,19 @@ function SignInContent() {
 
     const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
     const [mfaEmail, setMfaEmail] = useState("")
+    /** Prevents useEffect from overriding pushAfterLogin with stale role=user before Firestore loads */
+    const skipSessionRedirectRef = useRef(false)
 
     const pushAfterLogin = (role: UserRole) => {
-        if (role === "admin" && from === "/") {
-            router.push("/admin")
-        } else {
-            router.push(from)
-        }
+        skipSessionRedirectRef.current = true
+        const path = getPostLoginPath(role, from)
+        router.replace(path)
     }
+
+    useEffect(() => {
+        if (skipSessionRedirectRef.current || mfaResolver || loading || !user) return
+        router.replace(getPostLoginPath(user.role, from))
+    }, [mfaResolver, loading, user, from, router])
 
     useEffect(() => {
         if (mfaResolver) return;
@@ -92,7 +98,7 @@ function SignInContent() {
             }
         }
 
-        setLoading(true)
+        setSubmitting(true)
         try {
             const role = await login(email, password)
             pushAfterLogin(role)
@@ -105,12 +111,12 @@ function SignInContent() {
             const message = error instanceof Error ? error.message : "An unexpected error occurred during sign-in."
             toast.error(message)
         } finally {
-            setLoading(false)
+            setSubmitting(false)
         }
     }
 
     const handleGoogleSignIn = async () => {
-        setLoading(true)
+        setSubmitting(true)
         try {
             if (getRecaptchaEnterpriseSiteKey()) {
                 let enterpriseToken: string | undefined
@@ -141,7 +147,7 @@ function SignInContent() {
             const message = error instanceof Error ? error.message : "An unexpected error occurred during sign-in."
             toast.error(message)
         } finally {
-            setLoading(false)
+            setSubmitting(false)
         }
     }
 
@@ -215,10 +221,10 @@ function SignInContent() {
                 {/* Sign In Button */}
                 <Button
                     type="submit"
-                    disabled={loading || !recaptchaSolved}
+                    disabled={submitting || !recaptchaSolved}
                     className="w-full bg-brand-primary hover:bg-teal-700 text-white font-semibold py-2.5 sm:py-3 rounded-2xl transition-all duration-300 disabled:opacity-50 min-h-[48px]"
                 >
-                    {loading ? "Signing in..." : "Sign In"}
+                    {submitting ? "Signing in..." : "Sign In"}
                 </Button>
 
                 {/* Divider */}
@@ -235,7 +241,7 @@ function SignInContent() {
                 <Button
                     type="button"
                     variant="outline"
-                    disabled={loading}
+                    disabled={submitting}
                     className="w-full py-2.5 sm:py-3 flex items-center justify-center gap-2.5 border border-gray-300 hover:bg-gray-50 transition-colors text-gray-700 font-medium bg-transparent"
                     onClick={handleGoogleSignIn}
                 >

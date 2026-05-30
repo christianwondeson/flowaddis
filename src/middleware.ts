@@ -3,6 +3,7 @@ import { APP_CONSTANTS } from '@/lib/constants';
 import type { NextRequest } from 'next/server';
 import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
 import { getSafeAppRedirectPath } from '@/lib/safe-redirect';
+import { shouldHonorPostLoginRedirect } from '@/lib/auth/post-login-path';
 import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME, isAppLocale } from '@/lib/i18n/config';
 
 const protectedRoutes = ['/dashboard', '/admin', '/trips', '/profile', '/settings'];
@@ -74,8 +75,12 @@ export async function middleware(request: NextRequest) {
             return res;
         }
         const rawRedirect = request.nextUrl.searchParams.get('redirect');
-        const redirectPath = getSafeAppRedirectPath(rawRedirect, '/');
-        return NextResponse.redirect(new URL(redirectPath, request.url));
+        const safe = rawRedirect ? getSafeAppRedirectPath(rawRedirect, '') : '';
+        const continueUrl = new URL('/auth/continue', request.url);
+        if (safe && shouldHonorPostLoginRedirect(safe)) {
+            continueUrl.searchParams.set('redirect', safe);
+        }
+        return NextResponse.redirect(continueUrl);
     }
 
     const out = NextResponse.next();
