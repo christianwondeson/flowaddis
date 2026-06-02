@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { assertFirebaseAndNestAdmin, CmsAuthError } from '@/lib/assert-admin-cms';
 import { ADMIN_CMS_ERROR_CODE } from '@/lib/admin-cms-error-codes';
-import { strapiFetch } from '@/lib/strapi-server';
+import { formatStrapiErrorBody, getStrapiOriginForLogs, strapiFetch } from '@/lib/strapi-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +25,12 @@ export async function POST(req: Request) {
                 { status: 503 },
             );
         }
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const detail = e instanceof Error ? e.message : 'Unknown auth error';
+        console.error('[CMS upload] admin check failed:', detail);
+        return NextResponse.json(
+            { error: 'Unauthorized', detail, code: ADMIN_CMS_ERROR_CODE.SESSION_INVALID },
+            { status: 401 },
+        );
     }
 
     try {
@@ -65,25 +70,47 @@ export async function POST(req: Request) {
             outgoing.append('files', f);
         }
 
+        const strapiOrigin = getStrapiOriginForLogs();
         const strapiRes = await strapiFetch('/api/upload', {
             method: 'POST',
             body: outgoing,
         });
 
         const text = await strapiRes.text();
+        if (!strapiRes.ok) {
+            const detail = formatStrapiErrorBody(text, strapiRes.status);
+            console.error('[CMS upload]', detail, { strapiOrigin, fileCount: files.length });
+            let json: unknown;
+            try {
+                json = JSON.parse(text);
+            } catch {
+                json = { error: detail, detail: text.slice(0, 500) };
+            }
+            return NextResponse.json(json, { status: strapiRes.status });
+        }
+
         let json: unknown;
         try {
             json = JSON.parse(text);
         } catch {
+            console.error('[CMS upload] non-JSON success body', { strapiOrigin, preview: text.slice(0, 200) });
             return NextResponse.json(
                 { error: 'Strapi upload returned non-JSON', detail: text.slice(0, 500) },
-                { status: strapiRes.ok ? 500 : strapiRes.status },
+                { status: 500 },
             );
         }
 
+        console.info('[CMS upload] ok', { strapiOrigin, fileCount: files.length });
         return NextResponse.json(json, { status: strapiRes.status });
     } catch (e) {
-        console.error('CMS upload error:', e);
-        return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error('[CMS upload] failed:', msg, { strapi: getStrapiOriginForLogs() });
+        if (msg.includes('STRAPI')) {
+            return NextResponse.json(
+                { error: msg, code: ADMIN_CMS_ERROR_CODE.STRAPI_CONFIG },
+                { status: 503 },
+            );
+        }
+        return NextResponse.json({ error: 'Upload failed', detail: msg }, { status: 500 });
     }
 }

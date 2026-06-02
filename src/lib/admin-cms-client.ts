@@ -13,11 +13,21 @@ export class AdminCmsFetchError extends Error {
 }
 
 function cmsHttpFailure(res: Response, payload: unknown): AdminCmsFetchError {
-    const p = payload as { error?: string; code?: AdminCmsErrorCode };
-    const msg =
+    const p = payload as {
+        error?: string | { message?: string; status?: number; name?: string };
+        message?: string;
+        code?: AdminCmsErrorCode;
+    };
+    let msg =
         (typeof p.error === 'string' && p.error) ||
+        (typeof p.error === 'object' && p.error?.message) ||
+        p.message ||
         res.statusText ||
         'Request failed';
+    if (res.status === 401 && msg.toLowerCase().includes('credential')) {
+        msg =
+            'Strapi rejected the API token. For local dev, create a token in Strapi Admin (http://127.0.0.1:1337/admin → Settings → API Tokens) and set STRAPI_API_TOKEN in flowaddis/.env.local (production tokens do not work locally).';
+    }
     return new AdminCmsFetchError(msg, res.status, p.code);
 }
 
