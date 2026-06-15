@@ -10,6 +10,7 @@ export const NEST_CREATE_SESSION_KEYS = [
     'currency',
     'metadata',
     'external_snapshot',
+    'paymentChannel',
 ] as const;
 
 export function pickNestCreateSessionBody(body: unknown): Record<string, unknown> {

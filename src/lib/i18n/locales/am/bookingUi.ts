@@ -46,6 +46,10 @@ export const bookingUiAm = {
             cbeHint: 'የCBE ብር አካውንት ያስገቡ',
             secureStripeTitle: 'ደህንነቱ የተጠበቀ Stripe ክፍያ',
             secureStripeHint: 'ክፍያዎን ለማጠናቀቅ ወደ Stripe ደህንነቱ የተጠበቀ ገጽ ይመለሳሉ።',
+            paymentReferenceLabel: 'የክፍያ ማጣቀሻ (PayNar)',
+            paymentReferenceHint:
+                'ለCBE ብር፣ የባንክ ኢንተርኔት ወይም USSD ይህን ማጣቀሻ ይጠቀሙ። ከክፍያ በፊት ከመያዣዎ ጋር ተያይዟል።',
+            paymentReferencePending: 'ደህንነቱ የተጠበቀ የክፍያ ማጣቀሻ በመፍጠር ላይ…',
             payOnSiteTitle: 'በቦታው ይክፈሉ',
             payOnSiteHint: 'መያዣዎን አሁን እንያዝ። በንብረቱ / በስፍራው ይክፈሉ።',
             cancel: 'ተወው',

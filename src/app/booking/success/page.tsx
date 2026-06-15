@@ -8,19 +8,52 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return-url';
 import { useTranslations } from '@/components/providers/locale-provider';
+import { auth } from '@/lib/firebase';
 
 function SuccessContent() {
     const { t } = useTranslations();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('session_id');
+    const refFromQuery = searchParams.get('ref');
     const returnUrl = sanitizeCheckoutReturnUrl(searchParams.get('return_url'), BOOKADDIS_HOME);
+    const [storedRef, setStoredRef] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+
+    const paymentReference = refFromQuery || storedRef || null;
 
     useEffect(() => {
-        // In a real app, you might want to verify the session status here
-        const timer = setTimeout(() => setLoading(false), 2000);
+        try {
+            const saved = sessionStorage.getItem('last_pay_nar');
+            if (saved) setStoredRef(saved);
+        } catch {
+            /* ignore */
+        }
+
+        const pollStatus = async (ref: string) => {
+            if (!auth?.currentUser) return;
+            try {
+                const token = await auth.currentUser.getIdToken();
+                const res = await fetch(`/api/payments/status/${encodeURIComponent(ref)}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data?.status) setPaymentStatus(data.status);
+                }
+            } catch {
+                /* ignore */
+            }
+        };
+
+        const ref = refFromQuery || sessionStorage.getItem('last_pay_nar');
+        if (ref && !sessionId) {
+            void pollStatus(ref);
+        }
+
+        const timer = setTimeout(() => setLoading(false), 1500);
         return () => clearTimeout(timer);
-    }, [sessionId]);
+    }, [sessionId, refFromQuery]);
 
     return (
         <motion.div
@@ -61,7 +94,15 @@ function SuccessContent() {
                     </div>
                     <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.bookingIdLabel')}</p>
-                        <p className="text-sm font-semibold text-gray-700">#{sessionId ? sessionId.slice(-8).toUpperCase() : t('bookingFlow.bookingIdFallback')}</p>
+                        <p className="text-sm font-semibold text-gray-700 font-mono tracking-wide">
+                            {paymentReference ? paymentReference : t('bookingFlow.bookingIdFallback')}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">{t('bookingFlow.bookingIdHint')}</p>
+                        {paymentStatus && paymentStatus !== 'PAID' && paymentStatus !== 'CONFIRMED' && (
+                            <p className="text-xs text-amber-600 mt-2">
+                                Status: {paymentStatus}
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>

@@ -15,6 +15,11 @@ import { auth } from '@/lib/firebase';
 import { getStripe } from '@/lib/stripe';
 import { resolveCheckoutReturnUrlForRequest } from '@/lib/checkout-return-url';
 import { useTranslations } from '@/components/providers/locale-provider';
+import {
+    PAYMENT_CHANNELS,
+    type PaymentChannelId,
+    isLocalPaymentChannel,
+} from '@/lib/payment-channels';
 
 interface PaymentFormProps {
     amount: number;
@@ -31,8 +36,8 @@ interface PaymentFormProps {
 
 type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe' | 'pay_on_site';
 
-/** Set to true to show Telebirr, CBE / bank transfer, and pay-on-site again. */
-const SHOW_LOCAL_PAYMENT_METHODS = false;
+const SHOW_LOCAL_PAYMENT_METHODS =
+    process.env.NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED === 'true';
 
 export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true, bookingType = 'flight', source = 'local', externalItemId = 'N/A', currencyCode = 'USD', externalSnapshot = {} }) => {
     const { t, locale } = useTranslations();
@@ -56,10 +61,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
         [t],
     );
 
+    const localChannels = PAYMENT_CHANNELS.filter((c) => c.id !== 'stripe');
     const [method, setMethod] = useState<PaymentMethod>(
-        SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'telebirr' : 'stripe',
+        SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'cbebirr' : 'stripe',
+    );
+    const [paymentChannel, setPaymentChannel] = useState<PaymentChannelId>(
+        SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'cbe_birr' : 'stripe',
     );
     const [loading, setLoading] = useState(false);
+    const [paymentReference, setPaymentReference] = useState<string | null>(null);
+    const [ussdInstructions, setUssdInstructions] = useState<string | null>(null);
+    const [awaitingBankPayment, setAwaitingBankPayment] = useState(false);
 
     // Persist ?returnUrl= from BookAddis embed/link for Stripe cancel/success redirects
     useEffect(() => {
@@ -106,7 +118,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             return;
         }
 
-        if (method === 'stripe') {
+        const isBankRail =
+            method === 'cbebirr' ||
+            (SHOW_LOCAL_PAYMENT_METHODS && isLocalPaymentChannel(paymentChannel));
+
+        if (method === 'stripe' || isBankRail) {
+            setPaymentReference(null);
+            setUssdInstructions(null);
+            setAwaitingBankPayment(false);
             try {
                 // Ensure user is logged in
                 if (!auth?.currentUser) {
@@ -143,7 +162,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         bookingType,
                         source,
                         externalItemId,
-                        currency: currencyCode || 'USD',
+                        currency: isBankRail ? 'ETB' : currencyCode || 'USD',
+                        paymentChannel: method === 'stripe' ? 'stripe' : paymentChannel,
                         external_snapshot: externalSnapshot,
                     }),
                 });
@@ -153,7 +173,41 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     toast.error(t('bookingUi.payment.toastAuthFailed'));
                 }
                 const payload = await response.json();
-                const { url, error, sessionId } = payload || {};
+                const {
+                    url,
+                    error,
+                    sessionId,
+                    paymentReference: payRef,
+                    payNar,
+                    paymentUrl,
+                    ussdInstructions: ussd,
+                } = payload || {};
+                const resolvedRef =
+                    typeof payRef === 'string'
+                        ? payRef
+                        : typeof payNar === 'string'
+                          ? payNar
+                          : null;
+
+                if (resolvedRef) {
+                    setPaymentReference(resolvedRef);
+                    try {
+                        sessionStorage.setItem('last_pay_nar', resolvedRef);
+                    } catch {
+                        /* ignore */
+                    }
+                }
+
+                if (typeof ussd === 'string') {
+                    setUssdInstructions(ussd);
+                }
+
+                const redirectUrl = paymentUrl || url;
+                if (redirectUrl && isBankRail) {
+                    setAwaitingBankPayment(true);
+                    window.location.href = redirectUrl;
+                    return;
+                }
 
                 if (url) {
                     window.location.href = url;
@@ -209,69 +263,45 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
             <div
                 className={`grid gap-4 md:gap-6 ${
-                    SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1'
+                    SHOW_LOCAL_PAYMENT_METHODS && isLocal
+                        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                        : 'grid-cols-1'
                 }`}
             >
                 {SHOW_LOCAL_PAYMENT_METHODS && isLocal && (
                     <>
-                        <button
-                            type="button"
-                            onClick={() => setMethod('telebirr')}
-                            className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'telebirr'
-                                ? 'border-[#5C2D91] bg-[#5C2D91]/10 shadow-lg ring-2 ring-[#5C2D91]/20'
-                                : 'border-gray-200 dark:border-slate-600 hover:border-[#5C2D91]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
+                        {localChannels.map((ch) => (
+                            <button
+                                key={ch.id}
+                                type="button"
+                                onClick={() => {
+                                    setMethod('cbebirr');
+                                    setPaymentChannel(ch.id);
+                                }}
+                                className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[140px] ${
+                                    method === 'cbebirr' && paymentChannel === ch.id
+                                        ? 'border-[#006838] bg-[#006838]/10 shadow-lg ring-2 ring-[#006838]/20'
+                                        : 'border-gray-200 dark:border-slate-600 hover:border-[#006838]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
                                 }`}
-                        >
-                            <div className="w-12 h-12 md:w-20 md:h-20 relative">
-                                <Image
-                                    src="/assets/images/telebirr.png"
-                                    alt={t('bookingUi.payment.telebirr')}
-                                    fill
-                                    className={`object-contain transition-all duration-300 ${method === 'telebirr' ? 'scale-110' : 'opacity-80'}`}
-                                />
-                            </div>
-                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'telebirr' ? 'text-[#5C2D91]' : 'text-gray-600'}`}>{t('bookingUi.payment.telebirr')}</span>
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setMethod('cbebirr')}
-                            className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'cbebirr'
-                                ? 'border-[#006838] bg-[#006838]/10 shadow-lg ring-2 ring-[#006838]/20'
-                                : 'border-gray-200 dark:border-slate-600 hover:border-[#006838]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
-                                }`}
-                        >
-                            <div className="w-12 h-12 md:w-20 md:h-20 relative">
-                                <Image
-                                    src="/assets/images/branch.png"
-                                    alt={t('bookingUi.payment.bankTransfer')}
-                                    fill
-                                    className={`object-contain transition-all duration-300 ${method === 'cbebirr' ? 'scale-110' : 'opacity-80'}`}
-                                />
-                            </div>
-                            <span className={`text-sm uppercase tracking-wide font-bold transition-colors ${method === 'cbebirr' ? 'text-[#006838]' : 'text-gray-600'}`}>{t('bookingUi.payment.bankTransfer')}</span>
-                        </button>
+                            >
+                                <div className="w-12 h-12 md:w-16 md:h-16 relative">
+                                    {ch.logo ? (
+                                        <Image
+                                            src={ch.logo}
+                                            alt={t(ch.labelKey)}
+                                            fill
+                                            className="object-contain"
+                                        />
+                                    ) : (
+                                        <Building2 className="w-10 h-10 text-[#006838]" />
+                                    )}
+                                </div>
+                                <span className="text-sm uppercase tracking-wide font-bold text-center text-gray-700">
+                                    {t(ch.labelKey)}
+                                </span>
+                            </button>
+                        ))}
                     </>
-                )}
-
-                {SHOW_LOCAL_PAYMENT_METHODS && isLocal && (
-                    <button
-                        type="button"
-                        onClick={() => setMethod('pay_on_site')}
-                        className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'pay_on_site'
-                            ? 'border-brand-primary bg-brand-primary/10 shadow-lg ring-2 ring-brand-primary/20'
-                            : 'border-gray-200 dark:border-slate-600 hover:border-brand-primary/40 hover:shadow-md bg-white dark:bg-slate-800/80'
-                            }`}
-                    >
-                        <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 ${method === 'pay_on_site' ? 'scale-110 shadow-lg bg-brand-primary text-white' : 'opacity-80 bg-brand-gray text-brand-dark dark:text-foreground'
-                            }`}>
-                            <Building2 className="w-6 h-6 md:w-10 md:h-10" />
-                        </div>
-                        <div className="text-center">
-                            <span className={`block text-sm uppercase tracking-wide font-bold transition-colors ${method === 'pay_on_site' ? 'text-brand-primary' : 'text-gray-600'}`}>{t('bookingUi.payment.payOnSite')}</span>
-                            <span className="text-[10px] text-gray-500 font-medium mt-1 block">{t('bookingUi.payment.reservePayLater')}</span>
-                        </div>
-                    </button>
                 )}
 
                 <button
@@ -307,56 +337,37 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             </div>
 
             <div className="space-y-4">
-                {SHOW_LOCAL_PAYMENT_METHODS && method === 'telebirr' && isLocal && (
-                    <form key={locale} onSubmit={telebirrForm.handleSubmit(onSubmit)} className="space-y-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                            <Input
-                                label={t('bookingUi.payment.telebirrPhone')}
-                                placeholder="0912345678"
-                                {...telebirrForm.register('phone')}
-                                error={telebirrForm.formState.errors.phone?.message}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">{t('bookingUi.payment.telebirrHint')}</p>
-                        </motion.div>
-                        <div className="flex gap-3 pt-4">
-                            <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                {t('bookingUi.payment.cancel')}
-                            </Button>
-                            <Button className="flex-1" disabled={loading} type="submit">
-                                {loading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
-                                )}
-                            </Button>
-                        </div>
-                    </form>
-                )}
-
                 {SHOW_LOCAL_PAYMENT_METHODS && method === 'cbebirr' && isLocal && (
-                    <form key={locale} onSubmit={cbebirrForm.handleSubmit(onSubmit)} className="space-y-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                            <Input
-                                label={t('bookingUi.payment.cbeAccount')}
-                                placeholder="1000123456"
-                                {...cbebirrForm.register('accountNumber')}
-                                error={cbebirrForm.formState.errors.accountNumber?.message}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">{t('bookingUi.payment.cbeHint')}</p>
+                    <div className="space-y-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                            <div className="bg-[#006838]/10 p-4 rounded-xl text-sm text-[#006838] border border-[#006838]/20">
+                                <p className="font-bold">{t('bookingUi.payment.localBanksTitle')}</p>
+                                <p className="text-xs mt-1 opacity-90">{t('bookingUi.payment.localBanksHint')}</p>
+                            </div>
+                            {ussdInstructions && (
+                                <div className="bg-slate-50 p-4 rounded-xl text-sm border border-slate-200">
+                                    <p className="font-semibold mb-1">USSD</p>
+                                    <p>{ussdInstructions}</p>
+                                </div>
+                            )}
                         </motion.div>
-                        <div className="flex gap-3 pt-4">
+                        <div className="flex gap-3 pt-2">
                             <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
                                 {t('bookingUi.payment.cancel')}
                             </Button>
-                            <Button className="flex-1" disabled={loading} type="submit">
+                            <Button
+                                className="flex-1 bg-[#006838] hover:bg-[#005a32] text-white"
+                                disabled={loading}
+                                onClick={() => handlePayment({})}
+                            >
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
+                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, 'ETB') })
                                 )}
                             </Button>
                         </div>
-                    </form>
+                    </div>
                 )}
 
                 {method === 'stripe' && (
@@ -369,6 +380,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                     <p className="text-xs opacity-80">{t('bookingUi.payment.secureStripeHint')}</p>
                                 </div>
                             </div>
+                            {(loading || paymentReference) && (
+                                <div className="bg-amber-50 p-4 rounded-xl text-sm text-amber-900 border border-amber-100">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-amber-700">
+                                        {t('bookingUi.payment.paymentReferenceLabel')}
+                                    </p>
+                                    <p className="mt-1 font-mono text-base font-bold tracking-wide">
+                                        {paymentReference || t('bookingUi.payment.paymentReferencePending')}
+                                    </p>
+                                    <p className="mt-2 text-xs text-amber-800/80">
+                                        {t('bookingUi.payment.paymentReferenceHint')}
+                                    </p>
+                                </div>
+                            )}
                         </motion.div>
                         <div className="flex gap-3 pt-4">
                             <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
@@ -389,36 +413,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     </div>
                 )}
 
-                {SHOW_LOCAL_PAYMENT_METHODS && method === 'pay_on_site' && isLocal && (
-                    <div className="space-y-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                            <div className="bg-brand-primary/10 p-4 rounded-xl text-sm text-brand-dark border border-brand-primary/20 flex items-center gap-3">
-                                <Building2 className="w-5 h-5 shrink-0 text-brand-primary" />
-                                <div>
-                                    <p className="font-extrabold">{t('bookingUi.payment.payOnSiteTitle')}</p>
-                                    <p className="text-xs text-gray-600">{t('bookingUi.payment.payOnSiteHint')}</p>
-                                </div>
-                            </div>
-                        </motion.div>
-                        <div className="flex gap-3 pt-4">
-                            <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                {t('bookingUi.payment.cancel')}
-                            </Button>
-                            <Button
-                                className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white"
-                                disabled={loading}
-                                onClick={() => handlePayment({})}
-                                type="button"
-                            >
-                                {loading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    t('bookingUi.payment.confirmReservation')
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

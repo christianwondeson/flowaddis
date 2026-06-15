@@ -40,6 +40,8 @@ function bookingStatusLabel(status: string): string {
             return "Refunded";
         case "FAILED":
             return "Failed";
+        case "EXPIRED":
+            return "Payment expired";
         default:
             return status;
     }
@@ -110,7 +112,9 @@ function BookingRowCard({ booking }: { booking: CustomerBookingSummary }) {
                     </span>
                 </div>
             </div>
-            <p className="break-all font-mono text-xs text-muted-foreground">Ref: {booking.id}</p>
+            <p className="break-all font-mono text-xs text-muted-foreground">
+                Ref: {booking.payment_reference || booking.id}
+            </p>
         </Card>
     );
 }

@@ -6,10 +6,13 @@ export type CustomerBookingStatus =
     | 'PAID'
     | 'CONFIRMED'
     | 'REFUNDED'
-    | 'FAILED';
+    | 'FAILED'
+    | 'EXPIRED';
 
 export interface CustomerBookingSummary {
     id: string;
+    payment_reference: string | null;
+    payment_channel: string | null;
     booking_type: string;
     source: string;
     status: CustomerBookingStatus;
