@@ -58,6 +58,9 @@ export const bookingUiEn = {
             secureStripeTitle: 'Secure Stripe payment',
             secureStripeHint:
                 'You will be redirected to Stripe’s secure checkout page to complete your payment.',
+            secureMpgsTitle: 'Secure card payment',
+            secureMpgsHint:
+                'Enter your card on Mastercard’s secure checkout page. BookAddis never sees your card number.',
             paymentReferenceLabel: 'Payment reference (PayNar)',
             paymentReferenceHint:
                 'Use this reference for CBE Birr, internet banking, or USSD. It is linked to your booking before payment.',

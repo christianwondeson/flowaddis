@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Building2, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,14 @@ import {
     type PaymentChannelId,
     isLocalPaymentChannel,
 } from '@/lib/payment-channels';
+import { MpgsEmbeddedCheckout } from '@/components/booking/mpgs-embedded-checkout';
+import {
+    isValidMpgsResultIndicator,
+    isValidMpgsSessionId,
+    resolveTrustedMpgsCheckoutScriptUrl,
+} from '@/lib/mpgs-checkout-security';
+
+const USE_MPGS_CHECKOUT = process.env.NEXT_PUBLIC_MPGS_ENABLED === 'true';
 
 interface PaymentFormProps {
     amount: number;
@@ -72,6 +80,49 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     const [paymentReference, setPaymentReference] = useState<string | null>(null);
     const [ussdInstructions, setUssdInstructions] = useState<string | null>(null);
     const [awaitingBankPayment, setAwaitingBankPayment] = useState(false);
+    const [mpgsCheckout, setMpgsCheckout] = useState<{
+        sessionId: string;
+        checkoutScriptUrl: string;
+    } | null>(null);
+
+    const handleMpgsComplete = useCallback(
+        async (resultIndicator: string) => {
+            const ref = paymentReference;
+            if (!ref || !isValidMpgsResultIndicator(resultIndicator)) {
+                toast.error(t('bookingUi.payment.toastStripeInit'));
+                return;
+            }
+            if (!auth?.currentUser) {
+                toast.error(t('bookingUi.payment.toastSignIn'));
+                return;
+            }
+            try {
+                const token = await auth.currentUser.getIdToken();
+                const res = await fetch('/api/payments/mpgs/confirm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ paymentReference: ref, resultIndicator }),
+                });
+                if (!res.ok) {
+                    toast.error(t('bookingUi.payment.toastStripeInit'));
+                    return;
+                }
+                try {
+                    sessionStorage.setItem('last_pay_nar', ref);
+                } catch {
+                    /* ignore */
+                }
+                onSuccess('stripe');
+                window.location.href = `/booking/success?ref=${encodeURIComponent(ref)}`;
+            } catch {
+                toast.error(t('bookingUi.payment.toastStripeInit'));
+            }
+        },
+        [paymentReference, onSuccess, t],
+    );
 
     // Persist ?returnUrl= from BookAddis embed/link for Stripe cancel/success redirects
     useEffect(() => {
@@ -163,7 +214,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         source,
                         externalItemId,
                         currency: isBankRail ? 'ETB' : currencyCode || 'USD',
-                        paymentChannel: method === 'stripe' ? 'stripe' : paymentChannel,
+                        paymentChannel:
+                            method === 'stripe'
+                                ? USE_MPGS_CHECKOUT
+                                    ? 'mpgs'
+                                    : 'stripe'
+                                : paymentChannel,
                         external_snapshot: externalSnapshot,
                     }),
                 });
@@ -181,6 +237,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     payNar,
                     paymentUrl,
                     ussdInstructions: ussd,
+                    checkoutScriptUrl,
                 } = payload || {};
                 const resolvedRef =
                     typeof payRef === 'string'
@@ -213,6 +270,29 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     window.location.href = url;
                     return;
                 }
+
+                if (
+                    USE_MPGS_CHECKOUT &&
+                    typeof sessionId === 'string' &&
+                    isValidMpgsSessionId(sessionId)
+                ) {
+                    const trustedScriptUrl = resolveTrustedMpgsCheckoutScriptUrl(
+                        typeof checkoutScriptUrl === 'string' ? checkoutScriptUrl : undefined,
+                    );
+                    if (!trustedScriptUrl) {
+                        toast.error(t('bookingUi.payment.toastStripeInit'));
+                        return;
+                    }
+                    setMpgsCheckout({ sessionId: sessionId.trim(), checkoutScriptUrl: trustedScriptUrl });
+                    setLoading(false);
+                    return;
+                }
+
+                if (USE_MPGS_CHECKOUT && method === 'stripe') {
+                    toast.error(error || t('bookingUi.payment.toastStripeInit'));
+                    return;
+                }
+
                 if (sessionId) {
                     const stripe = await getStripe();
                     if (!stripe) {
@@ -376,8 +456,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                             <div className="bg-teal-50 p-4 rounded-xl text-sm text-teal-700 border border-teal-100 flex items-center gap-3">
                                 <CreditCard className="w-5 h-5 shrink-0" />
                                 <div>
-                                    <p className="font-bold">{t('bookingUi.payment.secureStripeTitle')}</p>
-                                    <p className="text-xs opacity-80">{t('bookingUi.payment.secureStripeHint')}</p>
+                                    <p className="font-bold">
+                                        {USE_MPGS_CHECKOUT
+                                            ? t('bookingUi.payment.secureMpgsTitle')
+                                            : t('bookingUi.payment.secureStripeTitle')}
+                                    </p>
+                                    <p className="text-xs opacity-80">
+                                        {USE_MPGS_CHECKOUT
+                                            ? t('bookingUi.payment.secureMpgsHint')
+                                            : t('bookingUi.payment.secureStripeHint')}
+                                    </p>
                                 </div>
                             </div>
                             {(loading || paymentReference) && (
@@ -393,23 +481,33 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                     </p>
                                 </div>
                             )}
+                            {mpgsCheckout && (
+                                <MpgsEmbeddedCheckout
+                                    sessionId={mpgsCheckout.sessionId}
+                                    scriptUrl={mpgsCheckout.checkoutScriptUrl}
+                                    onError={(message) => toast.error(message)}
+                                    onComplete={handleMpgsComplete}
+                                />
+                            )}
                         </motion.div>
-                        <div className="flex gap-3 pt-4">
-                            <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
-                                {t('bookingUi.payment.cancel')}
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                disabled={loading}
-                                onClick={() => handlePayment({})}
-                            >
-                                {loading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
-                                )}
-                            </Button>
-                        </div>
+                        {!mpgsCheckout && (
+                            <div className="flex gap-3 pt-4">
+                                <Button variant="outline" onClick={onCancel} className="flex-1" type="button">
+                                    {t('bookingUi.payment.cancel')}
+                                </Button>
+                                <Button
+                                    className="flex-1"
+                                    disabled={loading}
+                                    onClick={() => handlePayment({})}
+                                >
+                                    {loading ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
+                                    )}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
 
