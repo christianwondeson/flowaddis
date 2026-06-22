@@ -23,6 +23,7 @@ import {
     saveHotelBookingDraftForAuthRedirect,
     consumeMatchedHotelDraft,
 } from '@/lib/booking-draft-storage';
+import { parseE164Phone, resolveCheckoutPhone } from '@/lib/booking-contact-prefill';
 import { useTranslations } from '@/components/providers/locale-provider';
 
 interface BookingModalProps {
@@ -78,7 +79,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     type = 'hotel',
     initialCheckIn = '',
     initialCheckOut = '',
-    isLocal = false,
+    isLocal = true,
     externalItemId = 'N/A',
     roomBlockId,
     roomBookQuantity = 1,
@@ -176,6 +177,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     });
     const selectedCheckIn = watch('checkIn');
     const selectedCheckOut = watch('checkOut');
+    const customerPhone = watch('phone');
 
     // Country and national number UI state
     const [countryCode, setCountryCode] = useState<string>('ET');
@@ -222,13 +224,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         }
         if (initialCheckIn) setValue('checkIn', initialCheckIn, { shouldValidate: true });
         if (initialCheckOut) setValue('checkOut', initialCheckOut, { shouldValidate: true });
-    }, [isOpen, pathname, externalItemId, type, initialCheckIn, initialCheckOut, reset, setValue]);
+    }, [isOpen, pathname, externalItemId, type, initialCheckIn, initialCheckOut, reset, setValue, t]);
 
-    // Signed-in bookings always use the account email (confirmations + fraud prevention)
+    // Signed-in users: prefill contact from account (email locked; name/phone from profile)
     useEffect(() => {
-        if (!isOpen || !user?.email) return;
-        setValue('email', user.email, { shouldValidate: true });
-    }, [isOpen, user?.email, setValue]);
+        if (!isOpen || !user) return;
+        if (user.email) setValue('email', user.email, { shouldValidate: true });
+        if (user.name?.trim()) setValue('name', user.name.trim(), { shouldValidate: true });
+        if (user.phone?.trim()) {
+            const parsed = parseE164Phone(user.phone);
+            if (parsed) {
+                setCountryCode(parsed.countryCode);
+                setNationalNumber(parsed.nationalNumber);
+                setValue('phone', parsed.e164, { shouldValidate: true });
+            } else {
+                setValue('phone', user.phone.trim(), { shouldValidate: true });
+            }
+        }
+    }, [isOpen, user?.id, user?.email, user?.name, user?.phone, setValue]);
 
     const resolveBookingEmail = (data: BookingFormData) =>
         user?.email?.trim() ? user.email.trim() : data.email;
@@ -507,6 +520,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
                                 externalItemId={externalItemId}
                                 externalSnapshot={checkoutExternalSnapshot}
+                                customerPhone={resolveCheckoutPhone(user?.phone, customerPhone)}
+                                profilePhone={user?.phone}
                             />
                         )}
 

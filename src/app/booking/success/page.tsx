@@ -2,36 +2,72 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, Download, Mail, Home, Loader2 } from 'lucide-react';
+import {
+    CheckCircle2,
+    ArrowRight,
+    Download,
+    Mail,
+    Home,
+    Loader2,
+    Clock,
+    XCircle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return-url';
 import { useTranslations } from '@/components/providers/locale-provider';
 import { auth } from '@/lib/firebase';
+import { formatCurrency } from '@/lib/currency';
+
+type UiPhase = 'loading' | 'pending' | 'success' | 'failed' | 'expired';
 
 function SuccessContent() {
     const { t } = useTranslations();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('session_id');
     const refFromQuery = searchParams.get('ref');
+    const pendingHint = searchParams.get('pending') === '1';
     const returnUrl = sanitizeCheckoutReturnUrl(searchParams.get('return_url'), BOOKADDIS_HOME);
     const [storedRef, setStoredRef] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
     const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+    const [chargeQuote, setChargeQuote] = useState<{ amount: number; currency: string } | null>(
+        null,
+    );
 
     const paymentReference = refFromQuery || storedRef || null;
+
+    const phase: UiPhase = (() => {
+        if (sessionId) return 'success';
+        if (!paymentStatus && pendingHint) return 'pending';
+        if (!paymentStatus) return 'loading';
+        if (paymentStatus === 'PAID' || paymentStatus === 'CONFIRMED') return 'success';
+        if (paymentStatus === 'FAILED') return 'failed';
+        if (paymentStatus === 'EXPIRED') return 'expired';
+        if (paymentStatus === 'INITIATED') return 'pending';
+        return 'loading';
+    })();
 
     useEffect(() => {
         try {
             const saved = sessionStorage.getItem('last_pay_nar');
             if (saved) setStoredRef(saved);
+            const quoteRaw = sessionStorage.getItem('last_checkout_quote');
+            if (quoteRaw) {
+                const parsed = JSON.parse(quoteRaw) as { amount?: number; currency?: string };
+                if (typeof parsed.amount === 'number') {
+                    setChargeQuote({
+                        amount: parsed.amount,
+                        currency: parsed.currency || 'ETB',
+                    });
+                }
+            }
         } catch {
             /* ignore */
         }
 
         const pollStatus = async (ref: string) => {
-            if (!auth?.currentUser) return;
+            if (!auth?.currentUser) return null;
             try {
                 const token = await auth.currentUser.getIdToken();
                 const res = await fetch(`/api/payments/status/${encodeURIComponent(ref)}`, {
@@ -39,21 +75,72 @@ function SuccessContent() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data?.status) setPaymentStatus(data.status);
+                    if (data?.status) {
+                        setPaymentStatus(data.status);
+                        return data.status as string;
+                    }
                 }
             } catch {
                 /* ignore */
             }
+            return null;
         };
 
         const ref = refFromQuery || sessionStorage.getItem('last_pay_nar');
         if (ref && !sessionId) {
             void pollStatus(ref);
+            const interval = window.setInterval(async () => {
+                const status = await pollStatus(ref);
+                if (
+                    status === 'PAID' ||
+                    status === 'CONFIRMED' ||
+                    status === 'FAILED' ||
+                    status === 'EXPIRED'
+                ) {
+                    window.clearInterval(interval);
+                }
+            }, 4000);
+            return () => window.clearInterval(interval);
         }
+    }, [sessionId, refFromQuery, pendingHint]);
 
-        const timer = setTimeout(() => setLoading(false), 1500);
-        return () => clearTimeout(timer);
-    }, [sessionId, refFromQuery]);
+    const title =
+        phase === 'success'
+            ? t('bookingFlow.successTitle')
+            : phase === 'pending'
+              ? t('bookingFlow.pendingTitle')
+              : phase === 'failed'
+                ? t('bookingFlow.failedTitle')
+                : phase === 'expired'
+                  ? t('bookingFlow.expiredTitle')
+                  : t('bookingFlow.pendingTitle');
+
+    const body =
+        phase === 'success'
+            ? t('bookingFlow.successThankYou')
+            : phase === 'pending'
+              ? t('bookingFlow.pendingBody')
+              : phase === 'failed'
+                ? t('bookingFlow.failedBody')
+                : phase === 'expired'
+                  ? t('bookingFlow.expiredBody')
+                  : t('bookingFlow.pendingBody');
+
+    const Icon =
+        phase === 'success'
+            ? CheckCircle2
+            : phase === 'failed' || phase === 'expired'
+              ? XCircle
+              : phase === 'pending' || phase === 'loading'
+                ? Clock
+                : CheckCircle2;
+
+    const iconClass =
+        phase === 'success'
+            ? 'bg-green-50 text-green-500'
+            : phase === 'failed' || phase === 'expired'
+              ? 'bg-red-50 text-red-500'
+              : 'bg-amber-50 text-amber-600';
 
     return (
         <motion.div
@@ -65,17 +152,27 @@ function SuccessContent() {
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.2 }}
-                    className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center"
+                    transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.2 }}
+                    className={`w-20 h-20 rounded-full flex items-center justify-center ${iconClass.split(' ')[0]}`}
                 >
-                    <CheckCircle2 className="w-10 h-10 text-green-500" />
+                    {phase === 'pending' || phase === 'loading' ? (
+                        <Loader2 className={`w-10 h-10 animate-spin ${iconClass.split(' ').slice(1).join(' ')}`} />
+                    ) : (
+                        <Icon className={`w-10 h-10 ${iconClass.split(' ').slice(1).join(' ')}`} />
+                    )}
                 </motion.div>
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-3">{t('bookingFlow.successTitle')}</h1>
-            <p className="text-gray-500 mb-8">
-                {t('bookingFlow.successThankYou')}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">{title}</h1>
+            <p className="text-gray-500 mb-8">{body}</p>
+
+            {chargeQuote && phase === 'pending' && (
+                <p className="text-sm font-semibold text-gray-700 mb-6">
+                    {t('bookingFlow.pendingAmount', {
+                        amount: formatCurrency(chargeQuote.amount, chargeQuote.currency),
+                    })}
+                </p>
+            )}
 
             <div className="space-y-4 mb-10">
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl text-left border border-gray-100">
@@ -83,8 +180,14 @@ function SuccessContent() {
                         <Mail className="w-5 h-5 text-brand-primary" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.eticketLabel')}</p>
-                        <p className="text-sm font-semibold text-gray-700">{t('bookingFlow.eticketHint')}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            {t('bookingFlow.eticketLabel')}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-700">
+                            {phase === 'success'
+                                ? t('bookingFlow.eticketHint')
+                                : t('bookingFlow.eticketPendingHint')}
+                        </p>
                     </div>
                 </div>
 
@@ -93,14 +196,16 @@ function SuccessContent() {
                         <Download className="w-5 h-5 text-brand-primary" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.bookingIdLabel')}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            {t('bookingFlow.bookingIdLabel')}
+                        </p>
                         <p className="text-sm font-semibold text-gray-700 font-mono tracking-wide">
                             {paymentReference ? paymentReference : t('bookingFlow.bookingIdFallback')}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{t('bookingFlow.bookingIdHint')}</p>
-                        {paymentStatus && paymentStatus !== 'PAID' && paymentStatus !== 'CONFIRMED' && (
+                        {paymentStatus && phase !== 'success' && (
                             <p className="text-xs text-amber-600 mt-2">
-                                Status: {paymentStatus}
+                                {t('bookingUi.payment.pollPaymentStatus')}: {paymentStatus}
                             </p>
                         )}
                     </div>
@@ -120,9 +225,11 @@ function SuccessContent() {
                 <Button asChild variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
                     <Link href="/">{t('bookingFlow.stayOnBookAddis')}</Link>
                 </Button>
-                <Button variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
-                    {t('bookingFlow.viewBookingDetails')} <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
+                {phase === 'success' && (
+                    <Button variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
+                        {t('bookingFlow.viewBookingDetails')} <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                )}
             </div>
         </motion.div>
     );
@@ -131,11 +238,13 @@ function SuccessContent() {
 export default function BookingSuccessPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <Suspense fallback={
-                <div className="flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-                </div>
-            }>
+            <Suspense
+                fallback={
+                    <div className="flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+                    </div>
+                }
+            >
                 <SuccessContent />
             </Suspense>
         </div>

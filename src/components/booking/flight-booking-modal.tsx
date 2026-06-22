@@ -20,6 +20,7 @@ import {
     saveFlightBookingDraftForAuthRedirect,
     consumeMatchedFlightDraft,
 } from '@/lib/booking-draft-storage';
+import { parseE164Phone, resolveCheckoutPhone } from '@/lib/booking-contact-prefill';
 
 interface FlightBookingModalProps {
     isOpen: boolean;
@@ -81,6 +82,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         reset,
         setValue,
         setError,
+        watch,
     } = useForm<FlightBookingFormData>({
         resolver: zodResolver(flightBookingSchema),
         defaultValues: {
@@ -115,17 +117,26 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
     useEffect(() => {
         if (!isOpen) return;
         const draft = consumeMatchedFlightDraft(pathname);
-        if (!draft) return;
-        reset({ name: '', email: '', phone: '' });
-        setCountryCode('ET');
-        setNationalNumber('');
-        toast.success('Please enter your contact details to continue.');
-    }, [isOpen, pathname, reset]);
+        if (draft) {
+            toast.success('Please enter your contact details to continue.');
+        }
+    }, [isOpen, pathname]);
 
     useEffect(() => {
-        if (!isOpen || !user?.email) return;
-        setValue('email', user.email, { shouldValidate: true });
-    }, [isOpen, user?.email, setValue]);
+        if (!isOpen || !user) return;
+        if (user.email) setValue('email', user.email, { shouldValidate: true });
+        if (user.name?.trim()) setValue('name', user.name.trim(), { shouldValidate: true });
+        if (user.phone?.trim()) {
+            const parsed = parseE164Phone(user.phone);
+            if (parsed) {
+                setCountryCode(parsed.countryCode);
+                setNationalNumber(parsed.nationalNumber);
+                setValue('phone', parsed.e164, { shouldValidate: true });
+            } else {
+                setValue('phone', user.phone.trim(), { shouldValidate: true });
+            }
+        }
+    }, [isOpen, user?.id, user?.email, user?.name, user?.phone, setValue]);
 
     const resolveBookingEmail = (data: FlightBookingFormData) =>
         user?.email?.trim() ? user.email.trim() : data.email;
@@ -357,6 +368,8 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                                     airline: flightData?.airline,
                                     flightNumber: flightData?.flightNumber,
                                 }}
+                                customerPhone={resolveCheckoutPhone(user?.phone, watch('phone'))}
+                                profilePhone={user?.phone}
                             />
                         )}
 

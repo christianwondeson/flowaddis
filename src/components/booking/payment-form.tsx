@@ -16,10 +16,15 @@ import { getStripe } from '@/lib/stripe';
 import { resolveCheckoutReturnUrlForRequest } from '@/lib/checkout-return-url';
 import { useTranslations } from '@/components/providers/locale-provider';
 import {
-    PAYMENT_CHANNELS,
-    type PaymentChannelId,
+    getCheckoutLocalChannels,
+    isCbeBirrCheckoutEnabled,
     isLocalPaymentChannel,
+    type PaymentChannelId,
 } from '@/lib/payment-channels';
+import { buildNestCheckoutMetadata, isValidCbeBirrMsisdn } from '@/lib/cbe-birr-checkout';
+import { resolveCheckoutPhone } from '@/lib/booking-contact-prefill';
+import { estimateEtbFromListingAmount, type EtbQuote } from '@/lib/etb-checkout';
+import { useAuth } from '@/components/providers/auth-provider';
 
 interface PaymentFormProps {
     amount: number;
@@ -32,15 +37,41 @@ interface PaymentFormProps {
     externalItemId?: string; // ID from provider/search result
     currencyCode?: string; // default USD
     externalSnapshot?: Record<string, any>;
+    /** E.164 or local ET phone from booking form — pre-fills CBE Birr USSD push. */
+    customerPhone?: string;
+    /** Account profile phone — when set, CBE Birr must use this number (server-enforced). */
+    profilePhone?: string;
 }
 
 type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe' | 'pay_on_site';
 
-const SHOW_LOCAL_PAYMENT_METHODS =
-    process.env.NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED === 'true';
+const SHOW_CBE_BIRR = isCbeBirrCheckoutEnabled();
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true, bookingType = 'flight', source = 'local', externalItemId = 'N/A', currencyCode = 'USD', externalSnapshot = {} }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({
+    amount,
+    onSuccess,
+    onCancel,
+    isLocal = true,
+    bookingType = 'flight',
+    source = 'local',
+    externalItemId = 'N/A',
+    currencyCode = 'USD',
+    externalSnapshot = {},
+    customerPhone: customerPhoneProp = '',
+    profilePhone = '',
+}) => {
     const { t, locale } = useTranslations();
+    const { user } = useAuth();
+
+    const resolvedProfilePhone = profilePhone?.trim() || user?.phone?.trim() || '';
+    const lockedCbePhone = useMemo(() => {
+        if (resolvedProfilePhone && isValidCbeBirrMsisdn(resolvedProfilePhone)) {
+            return resolvedProfilePhone;
+        }
+        return null;
+    }, [resolvedProfilePhone]);
+
+    const effectiveCustomerPhone = resolveCheckoutPhone(resolvedProfilePhone, customerPhoneProp);
 
     const telebirrSchema = useMemo(
         () =>
@@ -53,25 +84,35 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     const cbebirrSchema = useMemo(
         () =>
             z.object({
-                accountNumber: z
+                phone: z
                     .string()
-                    .min(10, t('bookingUi.payment.validationCbeMin'))
-                    .regex(/^\d+$/, t('bookingUi.payment.validationCbeDigits')),
+                    .min(1, t('bookingUi.payment.cbeBirrPhoneRequired'))
+                    .refine((v) => isValidCbeBirrMsisdn(v), t('bookingUi.payment.cbeBirrPhoneInvalid')),
             }),
         [t],
     );
 
-    const localChannels = PAYMENT_CHANNELS.filter((c) => c.id !== 'stripe');
+    const localChannels = getCheckoutLocalChannels();
+    const showLocalPayments = SHOW_CBE_BIRR && isLocal && localChannels.length > 0;
+    const defaultLocalChannel = localChannels[0]?.id ?? 'cbe_birr';
+
     const [method, setMethod] = useState<PaymentMethod>(
-        SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'cbebirr' : 'stripe',
+        showLocalPayments ? 'cbebirr' : 'stripe',
     );
     const [paymentChannel, setPaymentChannel] = useState<PaymentChannelId>(
-        SHOW_LOCAL_PAYMENT_METHODS && isLocal ? 'cbe_birr' : 'stripe',
+        showLocalPayments ? defaultLocalChannel : 'stripe',
     );
     const [loading, setLoading] = useState(false);
     const [paymentReference, setPaymentReference] = useState<string | null>(null);
     const [ussdInstructions, setUssdInstructions] = useState<string | null>(null);
     const [awaitingBankPayment, setAwaitingBankPayment] = useState(false);
+    const [verifiedCharge, setVerifiedCharge] = useState<{ amount: number; currency: string } | null>(
+        null,
+    );
+    const [etbQuote, setEtbQuote] = useState<EtbQuote | null>(null);
+    const [etbQuoteLoading, setEtbQuoteLoading] = useState(false);
+
+    const listingCurrency = (currencyCode || 'USD').toUpperCase();
 
     // Persist ?returnUrl= from BookAddis embed/link for Stripe cancel/success redirects
     useEffect(() => {
@@ -93,8 +134,74 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
         }
     }, []);
 
-    const currency = method === 'telebirr' || method === 'cbebirr' ? 'ETB' : (currencyCode || 'USD');
-    const displayAmount = method === 'telebirr' || method === 'cbebirr' ? amount * 55 : amount; // Rough USD to ETB conversion for local rails
+    // Server-verified ETB price for local rails (same RapidAPI re-fetch as checkout)
+    useEffect(() => {
+        if (!showLocalPayments || !auth?.currentUser) return;
+        if (
+            (bookingType === 'flight' || bookingType === 'hotel') &&
+            (!externalItemId || externalItemId === 'N/A')
+        ) {
+            return;
+        }
+
+        let cancelled = false;
+        void (async () => {
+            setEtbQuoteLoading(true);
+            try {
+                const token = await auth.currentUser!.getIdToken();
+                const res = await fetch('/api/checkout/quote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        bookingType,
+                        source,
+                        externalItemId,
+                        currency: 'ETB',
+                        external_snapshot: externalSnapshot,
+                        metadata: buildNestCheckoutMetadata(externalSnapshot),
+                    }),
+                });
+                if (!res.ok || cancelled) return;
+                const data = await res.json();
+                if (cancelled || typeof data.amount !== 'number') return;
+                const quote: EtbQuote = {
+                    amount: data.amount,
+                    currency: 'ETB',
+                    verified: true,
+                };
+                setEtbQuote(quote);
+                setVerifiedCharge({ amount: data.amount, currency: 'ETB' });
+            } catch {
+                /* quote optional — fallback estimate shown */
+            } finally {
+                if (!cancelled) setEtbQuoteLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        showLocalPayments,
+        bookingType,
+        source,
+        externalItemId,
+        externalSnapshot,
+    ]);
+
+    const stripeDisplayAmount = amount;
+    const stripeDisplayCurrency = listingCurrency === 'ETB' ? 'ETB' : 'USD';
+    const localEtbAmount =
+        etbQuote?.amount ??
+        verifiedCharge?.amount ??
+        estimateEtbFromListingAmount(amount, listingCurrency);
+
+    const isLocalMethod = method === 'telebirr' || method === 'cbebirr';
+    const displayAmount = isLocalMethod ? localEtbAmount : stripeDisplayAmount;
+    const displayCurrency = isLocalMethod ? 'ETB' : stripeDisplayCurrency;
 
     const telebirrForm = useForm({
         resolver: zodResolver(telebirrSchema),
@@ -103,8 +210,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
     const cbebirrForm = useForm({
         resolver: zodResolver(cbebirrSchema),
-        defaultValues: { accountNumber: '' },
+        defaultValues: { phone: lockedCbePhone || effectiveCustomerPhone || '' },
     });
+
+    useEffect(() => {
+        const next = lockedCbePhone || effectiveCustomerPhone;
+        if (next) {
+            cbebirrForm.setValue('phone', next, { shouldValidate: true });
+        }
+    }, [lockedCbePhone, effectiveCustomerPhone, cbebirrForm]);
 
     // We no longer need a react-hook-form for stripe as it's a redirect
 
@@ -120,7 +234,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
         const isBankRail =
             method === 'cbebirr' ||
-            (SHOW_LOCAL_PAYMENT_METHODS && isLocalPaymentChannel(paymentChannel));
+            (showLocalPayments && isLocalPaymentChannel(paymentChannel));
+
+        const isCbeBirrRail = isBankRail && paymentChannel === 'cbe_birr';
 
         if (method === 'stripe' || isBankRail) {
             setPaymentReference(null);
@@ -151,13 +267,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 const token = await auth.currentUser.getIdToken(true);
                 void resolveCheckoutReturnUrlForRequest();
 
+                let checkoutMetadata: Record<string, unknown> | undefined;
+                if (isCbeBirrRail) {
+                    const phoneFromForm = cbebirrForm.getValues('phone')?.trim();
+                    const msisdnSource = lockedCbePhone || phoneFromForm || effectiveCustomerPhone;
+                    if (!msisdnSource || !isValidCbeBirrMsisdn(msisdnSource)) {
+                        toast.error(t('bookingUi.payment.cbeBirrPhoneInvalid'));
+                        setLoading(false);
+                        return;
+                    }
+                    checkoutMetadata = buildNestCheckoutMetadata(externalSnapshot, msisdnSource);
+                } else if (isBankRail) {
+                    checkoutMetadata = buildNestCheckoutMetadata(externalSnapshot);
+                }
+
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     },
-                    // Server-only pricing: never send a client-controlled amount to the API
                     body: JSON.stringify({
                         bookingType,
                         source,
@@ -165,6 +294,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         currency: isBankRail ? 'ETB' : currencyCode || 'USD',
                         paymentChannel: method === 'stripe' ? 'stripe' : paymentChannel,
                         external_snapshot: externalSnapshot,
+                        ...(checkoutMetadata ? { metadata: checkoutMetadata } : {}),
                     }),
                 });
 
@@ -181,6 +311,9 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     payNar,
                     paymentUrl,
                     ussdInstructions: ussd,
+                    awaitingBankPayment: awaitingPush,
+                    amount: verifiedAmount,
+                    currency: verifiedCurrency,
                 } = payload || {};
                 const resolvedRef =
                     typeof payRef === 'string'
@@ -202,7 +335,31 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     setUssdInstructions(ussd);
                 }
 
+                if (typeof verifiedAmount === 'number' && Number.isFinite(verifiedAmount)) {
+                    setVerifiedCharge({
+                        amount: verifiedAmount,
+                        currency: typeof verifiedCurrency === 'string' ? verifiedCurrency : 'ETB',
+                    });
+                    try {
+                        sessionStorage.setItem(
+                            'last_checkout_quote',
+                            JSON.stringify({
+                                amount: verifiedAmount,
+                                currency: verifiedCurrency || 'ETB',
+                            }),
+                        );
+                    } catch {
+                        /* ignore */
+                    }
+                }
+
                 const redirectUrl = paymentUrl || url;
+                if (isCbeBirrRail && awaitingPush && resolvedRef) {
+                    toast.success(t('bookingUi.payment.cbeBirrUssdSent'));
+                    setAwaitingBankPayment(true);
+                    window.location.href = `/booking/success?ref=${encodeURIComponent(resolvedRef)}&pending=1`;
+                    return;
+                }
                 if (redirectUrl && isBankRail) {
                     setAwaitingBankPayment(true);
                     window.location.href = redirectUrl;
@@ -256,19 +413,31 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                 <p className="text-gray-600 dark:text-slate-300 text-base">
                     {t('bookingUi.payment.totalAmount')}{' '}
                     <span className="text-brand-primary font-bold text-2xl">
-                        {formatCurrency(displayAmount, currency)}
+                        {formatCurrency(displayAmount, displayCurrency)}
                     </span>
+                    {showLocalPayments && isLocalMethod && etbQuoteLoading && (
+                        <Loader2 className="inline w-4 h-4 ml-2 animate-spin text-brand-primary" />
+                    )}
                 </p>
+                {showLocalPayments && isLocalMethod && (
+                    <p className="text-xs text-gray-500">
+                        {etbQuoteLoading
+                            ? t('bookingUi.payment.etbQuoteLoading')
+                            : etbQuote?.verified
+                              ? t('bookingUi.payment.etbQuoteVerified')
+                              : t('bookingUi.payment.etbQuoteEstimate')}
+                    </p>
+                )}
             </div>
 
             <div
                 className={`grid gap-4 md:gap-6 ${
-                    SHOW_LOCAL_PAYMENT_METHODS && isLocal
+                    showLocalPayments
                         ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
                         : 'grid-cols-1'
                 }`}
             >
-                {SHOW_LOCAL_PAYMENT_METHODS && isLocal && (
+                {showLocalPayments && (
                     <>
                         {localChannels.map((ch) => (
                             <button
@@ -310,7 +479,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 md:gap-4 transition-all duration-300 min-h-[120px] md:min-h-[160px] ${method === 'stripe'
                         ? 'border-[#635BFF] bg-[#635BFF]/10 shadow-lg ring-2 ring-[#635BFF]/20'
                         : 'border-gray-200 dark:border-slate-600 hover:border-[#635BFF]/40 hover:shadow-md bg-white dark:bg-slate-800/80'
-                        } ${!SHOW_LOCAL_PAYMENT_METHODS || !isLocal ? 'w-full' : ''}`}
+                        } ${!showLocalPayments ? 'w-full' : ''}`}
                 >
                     <div className={`w-12 h-12 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 overflow-hidden relative ${method === 'stripe' ? 'scale-110 shadow-lg' : 'opacity-80'}`}>
                         {/* Colorful Gradient Card Background */}
@@ -337,16 +506,49 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             </div>
 
             <div className="space-y-4">
-                {SHOW_LOCAL_PAYMENT_METHODS && method === 'cbebirr' && isLocal && (
-                    <div className="space-y-4">
+                {showLocalPayments && method === 'cbebirr' && (
+                    <form onSubmit={cbebirrForm.handleSubmit(onSubmit)} className="space-y-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                             <div className="bg-[#006838]/10 p-4 rounded-xl text-sm text-[#006838] border border-[#006838]/20">
-                                <p className="font-bold">{t('bookingUi.payment.localBanksTitle')}</p>
-                                <p className="text-xs mt-1 opacity-90">{t('bookingUi.payment.localBanksHint')}</p>
+                                <p className="font-bold">
+                                    {paymentChannel === 'cbe_birr'
+                                        ? t('bookingUi.payment.cbeBirrTitle')
+                                        : t('bookingUi.payment.localBanksTitle')}
+                                </p>
+                                <p className="text-xs mt-1 opacity-90">
+                                    {paymentChannel === 'cbe_birr'
+                                        ? t('bookingUi.payment.cbeBirrHint')
+                                        : t('bookingUi.payment.localBanksHint')}
+                                </p>
                             </div>
+                            {paymentChannel === 'cbe_birr' && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-slate-200">
+                                        {t('bookingUi.payment.cbeBirrPhone')}
+                                    </label>
+                                    <Input
+                                        {...cbebirrForm.register('phone')}
+                                        placeholder="0912345678"
+                                        inputMode="tel"
+                                        autoComplete="tel"
+                                        readOnly={!!lockedCbePhone}
+                                        className={`rounded-xl ${lockedCbePhone ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                                    />
+                                    {cbebirrForm.formState.errors.phone && (
+                                        <p className="text-red-500 text-xs">
+                                            {cbebirrForm.formState.errors.phone.message}
+                                        </p>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        {lockedCbePhone
+                                            ? t('bookingUi.payment.cbeBirrPhoneLocked')
+                                            : t('bookingUi.payment.cbeBirrPhoneHint')}
+                                    </p>
+                                </div>
+                            )}
                             {ussdInstructions && (
-                                <div className="bg-slate-50 p-4 rounded-xl text-sm border border-slate-200">
-                                    <p className="font-semibold mb-1">USSD</p>
+                                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl text-sm border border-slate-200 dark:border-slate-600">
+                                    <p className="font-semibold mb-1">{t('bookingUi.payment.awaitingPayment')}</p>
                                     <p>{ussdInstructions}</p>
                                 </div>
                             )}
@@ -356,18 +558,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                 {t('bookingUi.payment.cancel')}
                             </Button>
                             <Button
+                                type="submit"
                                 className="flex-1 bg-[#006838] hover:bg-[#005a32] text-white"
                                 disabled={loading}
-                                onClick={() => handlePayment({})}
                             >
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : paymentChannel === 'cbe_birr' ? (
+                                    t('bookingUi.payment.cbeBirrPay', {
+                                        amount: formatCurrency(displayAmount, displayCurrency),
+                                    })
                                 ) : (
-                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, 'ETB') })
+                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, displayCurrency) })
                                 )}
                             </Button>
                         </div>
-                    </div>
+                    </form>
                 )}
 
                 {method === 'stripe' && (
@@ -406,7 +612,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                                 {loading ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, currency) })
+                                    t('bookingUi.payment.pay', { amount: formatCurrency(displayAmount, displayCurrency) })
                                 )}
                             </Button>
                         </div>

@@ -1,6 +1,7 @@
 /**
  * Payment channel registry — mirrors Nest PaymentChannel enum.
- * Enable via NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED and per-bank flags on the API.
+ * Enable CBE Birr: NEXT_PUBLIC_CBE_BIRR_ENABLED=true
+ * Enable all local banks: NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED=true
  */
 export type PaymentChannelId =
     | 'stripe'
@@ -31,7 +32,7 @@ export const PAYMENT_CHANNELS: PaymentChannelConfig[] = [
         provider: 'cbe',
         currency: 'ETB',
         logo: '/assets/images/branch.png',
-        requiresApiFlag: 'CBE_PAYMENTS_ENABLED',
+        requiresApiFlag: 'CBE_BIRR_ENABLED',
     },
     {
         id: 'cbe_internet_banking',
@@ -72,4 +73,22 @@ export const PAYMENT_CHANNELS: PaymentChannelConfig[] = [
 
 export function isLocalPaymentChannel(id: PaymentChannelId): boolean {
     return id !== 'stripe';
+}
+
+const CBE_BIRR_ENABLED = process.env.NEXT_PUBLIC_CBE_BIRR_ENABLED === 'true';
+const ALL_LOCAL_BANKS_ENABLED = process.env.NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED === 'true';
+
+/** Channels shown on checkout when paying in ETB locally. */
+export function getCheckoutLocalChannels(): PaymentChannelConfig[] {
+    if (ALL_LOCAL_BANKS_ENABLED) {
+        return PAYMENT_CHANNELS.filter((c) => c.id !== 'stripe');
+    }
+    if (CBE_BIRR_ENABLED) {
+        return PAYMENT_CHANNELS.filter((c) => c.id === 'cbe_birr');
+    }
+    return [];
+}
+
+export function isCbeBirrCheckoutEnabled(): boolean {
+    return CBE_BIRR_ENABLED || ALL_LOCAL_BANKS_ENABLED;
 }
