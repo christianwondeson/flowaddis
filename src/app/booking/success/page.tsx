@@ -70,14 +70,36 @@ function SuccessContent() {
         };
 
         const ref = refFromQuery || sessionStorage.getItem('last_pay_nar');
-        if (ref && resultIndicator && isValidMpgsResultIndicator(resultIndicator)) {
-            void confirmMpgs(ref, resultIndicator);
-        } else if (ref && !sessionId) {
-            void pollStatus(ref);
+
+        // After the MPGS redirect this is a fresh page load, so auth.currentUser may not be
+        // hydrated yet. Wait for the first auth state before confirming, otherwise the
+        // booking is never marked PAID. Runs once when a user becomes available.
+        const runWhenAuthed = () => {
+            if (ref && resultIndicator && isValidMpgsResultIndicator(resultIndicator)) {
+                void confirmMpgs(ref, resultIndicator);
+            } else if (ref && !sessionId) {
+                void pollStatus(ref);
+            }
+        };
+
+        let unsubscribe: (() => void) | undefined;
+        if (auth?.currentUser) {
+            runWhenAuthed();
+        } else if (auth) {
+            let done = false;
+            unsubscribe = auth.onAuthStateChanged((user) => {
+                if (user && !done) {
+                    done = true;
+                    runWhenAuthed();
+                }
+            });
         }
 
         const timer = setTimeout(() => setLoading(false), 1500);
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            unsubscribe?.();
+        };
     }, [sessionId, refFromQuery, resultIndicator]);
 
     return (

@@ -22,7 +22,7 @@ const FALLBACK_PRESETS = [
     // Attractions → nearest city with hotels (when API returns empty)
     { name: 'Lalibela', dest_id: '-603099', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Gondar', country: 'Ethiopia', label: 'Lalibela, Ethiopia' },
     { name: 'Axum', dest_id: '-603099', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Gondar', country: 'Ethiopia', label: 'Axum, Ethiopia' },
-    { name: 'Harar', dest_id: '-603100', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Dire Dawa', country: 'Ethiopia', label: 'Harar, Ethiopia' },
+    { name: 'West Harerghe', dest_id: '-603100', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Dire Dawa', country: 'Ethiopia', label: 'West Harerghe, Ethiopia' },
     { name: 'Arba Minch', dest_id: '-603014', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Hawassa', country: 'Ethiopia', label: 'Arba Minch, Ethiopia' },
     { name: 'Mekele', dest_id: '-603099', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Gondar', country: 'Ethiopia', label: 'Mekele, Ethiopia' },
     { name: 'Mekelle', dest_id: '-603099', dest_type: 'city', search_type: 'city', cc1: 'et', city_name: 'Gondar', country: 'Ethiopia', label: 'Mekelle, Ethiopia' },
@@ -42,7 +42,7 @@ const FALLBACK_PRESETS = [
 
 // Attraction/partial query → preset name (for when API returns empty)
 const ATTRACTION_MATCH: Record<string, string> = {
-    'lalibela': 'Lalibela', 'axum': 'Axum', 'harar': 'Harar', 'arba minch': 'Arba Minch',
+    'lalibela': 'Lalibela', 'axum': 'Axum', 'West Harerghe': 'West Harerghe', 'arba minch': 'Arba Minch',
     'mekele': 'Mekele', 'mekelle': 'Mekelle', 'sof omar': 'Sof Omar Caves', 'wenchi': 'Wenchi',
     'bale': 'Bale', 'langano': 'Langano', 'omo': 'Omo Valley', 'omo valley': 'Omo Valley',
     'danakil': 'Danakil', 'addis': 'Addis Ababa', 'bahir': 'Bahir Dar', 'gondar': 'Gondar',

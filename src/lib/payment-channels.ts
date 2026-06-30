@@ -20,6 +20,9 @@ export interface PaymentChannelConfig {
     provider: 'stripe' | 'cbe' | 'zemen' | 'dashen' | 'awash';
     currency: 'USD' | 'ETB';
     logo?: string;
+    /** Brand accent (hex) used to theme the bank's checkout panel. Lets the same
+     *  phone/USSD flow be reused per bank by swapping only the color. */
+    accentColor?: string;
     /** Shown when API has not enabled this bank yet */
     requiresApiFlag?: string;
 }
@@ -30,41 +33,48 @@ export const PAYMENT_CHANNELS: PaymentChannelConfig[] = [
         labelKey: 'bookingUi.payment.cbeBirr',
         provider: 'cbe',
         currency: 'ETB',
-        logo: '/assets/images/branch.png',
+        logo: '/assets/images/cbebirr.jpg',
+        accentColor: '#006838',
         requiresApiFlag: 'CBE_PAYMENTS_ENABLED',
     },
-    {
-        id: 'cbe_internet_banking',
-        labelKey: 'bookingUi.payment.cbeInternetBanking',
-        provider: 'cbe',
-        currency: 'ETB',
-        logo: '/assets/images/branch.png',
-        requiresApiFlag: 'CBE_PAYMENTS_ENABLED',
-    },
-    {
-        id: 'zemen_mobile',
-        labelKey: 'bookingUi.payment.zemenMobile',
-        provider: 'zemen',
-        currency: 'ETB',
-        requiresApiFlag: 'ZEMEN_PAYMENTS_ENABLED',
-    },
-    {
-        id: 'dashen_mobile',
-        labelKey: 'bookingUi.payment.dashenMobile',
-        provider: 'dashen',
-        currency: 'ETB',
-        requiresApiFlag: 'DASHEN_PAYMENTS_ENABLED',
-    },
-    {
-        id: 'awash_mobile',
-        labelKey: 'bookingUi.payment.awashMobile',
-        provider: 'awash',
-        currency: 'ETB',
-        requiresApiFlag: 'AWASH_PAYMENTS_ENABLED',
-    },
+    // NOTE: Additional Ethiopian rails are temporarily disabled — only CBE Birr is live.
+    // Re-enable by uncommenting; each reuses the same phone/USSD checkout flow, themed by `accentColor`.
+    // {
+    //     id: 'cbe_internet_banking',
+    //     labelKey: 'bookingUi.payment.cbeInternetBanking',
+    //     provider: 'cbe',
+    //     currency: 'ETB',
+    //     logo: '/assets/images/branch.png',
+    //     accentColor: '#006838',
+    //     requiresApiFlag: 'CBE_PAYMENTS_ENABLED',
+    // },
+    // {
+    //     id: 'zemen_mobile',
+    //     labelKey: 'bookingUi.payment.zemenMobile',
+    //     provider: 'zemen',
+    //     currency: 'ETB',
+    //     accentColor: '#0a4ea2',
+    //     requiresApiFlag: 'ZEMEN_PAYMENTS_ENABLED',
+    // },
+    // {
+    //     id: 'dashen_mobile',
+    //     labelKey: 'bookingUi.payment.dashenMobile',
+    //     provider: 'dashen',
+    //     currency: 'ETB',
+    //     accentColor: '#0072bc',
+    //     requiresApiFlag: 'DASHEN_PAYMENTS_ENABLED',
+    // },
+    // {
+    //     id: 'awash_mobile',
+    //     labelKey: 'bookingUi.payment.awashMobile',
+    //     provider: 'awash',
+    //     currency: 'ETB',
+    //     accentColor: '#e98300',
+    //     requiresApiFlag: 'AWASH_PAYMENTS_ENABLED',
+    // },
     {
         id: 'stripe',
-        labelKey: 'bookingUi.payment.internationalCards',
+        labelKey: 'bookingUi.payment.stripeCard',
         provider: 'stripe',
         currency: 'USD',
     },

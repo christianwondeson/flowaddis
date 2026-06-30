@@ -75,7 +75,7 @@ export async function GET(request: Request) {
                 'debre zeit': { dest_id: '-603094', dest_type: 'city', search_type: 'city', cc: 'et' },
                 'lalibela': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
                 'axum': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
-                'harar': { dest_id: '-603100', dest_type: 'city', search_type: 'city', cc: 'et' },
+                'West Harerghe': { dest_id: '-603100', dest_type: 'city', search_type: 'city', cc: 'et' },
                 'arba minch': { dest_id: '-603014', dest_type: 'city', search_type: 'city', cc: 'et' },
                 'mekele': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
                 'mekelle': { dest_id: '-603099', dest_type: 'city', search_type: 'city', cc: 'et' },
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
 
         // Resolve fallback country code for Ethiopia queries
         const queryLower = query.toLowerCase().trim();
-        const isEthiopiaQuery = /addis\s*ababa|ethiopia|bahir\s*dar|gonder|gondar|lalibela|hawassa|bishoftu|harar|arba\s*minch|mekele|sof\s*omar|wenchi|bale|langano|omo|danakil|dire\s*dawa/.test(queryLower);
+        const isEthiopiaQuery = /addis\s*ababa|ethiopia|bahir\s*dar|gonder|gondar|lalibela|hawassa|bishoftu|West Harerghe|arba\s*minch|mekele|sof\s*omar|wenchi|bale|langano|omo|danakil|dire\s*dawa/.test(queryLower);
         const filterByCountry = isEthiopiaQuery ? 'et' : undefined;
 
         // 2. Build Filter IDs

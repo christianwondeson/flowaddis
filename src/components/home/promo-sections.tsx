@@ -191,7 +191,7 @@ const EXPLORE_ETHIOPIA_DESTINATIONS: { displayLabel: string; searchHint: string;
     { displayLabel: 'Bahir Dar, Ethiopia', searchHint: 'Bahir Dar', image: 'https://images.unsplash.com/photo-1668939581252-470c103ac7da?auto=format&fit=crop&w=600&q=80' },
     { displayLabel: 'Mekelle, Ethiopia', searchHint: 'Mekelle', image: 'https://images.unsplash.com/photo-1573403092240-26095e118918?auto=format&fit=crop&w=600&q=80' },
     { displayLabel: 'Axum, Ethiopia', searchHint: 'Axum', image: 'https://images.unsplash.com/photo-1662894312546-667d7698a1f7?auto=format&fit=crop&w=600&q=80' },
-    { displayLabel: 'Harar, Ethiopia', searchHint: 'Harar', image: 'https://images.unsplash.com/photo-1597709324959-38e0ac50bd4b?auto=format&fit=crop&w=600&q=80' },
+    { displayLabel: 'West Harerghe, Ethiopia', searchHint: 'West Harerghe', image: 'https://images.unsplash.com/photo-1597709324959-38e0ac50bd4b?auto=format&fit=crop&w=600&q=80' },
     { displayLabel: 'Arba Minch, Ethiopia', searchHint: 'Arba Minch', image: 'https://images.unsplash.com/photo-1658823235938-c424fa0875d6?auto=format&fit=crop&w=600&q=80' },
     { displayLabel: 'Debre Zeit, Ethiopia', searchHint: 'Debre Zeit', image: 'https://images.unsplash.com/photo-1625141569599-fa40fc7301b6?auto=format&fit=crop&w=600&q=80' },
     { displayLabel: 'Hawassa, Ethiopia', searchHint: 'Hawassa', image: 'https://images.unsplash.com/photo-1768383206344-dfeb4a00b18d?auto=format&fit=crop&w=600&q=80' },
