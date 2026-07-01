@@ -507,6 +507,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
                                 externalItemId={externalItemId}
                                 externalSnapshot={checkoutExternalSnapshot}
+                                customerPhone={(bookingData as BookingFormData | null)?.phone}
                             />
                         )}
 

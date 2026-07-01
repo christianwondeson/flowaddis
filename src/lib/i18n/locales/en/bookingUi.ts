@@ -96,6 +96,8 @@ export const bookingUiEn = {
             toastStripeRedirect: 'Unable to redirect to Stripe.',
             toastStripeInit: 'Failed to initialize Stripe checkout',
             toastMpgsInit: 'Failed to initialize bank card checkout',
+            cbeBirrInitFailed: 'Could not start CBE Birr payment. Check your phone number and try again.',
+            cbeBirrPaymentFailed: 'CBE Birr payment was not completed. Please try again.',
             validationTelebirr: 'Invalid Ethiopian phone number (e.g. 0912345678)',
             validationCbeMin: 'Account number must be at least 10 digits',
             validationCbeDigits: 'Only numbers allowed',

@@ -357,6 +357,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                                     airline: flightData?.airline,
                                     flightNumber: flightData?.flightNumber,
                                 }}
+                                customerPhone={(bookingData as FlightBookingFormData | null)?.phone}
                             />
                         )}
 

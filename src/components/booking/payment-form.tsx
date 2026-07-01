@@ -35,6 +35,12 @@ import {
     isValidMpgsSessionId,
     resolveTrustedMpgsCheckoutScriptUrl,
 } from '@/lib/mpgs-checkout-security';
+import {
+    buildLocalCheckoutMetadata,
+    etMsisdnToLocalDisplay,
+    ET_MOBILE_PATTERN,
+    fetchPaymentStatus,
+} from '@/lib/local-payment-checkout';
 
 const USE_MPGS_CHECKOUT = process.env.NEXT_PUBLIC_MPGS_ENABLED === 'true';
 
@@ -49,6 +55,8 @@ interface PaymentFormProps {
     externalItemId?: string; // ID from provider/search result
     currencyCode?: string; // default USD
     externalSnapshot?: Record<string, any>;
+    /** E.164 or local ET number from booking form — pre-fills CBE Birr USSD phone. */
+    customerPhone?: string;
 }
 
 type PaymentMethod = 'telebirr' | 'cbebirr' | 'stripe' | 'mpgs' | 'pay_on_site';
@@ -75,24 +83,24 @@ export function detectEthiopianVisitor(locale: string): boolean {
     }
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onCancel, isLocal = true, bookingType = 'flight', source = 'local', externalItemId = 'N/A', currencyCode = 'USD', externalSnapshot = {} }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({
+    amount,
+    onSuccess,
+    onCancel,
+    isLocal = true,
+    bookingType = 'flight',
+    source = 'local',
+    externalItemId = 'N/A',
+    currencyCode = 'USD',
+    externalSnapshot = {},
+    customerPhone = '',
+}) => {
     const { t, locale } = useTranslations();
 
     const telebirrSchema = useMemo(
         () =>
             z.object({
                 phone: z.string().regex(/^(09|07)\d{8}$/, t('bookingUi.payment.validationTelebirr')),
-            }),
-        [t],
-    );
-
-    const cbebirrSchema = useMemo(
-        () =>
-            z.object({
-                accountNumber: z
-                    .string()
-                    .min(10, t('bookingUi.payment.validationCbeMin'))
-                    .regex(/^\d+$/, t('bookingUi.payment.validationCbeDigits')),
             }),
         [t],
     );
@@ -111,6 +119,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
     // CBE Birr (and future local banks) collect an Ethiopian mobile number to receive the USSD push.
     const [localPhone, setLocalPhone] = useState('');
     const [localPhoneError, setLocalPhoneError] = useState<string | null>(null);
+    const [etbQuoteAmount, setEtbQuoteAmount] = useState<number | null>(null);
+    const [etbQuoteLoading, setEtbQuoteLoading] = useState(false);
     // Seed from locale (deterministic for SSR), then refine with the browser timezone after mount.
     const [visitorIsEthiopian, setVisitorIsEthiopian] = useState<boolean>(locale === 'am');
     // Which group is currently shown. Local and International are mutually exclusive in the UI:
@@ -154,7 +164,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
         [localChannels, selectMethod],
     );
 
-    const ET_MOBILE_PATTERN = /^(09|07)\d{8}$/;
+    // Pre-fill USSD phone from booking form (+251… → 09…).
+    useEffect(() => {
+        const local = etMsisdnToLocalDisplay(customerPhone);
+        if (local && ET_MOBILE_PATTERN.test(local)) {
+            setLocalPhone(local);
+        }
+    }, [customerPhone]);
 
     // Persist ?returnUrl= from BookAddis embed/link for Stripe cancel/success redirects
     useEffect(() => {
@@ -178,16 +194,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
 
     const currency =
         method === 'telebirr' || method === 'cbebirr' ? 'ETB' : currencyCode || 'USD';
-    const displayAmount = method === 'telebirr' || method === 'cbebirr' ? amount * 55 : amount; // Rough USD to ETB conversion for local rails
+    const localFallbackEtb = amount * 55;
+    const displayAmount =
+        method === 'telebirr' || method === 'cbebirr'
+            ? etbQuoteAmount ?? localFallbackEtb
+            : amount;
 
     const telebirrForm = useForm({
         resolver: zodResolver(telebirrSchema),
         defaultValues: { phone: '' },
-    });
-
-    const cbebirrForm = useForm({
-        resolver: zodResolver(cbebirrSchema),
-        defaultValues: { accountNumber: '' },
     });
 
     // We no longer need a react-hook-form for stripe as it's a redirect
@@ -230,6 +245,92 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             }
         }
     }, [showLocalGroup, method]);
+
+    // Server-verified ETB amount for local rails (replaces rough USD×55 estimate).
+    useEffect(() => {
+        if (!showLocalGroup || !auth?.currentUser) {
+            setEtbQuoteAmount(null);
+            return;
+        }
+
+        let cancelled = false;
+        const loadQuote = async () => {
+            setEtbQuoteLoading(true);
+            try {
+                const token = await auth.currentUser!.getIdToken();
+                const response = await fetch('/api/payments/quote-etb', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        bookingType,
+                        source,
+                        externalItemId,
+                        currency: 'ETB',
+                        paymentChannel: 'cbe_birr',
+                        external_snapshot: externalSnapshot,
+                    }),
+                });
+                if (!response.ok || cancelled) return;
+                const data = await response.json();
+                if (!cancelled && typeof data.amount === 'number' && data.amount > 0) {
+                    setEtbQuoteAmount(data.amount);
+                }
+            } catch {
+                /* keep fallback display amount */
+            } finally {
+                if (!cancelled) setEtbQuoteLoading(false);
+            }
+        };
+
+        void loadQuote();
+        return () => {
+            cancelled = true;
+        };
+    }, [showLocalGroup, bookingType, source, externalItemId, externalSnapshot]);
+
+    // Poll payment status after CBE Birr USSD push until PAID / terminal failure.
+    useEffect(() => {
+        if (!awaitingBankPayment || !paymentReference || !auth?.currentUser) return;
+
+        let cancelled = false;
+        let attempts = 0;
+        const maxAttempts = 100;
+
+        const tick = async () => {
+            if (cancelled || attempts >= maxAttempts) return;
+            attempts += 1;
+            try {
+                const token = await auth.currentUser!.getIdToken();
+                const result = await fetchPaymentStatus(paymentReference, token);
+                if ('error' in result) return;
+
+                if (result.status === 'PAID' || result.status === 'CONFIRMED') {
+                    cancelled = true;
+                    toast.success(t('bookingUi.toastPaymentDone'));
+                    onSuccess('cbebirr');
+                    return;
+                }
+                if (result.status === 'EXPIRED' || result.status === 'FAILED') {
+                    cancelled = true;
+                    setAwaitingBankPayment(false);
+                    toast.error(t('bookingUi.payment.cbeBirrPaymentFailed'));
+                }
+            } catch {
+                /* retry on next interval */
+            }
+        };
+
+        const intervalId = window.setInterval(() => void tick(), 3000);
+        void tick();
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+        };
+    }, [awaitingBankPayment, paymentReference, onSuccess, t]);
 
     const ensureCheckoutPrerequisites = async (): Promise<string | null> => {
         if (!auth?.currentUser) {
@@ -433,11 +534,35 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
             setPaymentReference(null);
             setUssdInstructions(null);
             setAwaitingBankPayment(false);
+
+            const msisdnForApi =
+                paymentChannel === 'cbe_birr' ? localPhone.trim() : localPhone.trim() || customerPhone;
+            if (paymentChannel === 'cbe_birr' && !ET_MOBILE_PATTERN.test(localPhone)) {
+                setLocalPhoneError(t('bookingUi.payment.validationCbePhone'));
+                setLoading(false);
+                return;
+            }
+
             try {
                 const token = await ensureCheckoutPrerequisites();
                 if (!token) return;
 
                 void resolveCheckoutReturnUrlForRequest();
+
+                const checkoutBody: Record<string, unknown> = {
+                    bookingType,
+                    source,
+                    externalItemId,
+                    currency: 'ETB',
+                    paymentChannel,
+                    external_snapshot: externalSnapshot,
+                };
+                if (msisdnForApi) {
+                    checkoutBody.metadata = buildLocalCheckoutMetadata({
+                        customerMsisdn: msisdnForApi,
+                        externalSnapshot,
+                    });
+                }
 
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
@@ -445,28 +570,24 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({
-                        bookingType,
-                        source,
-                        externalItemId,
-                        currency: 'ETB',
-                        paymentChannel,
-                        external_snapshot: externalSnapshot,
-                    }),
+                    body: JSON.stringify(checkoutBody),
                 });
 
                 if (response.status === 401) {
                     toast.error(t('bookingUi.payment.toastAuthFailed'));
+                    return;
                 }
 
                 const payload = await response.json();
                 const {
                     url,
                     error,
+                    message,
                     paymentReference: payRef,
                     payNar,
                     paymentUrl,
                     ussdInstructions: ussd,
+                    awaitingBankPayment: awaitingUssd,
                 } = payload || {};
                 const resolvedRef =
                     typeof payRef === 'string'
@@ -474,6 +595,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                         : typeof payNar === 'string'
                           ? payNar
                           : null;
+
+                if (!response.ok) {
+                    toast.error(message || error || t('bookingUi.payment.cbeBirrInitFailed'));
+                    return;
+                }
 
                 if (resolvedRef) {
                     setPaymentReference(resolvedRef);
@@ -488,6 +614,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     setUssdInstructions(ussd);
                 }
 
+                // CBE Birr USSD: stay on page and poll — do not redirect to success URL yet.
+                if (paymentChannel === 'cbe_birr' && (awaitingUssd || ussd)) {
+                    setAwaitingBankPayment(true);
+                    return;
+                }
+
                 const redirectUrl = paymentUrl || url;
                 if (redirectUrl) {
                     setAwaitingBankPayment(true);
@@ -499,7 +631,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onC
                     toast.error(error);
                 }
             } catch (err) {
-                toast.error(t('bookingUi.payment.toastStripeInit'));
+                toast.error(t('bookingUi.payment.cbeBirrInitFailed'));
                 console.error(err);
             } finally {
                 setLoading(false);
