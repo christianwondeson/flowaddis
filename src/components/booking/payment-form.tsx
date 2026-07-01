@@ -256,8 +256,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         let cancelled = false;
         const loadQuote = async () => {
             setEtbQuoteLoading(true);
+            const user = auth?.currentUser;
+            if (!user) {
+                setEtbQuoteLoading(false);
+                return;
+            }
             try {
-                const token = await auth.currentUser!.getIdToken();
+                const token = await user.getIdToken();
                 const response = await fetch('/api/payments/quote-etb', {
                     method: 'POST',
                     headers: {
@@ -302,8 +307,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         const tick = async () => {
             if (cancelled || attempts >= maxAttempts) return;
             attempts += 1;
+            const user = auth?.currentUser;
+            if (!user) return;
             try {
-                const token = await auth.currentUser!.getIdToken();
+                const token = await user.getIdToken();
                 const result = await fetchPaymentStatus(paymentReference, token);
                 if ('error' in result) return;
 

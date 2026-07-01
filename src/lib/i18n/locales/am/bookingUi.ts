@@ -93,6 +93,8 @@ export const bookingUiAm = {
             toastStripeRedirect: 'ወደ Stripe መመለስ አልተቻለም።',
             toastStripeInit: 'የStripe ቼክአውት ማስጀመር አልተቻለም',
             toastMpgsInit: 'የባንክ ካርድ ቼክአውት ማስጀመር አልተቻለም',
+            cbeBirrInitFailed: 'CBE ብር ክፍያ ማስጀመር አልተቻለም። የስልክ ቁጥርዎን ያረጋግጡና እንደገና ይሞክሩ።',
+            cbeBirrPaymentFailed: 'CBE ብር ክፍያ አልተጠናቀቀም። እባክዎ እንደገና ይሞክሩ።',
             validationTelebirr: 'የማይሰራ የኢትዮጵያ ስልክ (ለምሳሌ 0912345678)',
             validationCbeMin: 'የአካውንት ቁጥር ቢያንስ 10 አኃዝ',
             validationCbeDigits: 'አኃዞች ብቻ',
