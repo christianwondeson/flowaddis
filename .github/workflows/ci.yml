@@ -1,0 +1,47 @@
+name: CI
+
+# Pull-request quality gate for the Next.js frontend.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Lint is currently non-blocking: the repo has a pre-existing lint backlog.
+      # Flip this to a hard failure (remove continue-on-error) once it is cleared.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      # Typechecks source only on a clean checkout (no generated .next/types present).
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit & component tests (with coverage)
+        run: npm run test:cov
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: coverage/
+          if-no-files-found: ignore

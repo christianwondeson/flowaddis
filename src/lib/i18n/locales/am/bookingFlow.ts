@@ -17,5 +17,21 @@ export const bookingFlowAm = {
         cancelBankHint:
             '"ባንክ ተከፍሎኛል በዚህ ገጽ እመለከታለሁ" — አትጨነቁ፣ በመጠባበቅ ላይ ያለ ማረጋገጫ በቀን አልፎ ይመለስልዎታል።',
         continueOnBookAddis: 'በቡክአዲስ ይቀጥሉ',
+        mpgsCheckout: {
+            title: 'ደህንነቱ የተጠበቀ ካርድ ክፍያ',
+            configuringTitle: 'ደህንነቱ የተጠበቀ ቼክአውት በማዘጋጀት ላይ',
+            redirectingTitle: 'ወደ ክፍያ ገጽ በመላክ ላይ',
+            configuringHint:
+                'ወደ CBE / Mastercard የተጠበቀ ቼክአውት ገጽ እንያገናኝዎታለን። የካርድ ዝርዝርዎ በደህንነቱ የተጠበቀ ገጻቸው ላይ ይገባል — ቡክአዲስ የካርድ ቁጥርዎን አያይም።',
+            errorTitle: 'ቼክአውት ሊከፈት አልቻለም',
+            errorHint: 'እንደገና ይሞክሩ ወይም ሌላ የክፍያ ዘዴ ይምረጡ።',
+            referenceLabel: 'የክፍያ ማጣቀሻ',
+            doNotClose: 'እባክዎ ይህን መስኮት አይዝጉ።',
+            poweredBy: 'በMastercard Payment Gateway የተጎላበተ',
+            invalidSessionTitle: 'የቼክአውት ክፍለ ጊዜ አልቋል',
+            invalidSessionHint: 'ከመያዣዎ ክፍያን እንደገና ይጀምሩ።',
+            backHome: 'ወደ መነሻ ተመለስ',
+            tryAgain: 'እንደገና ሞክር',
+        },
     },
 } as const;

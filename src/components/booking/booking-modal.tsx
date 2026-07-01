@@ -284,7 +284,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setStep('payment');
     };
 
-    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
+    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'mpgs' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
         if (!bookingData) return;
 
         const formData = bookingData as BookingFormData;
@@ -507,6 +507,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
                                 externalItemId={externalItemId}
                                 externalSnapshot={checkoutExternalSnapshot}
+                                customerPhone={(bookingData as BookingFormData | null)?.phone}
                             />
                         )}
 

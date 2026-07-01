@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return-url';
+import { isValidMpgsResultIndicator } from '@/lib/mpgs-checkout-security';
 import { useTranslations } from '@/components/providers/locale-provider';
 import { auth } from '@/lib/firebase';
 
@@ -15,6 +16,7 @@ function SuccessContent() {
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('session_id');
     const refFromQuery = searchParams.get('ref');
+    const resultIndicator = searchParams.get('resultIndicator');
     const returnUrl = sanitizeCheckoutReturnUrl(searchParams.get('return_url'), BOOKADDIS_HOME);
     const [storedRef, setStoredRef] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -46,14 +48,59 @@ function SuccessContent() {
             }
         };
 
+        const confirmMpgs = async (ref: string, indicator: string) => {
+            if (!auth?.currentUser) return;
+            try {
+                const token = await auth.currentUser.getIdToken();
+                const res = await fetch('/api/payments/mpgs/confirm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ paymentReference: ref, resultIndicator: indicator }),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data?.status) setPaymentStatus(data.status);
+                }
+            } catch {
+                /* ignore */
+            }
+        };
+
         const ref = refFromQuery || sessionStorage.getItem('last_pay_nar');
-        if (ref && !sessionId) {
-            void pollStatus(ref);
+
+        // After the MPGS redirect this is a fresh page load, so auth.currentUser may not be
+        // hydrated yet. Wait for the first auth state before confirming, otherwise the
+        // booking is never marked PAID. Runs once when a user becomes available.
+        const runWhenAuthed = () => {
+            if (ref && resultIndicator && isValidMpgsResultIndicator(resultIndicator)) {
+                void confirmMpgs(ref, resultIndicator);
+            } else if (ref && !sessionId) {
+                void pollStatus(ref);
+            }
+        };
+
+        let unsubscribe: (() => void) | undefined;
+        if (auth?.currentUser) {
+            runWhenAuthed();
+        } else if (auth) {
+            let done = false;
+            unsubscribe = auth.onAuthStateChanged((user) => {
+                if (user && !done) {
+                    done = true;
+                    runWhenAuthed();
+                }
+            });
         }
 
         const timer = setTimeout(() => setLoading(false), 1500);
-        return () => clearTimeout(timer);
-    }, [sessionId, refFromQuery]);
+        return () => {
+            clearTimeout(timer);
+            unsubscribe?.();
+        };
+    }, [sessionId, refFromQuery, resultIndicator]);
 
     return (
         <motion.div

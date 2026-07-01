@@ -167,7 +167,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         setStep('payment');
     };
 
-    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
+    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'mpgs' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
         if (!bookingData) return;
 
         const formData = bookingData as FlightBookingFormData;
@@ -357,6 +357,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                                     airline: flightData?.airline,
                                     flightNumber: flightData?.flightNumber,
                                 }}
+                                customerPhone={(bookingData as FlightBookingFormData | null)?.phone}
                             />
                         )}
 
