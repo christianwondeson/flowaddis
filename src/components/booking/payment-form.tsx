@@ -68,6 +68,10 @@ const defaultCardMethod = (): PaymentMethod =>
 const SHOW_LOCAL_PAYMENT_METHODS =
     process.env.NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED !== 'false';
 
+/** USSD wait: poll every 3s, stop after ~3 min and close for security. */
+const CBE_BIRR_POLL_INTERVAL_MS = 3000;
+const CBE_BIRR_POLL_MAX_ATTEMPTS = 60;
+
 /**
  * Best-effort guess of whether the visitor is physically in Ethiopia, so we only
  * offer local ETB rails (CBE Birr, etc.) to people who can actually use them.
@@ -145,6 +149,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         setUssdInstructions(null);
         setLocalPhoneError(null);
         setAwaitingBankPayment(false);
+    }, []);
+
+    /** End CBE Birr USSD wait — stop polling and clear sensitive checkout state. */
+    const resetCbeBirrUssdSession = useCallback(() => {
+        setAwaitingBankPayment(false);
+        setUssdInstructions(null);
+        setPaymentReference(null);
+        setLoading(false);
     }, []);
 
     // Switch between the Local and International groups. Each switch also selects that
@@ -296,16 +308,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         };
     }, [showLocalGroup, bookingType, source, externalItemId, externalSnapshot]);
 
-    // Poll payment status after CBE Birr USSD push until PAID / terminal failure.
+    // Poll payment status after CBE Birr USSD push until PAID, failure, or timeout.
     useEffect(() => {
         if (!awaitingBankPayment || !paymentReference || !auth?.currentUser) return;
+        if (paymentChannel !== 'cbe_birr') return;
 
         let cancelled = false;
         let attempts = 0;
-        const maxAttempts = 100;
+
+        const terminate = (messageKey: 'cbeBirrPaymentFailed' | 'cbeBirrSessionExpired') => {
+            if (cancelled) return;
+            cancelled = true;
+            resetCbeBirrUssdSession();
+            toast.error(t(`bookingUi.payment.${messageKey}`));
+            onCancel();
+        };
 
         const tick = async () => {
-            if (cancelled || attempts >= maxAttempts) return;
+            if (cancelled) return;
+            if (attempts >= CBE_BIRR_POLL_MAX_ATTEMPTS) {
+                terminate('cbeBirrSessionExpired');
+                return;
+            }
             attempts += 1;
             const user = auth?.currentUser;
             if (!user) return;
@@ -316,28 +340,35 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
                 if (result.status === 'PAID' || result.status === 'CONFIRMED') {
                     cancelled = true;
+                    resetCbeBirrUssdSession();
                     toast.success(t('bookingUi.toastPaymentDone'));
                     onSuccess('cbebirr');
                     return;
                 }
                 if (result.status === 'EXPIRED' || result.status === 'FAILED') {
-                    cancelled = true;
-                    setAwaitingBankPayment(false);
-                    toast.error(t('bookingUi.payment.cbeBirrPaymentFailed'));
+                    terminate('cbeBirrPaymentFailed');
                 }
             } catch {
                 /* retry on next interval */
             }
         };
 
-        const intervalId = window.setInterval(() => void tick(), 3000);
+        const intervalId = window.setInterval(() => void tick(), CBE_BIRR_POLL_INTERVAL_MS);
         void tick();
 
         return () => {
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [awaitingBankPayment, paymentReference, onSuccess, t]);
+    }, [
+        awaitingBankPayment,
+        paymentReference,
+        paymentChannel,
+        onSuccess,
+        onCancel,
+        resetCbeBirrUssdSession,
+        t,
+    ]);
 
     const ensureCheckoutPrerequisites = async (): Promise<string | null> => {
         if (!auth?.currentUser) {
@@ -594,7 +625,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                     payNar,
                     paymentUrl,
                     ussdInstructions: ussd,
-                    awaitingBankPayment: awaitingUssd,
                 } = payload || {};
                 const resolvedRef =
                     typeof payRef === 'string'
@@ -621,9 +651,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                     setUssdInstructions(ussd);
                 }
 
-                // CBE Birr USSD: stay on page and poll — do not redirect to success URL yet.
-                if (paymentChannel === 'cbe_birr' && (awaitingUssd || ussd)) {
-                    setAwaitingBankPayment(true);
+                // CBE Birr USSD: no redirect — show phone prompt confirmation and poll until PIN/timeout.
+                if (paymentChannel === 'cbe_birr') {
+                    if (resolvedRef) {
+                        setAwaitingBankPayment(true);
+                        return;
+                    }
+                    toast.error(t('bookingUi.payment.cbeBirrInitFailed'));
                     return;
                 }
 
@@ -856,9 +890,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                         referenceLabel={t('bookingUi.payment.paymentReferenceLabel')}
                         paymentReference={paymentReference}
                         onChangeMethod={() => {
-                            setUssdInstructions(null);
-                            setAwaitingBankPayment(false);
+                            resetCbeBirrUssdSession();
                         }}
+                        onAbortUssd={() => {
+                            resetCbeBirrUssdSession();
+                            toast.message(t('bookingUi.payment.cbeBirrSessionClosed'));
+                            onCancel();
+                        }}
+                        abortLabel={t('bookingUi.payment.cbeBirrCancelUssd')}
                     />
                 )}
 
@@ -1001,6 +1040,8 @@ interface LocalBankCheckoutProps {
     referenceLabel: string;
     paymentReference: string | null;
     onChangeMethod: () => void;
+    onAbortUssd: () => void;
+    abortLabel: string;
 }
 
 const LocalBankCheckout: React.FC<LocalBankCheckoutProps> = ({
@@ -1028,6 +1069,8 @@ const LocalBankCheckout: React.FC<LocalBankCheckoutProps> = ({
     referenceLabel,
     paymentReference,
     onChangeMethod,
+    onAbortUssd,
+    abortLabel,
 }) => {
     // Accent-derived tints (8-digit hex = color + alpha).
     const tintWeak = `${accent}14`; // ~8%
@@ -1070,10 +1113,8 @@ const LocalBankCheckout: React.FC<LocalBankCheckoutProps> = ({
                     </div>
 
                     {ussdInstructions && (
-                        <div className="rounded-xl border-2 border-dashed bg-background p-3 text-center" style={{ borderColor: borderTint }}>
-                            <p className="font-mono text-lg font-bold tracking-widest" style={{ color: accent }}>
-                                {ussdInstructions}
-                            </p>
+                        <div className="rounded-xl border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                            {ussdInstructions}
                         </div>
                     )}
 
@@ -1095,8 +1136,8 @@ const LocalBankCheckout: React.FC<LocalBankCheckoutProps> = ({
                     </div>
 
                     <div className="flex gap-3">
-                        <Button variant="outline" className="flex-1" type="button" onClick={onChangeMethod}>
-                            {cancelLabel}
+                        <Button variant="outline" className="flex-1" type="button" onClick={onAbortUssd}>
+                            {abortLabel}
                         </Button>
                     </div>
                 </div>

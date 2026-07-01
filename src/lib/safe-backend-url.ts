@@ -1,5 +1,8 @@
 const MAX_URL_LEN = 2048;
 
+/** Public Nest API used when deployed without a valid BACKEND_URL (Firebase / Cloud Run). */
+export const PRODUCTION_BACKEND_URL_DEFAULT = 'https://api.bookaddis.com';
+
 /**
  * Validates `BACKEND_URL` / Strapi-style base URLs: http(s), no embedded credentials,
  * bounded length. Reduces impact of misconfiguration (SSRF-style misuse of server-side fetch).
@@ -41,18 +44,14 @@ function isDeployedServerless(): boolean {
 export function getSafeBackendBaseUrl(): string {
     const configured = process.env.BACKEND_URL?.trim();
     if (isDeployedServerless() && !configured) {
-        throw new Error(
-            'BACKEND_URL is unset in the serverless environment. Set it to your public Nest origin (e.g. https://api.bookaddis.com): GitHub Actions deploy step env, or Google Cloud Run / Firebase function configuration, then redeploy.'
-        );
+        return assertSafeHttpBaseUrl(PRODUCTION_BACKEND_URL_DEFAULT, 'BACKEND_URL');
     }
     const raw = configured || 'http://127.0.0.1:4000';
     const url = assertSafeHttpBaseUrl(raw, 'BACKEND_URL');
     if (isDeployedServerless()) {
         const host = new URL(url).hostname.toLowerCase();
         if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
-            throw new Error(
-                'BACKEND_URL must be a public URL reachable from the internet when deployed to Firebase (not localhost).'
-            );
+            return assertSafeHttpBaseUrl(PRODUCTION_BACKEND_URL_DEFAULT, 'BACKEND_URL');
         }
     }
     return url;
