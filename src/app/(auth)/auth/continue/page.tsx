@@ -5,26 +5,33 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { getPostLoginPath } from "@/lib/auth/post-login-path";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 /**
  * Middleware sends signed-in users away from /signin here so we can read Firestore role
  * client-side and route admins to /admin (Edge middleware cannot read Firestore).
  */
 function AuthContinueContent() {
-    const { user, loading } = useAuth();
+    const { user, loading, profileError } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirect = searchParams.get("redirect") || searchParams.get("from") || "/";
 
     useEffect(() => {
         if (loading) return;
+        if (profileError) {
+            toast.error(
+                "Could not load your account profile. Refresh the page or sign in again.",
+            );
+            return;
+        }
         if (!user) {
             const q = redirect && redirect !== "/" ? `?redirect=${encodeURIComponent(redirect)}` : "";
             router.replace(`/signin${q}`);
             return;
         }
         router.replace(getPostLoginPath(user.role, redirect));
-    }, [loading, user, redirect, router]);
+    }, [loading, profileError, user, redirect, router]);
 
     return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">

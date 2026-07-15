@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useRequireSignedIn } from "@/hooks/use-require-signed-in";
 import { AccountShell } from "@/components/account/account-shell";
 import { AccountOverviewStats } from "@/components/account/account-overview-stats";
 import { MyTripsList } from "@/components/trips/my-trips-list";
@@ -9,7 +9,7 @@ import { useMyTripsData } from "@/hooks/use-my-trips-data";
 import { Loader2 } from "lucide-react";
 
 export default function CustomerDashboard() {
-    const { user, loading } = useAuth();
+    const { user, loading } = useRequireSignedIn();
     const tripsData = useMyTripsData(user?.id, { enabled: !!user?.id });
 
     if (loading) {
@@ -22,7 +22,12 @@ export default function CustomerDashboard() {
     }
 
     if (!user) {
-        return null;
+        return (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center bg-brand-gray/30 pt-24 dark:bg-background">
+                <Loader2 className="h-9 w-9 animate-spin text-brand-primary" aria-hidden />
+                <p className="mt-3 text-sm text-muted-foreground">Signing out…</p>
+            </div>
+        );
     }
 
     const firstName = user.name?.trim()?.split(/\s+/)[0];

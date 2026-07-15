@@ -18,12 +18,15 @@ import { MfaSignInPanel } from "@/components/auth/mfa-sign-in-panel"
 import { getPostLoginPath } from "@/lib/auth/post-login-path"
 import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
 import { verifyRecaptchaEnterpriseWithApi } from "@/lib/recaptcha-verify-client"
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions"
+import { getSignInMethodsForEmail, isGoogleOnlySignIn } from "@/lib/auth/sign-in-methods"
 
 function SignInContent() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [submitting, setSubmitting] = useState(false)
     const [recaptchaSolved, setRecaptchaSolved] = useState(false)
+    const [googleOnlyAccount, setGoogleOnlyAccount] = useState(false)
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
 
     const { user, loading, login, loginWithGoogle, renderRecaptcha, clearRecaptcha } = useAuth()
@@ -61,6 +64,15 @@ function SignInContent() {
         };
     }, [renderRecaptcha, clearRecaptcha, mfaResolver]);
 
+    const refreshSignInMethods = async (value: string) => {
+        if (!value.includes("@")) {
+            setGoogleOnlyAccount(false)
+            return
+        }
+        const methods = await getSignInMethodsForEmail(value)
+        setGoogleOnlyAccount(isGoogleOnlySignIn(methods))
+    }
+
     const validateForm = () => {
         const newErrors: typeof errors = {}
         if (!email) newErrors.email = "Email is required"
@@ -74,6 +86,13 @@ function SignInContent() {
         e.preventDefault()
         if (!validateForm()) return
 
+        const methods = await getSignInMethodsForEmail(email)
+        if (isGoogleOnlySignIn(methods)) {
+            setGoogleOnlyAccount(true)
+            toast.error("This account uses Google Sign-In. Use the Google button below — your Gmail password does not sign in here.")
+            return
+        }
+
         if (!recaptchaSolved) {
             toast.error("Please verify that you are not a robot.")
             return
@@ -82,7 +101,7 @@ function SignInContent() {
         if (getRecaptchaEnterpriseSiteKey()) {
             let enterpriseToken: string | undefined
             try {
-                enterpriseToken = await executeRecaptchaEnterprise("LOGIN")
+                enterpriseToken = await executeRecaptchaEnterprise(RECAPTCHA_ACTIONS.LOGIN)
             } catch {
                 toast.error("Security verification failed. Refresh the page and try again.")
                 return
@@ -91,7 +110,7 @@ function SignInContent() {
                 toast.error("Security verification failed. Refresh the page and try again.")
                 return
             }
-            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, "LOGIN")
+            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, RECAPTCHA_ACTIONS.LOGIN)
             if (!verified.ok) {
                 toast.error(verified.reason || "Verification failed. Please try again.")
                 return
@@ -118,24 +137,8 @@ function SignInContent() {
     const handleGoogleSignIn = async () => {
         setSubmitting(true)
         try {
-            if (getRecaptchaEnterpriseSiteKey()) {
-                let enterpriseToken: string | undefined
-                try {
-                    enterpriseToken = await executeRecaptchaEnterprise("GOOGLE_SIGNIN")
-                } catch {
-                    toast.error("Security verification failed. Refresh the page and try again.")
-                    return
-                }
-                if (!enterpriseToken) {
-                    toast.error("Security verification failed. Refresh the page and try again.")
-                    return
-                }
-                const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, "GOOGLE_SIGNIN")
-                if (!verified.ok) {
-                    toast.error(verified.reason || "Verification failed. Please try again.")
-                    return
-                }
-            }
+            // Google OAuth uses Firebase signInWithPopup — no Enterprise execute needed.
+            // A separate action (e.g. google_signin) is rejected by policy-based reCAPTCHA keys.
             const role = await loginWithGoogle()
             pushAfterLogin(role)
         } catch (error: unknown) {
@@ -187,10 +190,22 @@ function SignInContent() {
                         onChange={(e) => {
                             setEmail(e.target.value)
                             setErrors({ ...errors, email: "" })
+                            setGoogleOnlyAccount(false)
                         }}
+                        onBlur={(e) => void refreshSignInMethods(e.target.value)}
                         className="w-full"
                     />
                 </FormField>
+
+                {googleOnlyAccount && (
+                    <p
+                        role="status"
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
+                    >
+                        This email is registered with <strong>Google Sign-In</strong>. Use the Google button
+                        below. Your Gmail password is not stored in BookAddis and cannot be used on this form.
+                    </p>
+                )}
 
                 {/* Password Field */}
                 <FormField label="Password" error={errors.password}>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useRequireSignedIn } from "@/hooks/use-require-signed-in";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import Link from "next/link";
 import { AccountShell } from "@/components/account/account-shell";
 
 export default function ProfilePage() {
-    const { user, loading } = useAuth();
+    const { user, loading } = useRequireSignedIn();
     const [banner, setBanner] = useState<{ name: string; phone: string } | null>(null);
 
     const onProfileSynced = useCallback((data: { name: string | null; phone: string | null }) => {
@@ -31,7 +31,12 @@ export default function ProfilePage() {
     }
 
     if (!user) {
-        return null;
+        return (
+            <div className="flex min-h-[50vh] flex-col items-center justify-center bg-brand-gray/30 pt-24 dark:bg-background">
+                <Loader2 className="h-9 w-9 animate-spin text-brand-primary" aria-hidden />
+                <p className="mt-3 text-sm text-muted-foreground">Signing out…</p>
+            </div>
+        );
     }
 
     const inputReadOnlyClass =

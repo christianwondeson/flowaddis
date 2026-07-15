@@ -1,9 +1,11 @@
 "use client"
 
 import type React from "react"
+import type { MultiFactorResolver } from "firebase/auth"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
+import type { UserRole } from "@/types/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
@@ -14,6 +16,10 @@ import { validatePasswordStrength, PASSWORD_POLICY_HINT } from "@/lib/password-p
 import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter"
 import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
 import { verifyRecaptchaEnterpriseWithApi } from "@/lib/recaptcha-verify-client"
+import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions"
+import { getPostLoginPath } from "@/lib/auth/post-login-path"
+import { isMfaSignInRequiredError } from "@/lib/mfa-sign-in-error"
+import { MfaSignInPanel } from "@/components/auth/mfa-sign-in-panel"
 
 export default function SignUpPage() {
     const [name, setName] = useState("")
@@ -22,6 +28,7 @@ export default function SignUpPage() {
     const [confirmPassword, setConfirmPassword] = useState("")
     const [isAdminAccount, setIsAdminAccount] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [googleSubmitting, setGoogleSubmitting] = useState(false)
     const [signUpMethod, setSignUpMethod] = useState<"email" | "phone">("email")
     const [recaptchaSolved, setRecaptchaSolved] = useState(false)
     const [errors, setErrors] = useState<{
@@ -31,8 +38,13 @@ export default function SignUpPage() {
         confirmPassword?: string
     }>({})
 
-    const { register, sendVerificationEmail, renderRecaptcha, clearRecaptcha } = useAuth()
+    const { register, sendVerificationEmail, loginWithGoogle, renderRecaptcha, clearRecaptcha } = useAuth()
     const router = useRouter()
+    const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
+
+    const pushAfterGoogleSignUp = (role: UserRole) => {
+        router.replace(getPostLoginPath(role, "/"))
+    }
 
     useEffect(() => {
         // Render visible reCAPTCHA for Email mode
@@ -74,7 +86,7 @@ export default function SignUpPage() {
         if (getRecaptchaEnterpriseSiteKey()) {
             let enterpriseToken: string | undefined
             try {
-                enterpriseToken = await executeRecaptchaEnterprise("SIGNUP")
+                enterpriseToken = await executeRecaptchaEnterprise(RECAPTCHA_ACTIONS.SIGNUP)
             } catch {
                 toast.error("Security verification failed. Refresh the page and try again.")
                 return
@@ -83,7 +95,7 @@ export default function SignUpPage() {
                 toast.error("Security verification failed. Refresh the page and try again.")
                 return
             }
-            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, "SIGNUP")
+            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, RECAPTCHA_ACTIONS.SIGNUP)
             if (!verified.ok) {
                 toast.error(verified.reason || "Verification failed. Please try again.")
                 return
@@ -107,6 +119,41 @@ export default function SignUpPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleGoogleSignUp = async () => {
+        setGoogleSubmitting(true)
+        try {
+            const role = await loginWithGoogle()
+            toast.success("Welcome to BookAddis!")
+            pushAfterGoogleSignUp(role)
+        } catch (error: unknown) {
+            if (isMfaSignInRequiredError(error)) {
+                setMfaResolver(error.resolver)
+                return
+            }
+            const message =
+                error instanceof Error ? error.message : "An unexpected error occurred during sign-up."
+            toast.error(message)
+        } finally {
+            setGoogleSubmitting(false)
+        }
+    }
+
+    if (mfaResolver) {
+        return (
+            <AuthLayout title="Two-step verification" subtitle="Complete sign-up with your phone">
+                <MfaSignInPanel
+                    resolver={mfaResolver}
+                    onSuccess={(role) => {
+                        setMfaResolver(null)
+                        toast.success("Welcome to BookAddis!")
+                        pushAfterGoogleSignUp(role)
+                    }}
+                    onCancel={() => setMfaResolver(null)}
+                />
+            </AuthLayout>
+        )
     }
 
     return (
@@ -176,13 +223,13 @@ export default function SignUpPage() {
                     />
                 </FormField>
 
-                {/* Google Sign In */}
+                {/* Google Sign Up */}
                 <Button
                     type="button"
                     variant="outline"
-                    disabled={loading}
+                    disabled={loading || googleSubmitting}
                     className="w-full py-2.5 sm:py-3 flex items-center justify-center gap-2.5 border border-gray-300 hover:bg-gray-50 transition-colors text-gray-700 font-medium bg-transparent"
-                    onClick={() => { }} // We'll add handleGoogleSignIn later if needed or if it exists
+                    onClick={handleGoogleSignUp}
                 >
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -190,7 +237,7 @@ export default function SignUpPage() {
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1c-4.3 0-8.01 2.47-9.82 6.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
-                    <span>Google</span>
+                    <span>{googleSubmitting ? "Connecting…" : "Continue with Google"}</span>
                 </Button>
 
                 {/* Admin Account Checkbox */}
@@ -213,7 +260,7 @@ export default function SignUpPage() {
                 {/* Sign Up Button */}
                 <Button
                     type="submit"
-                    disabled={loading || !recaptchaSolved}
+                    disabled={loading || googleSubmitting || !recaptchaSolved}
                     className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-semibold py-2.5 sm:py-3 rounded-2xl transition-all duration-300 mt-6 disabled:opacity-50 min-h-[48px]"
                 >
                     {loading ? "Creating account..." : "Create Account"}

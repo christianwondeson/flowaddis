@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { assessRecaptchaEnterpriseToken } from '@/lib/recaptcha-enterprise-assessment';
+import { ALLOWED_RECAPTCHA_ACTIONS } from '@/lib/recaptcha-actions';
 
 export const runtime = 'nodejs';
-
-const ALLOWED_ACTIONS = new Set(['LOGIN', 'GOOGLE_SIGNIN', 'SIGNUP']);
 
 /**
  * POST body: { token: string, action: string }
@@ -30,13 +29,13 @@ export async function POST(request: Request) {
             typeof body === 'object' &&
             'action' in body &&
             typeof (body as { action?: unknown }).action === 'string'
-                ? (body as { action: string }).action.trim()
+                ? (body as { action: string }).action.trim().toLowerCase()
                 : '';
 
         if (!token) {
             return NextResponse.json({ error: 'token is required' }, { status: 400 });
         }
-        if (!action || !ALLOWED_ACTIONS.has(action)) {
+        if (!action || !ALLOWED_RECAPTCHA_ACTIONS.has(action)) {
             return NextResponse.json({ error: 'Invalid or missing action' }, { status: 400 });
         }
 

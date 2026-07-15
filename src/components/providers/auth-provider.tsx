@@ -119,7 +119,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [queryClient]);
 
-    const { data: userProfile, isLoading: profileLoading } = useUserProfile(firebaseUser);
+    const { data: userProfile, isFetched, isError } = useUserProfile(firebaseUser);
+
+    const profileReady = useMemo(() => {
+        if (!firebaseUser) return true;
+        const uid = firebaseUser.uid;
+        const cached = queryClient.getQueryData<User>(queryKeys.user.profile(uid));
+        if (cached?.id === uid) return true;
+        return isFetched;
+    }, [firebaseUser, queryClient, isFetched]);
+
+    const profileError = useMemo(() => {
+        if (!firebaseUser || !profileReady) return false;
+        const uid = firebaseUser.uid;
+        const cached = queryClient.getQueryData<User>(queryKeys.user.profile(uid));
+        if (cached?.id === uid) return false;
+        return isError;
+    }, [firebaseUser, profileReady, queryClient, isError]);
 
     // Optimize: use useMemo to prevent recomputing on every render
     const user = useMemo(() => {
@@ -140,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
     }, [userProfile, firebaseUser, queryClient]);
 
-    const loading = authLoading || (!!firebaseUser && profileLoading);
+    const loading = authLoading || (!!firebaseUser && !profileReady);
 
     /**
      * Wait for the user state to update with the expected role.
@@ -530,7 +546,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await fetch('/api/auth/session', { method: 'DELETE' });
         setFirebaseUser(null);
         queryClient.removeQueries({ queryKey: queryKeys.user.all });
-    }, [auth, clearRecaptcha, queryClient]);
+        router.replace('/');
+    }, [auth, clearRecaptcha, queryClient, router]);
 
     const renderRecaptcha = useCallback(async (containerId: string = 'recaptcha-container', size: 'invisible' | 'normal' = 'invisible', onSolved?: () => void) => {
         if (!auth || typeof window === 'undefined') return;
@@ -624,6 +641,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const value: AuthContextType = {
         user, // Use the memoized user which includes the fallback
         loading,
+        profileReady,
+        profileError,
         login,
         register,
         logout,

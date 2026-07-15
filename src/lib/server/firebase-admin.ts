@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { resolveFirestoreDatabaseId } from '@/lib/firestore-database-id';
 
 let app: admin.app.App | undefined;
 let firestoreDb: Firestore | undefined;
@@ -21,14 +22,9 @@ function normalizePrivateKeyPem(raw: string): string | null {
 
 /** Named DB in firebase.json is `flowaddis-db` (hyphen). */
 export function getFirestoreDatabaseId(): string {
-    const raw = process.env.FIRESTORE_DATABASE_ID?.trim() || process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID?.trim();
-    if (!raw || raw === '(default)') {
-        return 'flowaddis-db';
-    }
-    if (raw === 'flowaddis_db') {
-        return 'flowaddis-db';
-    }
-    return raw;
+    return resolveFirestoreDatabaseId(
+        process.env.FIRESTORE_DATABASE_ID?.trim() || process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID?.trim(),
+    );
 }
 
 function getAdminApp(): admin.app.App {

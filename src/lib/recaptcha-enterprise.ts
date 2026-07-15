@@ -1,7 +1,8 @@
 /**
- * reCAPTCHA Enterprise (v3-style execute) for protected actions (LOGIN, SIGNUP, etc.).
+ * reCAPTCHA Enterprise (v3-style execute) for protected actions (login, signup, etc.).
  * Site key is public; optional backend verification uses a separate secret.
  * @see https://cloud.google.com/recaptcha/docs/instrument-web-pages
+ * @see https://cloud.google.com/recaptcha/docs/actions-website
  */
 
 declare global {
@@ -51,13 +52,18 @@ function loadEnterpriseScript(siteKey: string): Promise<void> {
 }
 
 /**
- * Runs Enterprise assessment for the given action (e.g. LOGIN, SIGNUP).
+ * Runs Enterprise assessment for the given action (e.g. login, signup).
  * Returns undefined if no site key is configured (dev / optional).
  */
 export async function executeRecaptchaEnterprise(action: string): Promise<string | undefined> {
     const siteKey = getRecaptchaEnterpriseSiteKey();
     if (!siteKey || typeof window === 'undefined') {
         return undefined;
+    }
+
+    const normalized = action.trim().toLowerCase();
+    if (!/^[a-z0-9_/]+$/.test(normalized)) {
+        throw new Error('The requested action is invalid.');
     }
 
     await loadEnterpriseScript(siteKey);
@@ -70,7 +76,7 @@ export async function executeRecaptchaEnterprise(action: string): Promise<string
         }
         g.ready(async () => {
             try {
-                const token = await g.execute(siteKey, { action });
+                const token = await g.execute(siteKey, { action: normalized });
                 resolve(token);
             } catch (e) {
                 reject(e instanceof Error ? e : new Error(String(e)));

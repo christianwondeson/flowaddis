@@ -8,6 +8,7 @@ import {
     persistentMultipleTabManager,
 } from "firebase/firestore";
 import { getAnalytics, isSupported, Analytics } from "firebase/analytics";
+import { resolveFirestoreDatabaseId } from "@/lib/firestore-database-id";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -39,25 +40,16 @@ if (typeof window !== "undefined") {
 
     // Initialize Firestore using either a named database (if provided) or the default database
     try {
-        const databaseId = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID;
-        if (databaseId) {
-            console.info('[Firebase] Firestore databaseId configured:', databaseId);
-        } else {
-            console.info('[Firebase] Firestore databaseId not set, using default');
-        }
+        const databaseId = resolveFirestoreDatabaseId(process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID);
+        console.info('[Firebase] Firestore databaseId:', databaseId);
         const settings = {
             localCache: persistentLocalCache({
                 tabManager: persistentMultipleTabManager(),
             }),
         } as const;
 
-        if (databaseId && databaseId !== '(default)') {
-            // Use the explicitly provided database ID (e.g. 'flowaddis-db' — see firebase.json)
-            db = initializeFirestore(app, settings, databaseId as any);
-        } else {
-            // Use the default database
-            db = initializeFirestore(app, settings);
-        }
+        // Always use the named database (flowaddis-db) — see firebase.json
+        db = initializeFirestore(app, settings, databaseId);
     } catch (error) {
         console.error('❌ Error initializing Firestore:', error);
         // As a last resort, attempt to get a basic Firestore instance

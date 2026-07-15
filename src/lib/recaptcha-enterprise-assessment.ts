@@ -107,13 +107,15 @@ export async function assessRecaptchaEnterpriseToken(params: {
     const parent = client.projectPath(projectId);
     const threshold = parseMinScore();
 
+    const expectedAction = params.expectedAction.trim().toLowerCase();
+
     const request = {
         parent,
         assessment: {
             event: {
                 token: params.token,
                 siteKey,
-                expectedAction: params.expectedAction,
+                expectedAction,
             },
         },
     };
@@ -133,7 +135,7 @@ export async function assessRecaptchaEnterpriseToken(params: {
         return { ok: false, reason: `Invalid token (${String(ir)})` };
     }
 
-    if (tp.action !== params.expectedAction) {
+    if (tp.action?.toLowerCase() !== expectedAction) {
         return { ok: false, reason: 'Action mismatch' };
     }
 

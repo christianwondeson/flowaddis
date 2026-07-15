@@ -29,6 +29,20 @@ function resolveMpgsGatewayOrigins(): string[] {
   return [...origins];
 }
 
+/** Firebase Google/email auth and Google OAuth use hidden iframes — must be in frame-src. */
+function resolveFirebaseAuthFrameOrigins(): string[] {
+  const origins = new Set([
+    "https://accounts.google.com",
+    "https://*.firebaseapp.com",
+    "https://*.web.app",
+  ]);
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim();
+  if (authDomain) {
+    origins.add(`https://${authDomain}`);
+  }
+  return [...origins];
+}
+
 /**
  * Mitigates XSS impact on first-party cookies (including Stripe Radar cookies, which
  * cannot be HttpOnly because Stripe.js must read them).
@@ -36,6 +50,7 @@ function resolveMpgsGatewayOrigins(): string[] {
 function buildContentSecurityPolicy(isDev: boolean): string {
   const mpgsOrigins = resolveMpgsGatewayOrigins();
   const mpgsScript = mpgsOrigins.join(" ");
+  const firebaseFrames = resolveFirebaseAuthFrameOrigins().join(" ");
   const scriptSrc = isDev
     ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.google.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.recaptcha.net ${mpgsScript}`
     : `script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.google.com https://www.gstatic.com https://apis.google.com https://www.googletagmanager.com https://www.recaptcha.net ${mpgsScript}`;
@@ -47,7 +62,7 @@ function buildContentSecurityPolicy(isDev: boolean): string {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
     `connect-src 'self' https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
-    `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com ${mpgsScript}`,
+    `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com ${firebaseFrames} ${mpgsScript}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
