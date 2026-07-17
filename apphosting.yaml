@@ -16,6 +16,19 @@ env:
       - BUILD
       - RUNTIME
 
+  # Mastercard Hosted Checkout button on the payment form (NEXT_PUBLIC_* must be BUILD)
+  - variable: NEXT_PUBLIC_MPGS_ENABLED
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_MPGS_GATEWAY_HOST
+    value: https://test-gateway.mastercard.com
+    availability:
+      - BUILD
+      - RUNTIME
+
   # RAPIDAPI_KEY: do not commit real keys. In Firebase Console add either:
   # - Environment variable RAPIDAPI_KEY (mark for BUILD + RUNTIME), or
   # - Secret from Secret Manager — see https://firebase.google.com/docs/app-hosting/configure#secret-parameters

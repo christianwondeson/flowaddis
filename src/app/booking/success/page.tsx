@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, Download, Mail, Home, Loader2 } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Download, Mail, Home, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -21,8 +21,13 @@ function SuccessContent() {
     const [storedRef, setStoredRef] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+    const [confirmError, setConfirmError] = useState<string | null>(null);
 
     const paymentReference = refFromQuery || storedRef || null;
+    const isPaid =
+        paymentStatus === 'PAID' ||
+        paymentStatus === 'CONFIRMED' ||
+        (!resultIndicator && !!sessionId && !confirmError);
 
     useEffect(() => {
         try {
@@ -60,12 +65,23 @@ function SuccessContent() {
                     },
                     body: JSON.stringify({ paymentReference: ref, resultIndicator: indicator }),
                 });
+                const data = await res.json().catch(() => ({}));
                 if (res.ok) {
-                    const data = await res.json();
+                    setConfirmError(null);
                     if (data?.status) setPaymentStatus(data.status);
+                    else setPaymentStatus('PAID');
+                    return;
                 }
+                const message =
+                    typeof data?.message === 'string'
+                        ? data.message
+                        : typeof data?.error === 'string'
+                          ? data.error
+                          : t('bookingFlow.confirmFailedHint');
+                setConfirmError(message);
+                void pollStatus(ref);
             } catch {
-                /* ignore */
+                setConfirmError(t('bookingFlow.confirmFailedHint'));
             }
         };
 
@@ -100,7 +116,10 @@ function SuccessContent() {
             clearTimeout(timer);
             unsubscribe?.();
         };
-    }, [sessionId, refFromQuery, resultIndicator]);
+    }, [sessionId, refFromQuery, resultIndicator, t]);
+
+    const showPendingConfirm = Boolean(resultIndicator) && !isPaid && !confirmError && loading;
+    const showFailed = Boolean(confirmError) && !isPaid;
 
     return (
         <motion.div
@@ -112,43 +131,70 @@ function SuccessContent() {
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.2 }}
-                    className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center"
+                    transition={{ type: 'spring', damping: 12, stiffness: 200, delay: 0.2 }}
+                    className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                        showFailed ? 'bg-amber-50' : 'bg-green-50'
+                    }`}
                 >
-                    <CheckCircle2 className="w-10 h-10 text-green-500" />
+                    {showFailed ? (
+                        <AlertCircle className="w-10 h-10 text-amber-500" />
+                    ) : (
+                        <CheckCircle2 className="w-10 h-10 text-green-500" />
+                    )}
                 </motion.div>
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-3">{t('bookingFlow.successTitle')}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                {showFailed
+                    ? t('bookingFlow.confirmPendingTitle')
+                    : t('bookingFlow.successTitle')}
+            </h1>
             <p className="text-gray-500 mb-8">
-                {t('bookingFlow.successThankYou')}
+                {showFailed
+                    ? t('bookingFlow.confirmFailedHint')
+                    : showPendingConfirm
+                      ? t('bookingFlow.confirmPendingHint')
+                      : t('bookingFlow.successThankYou')}
             </p>
 
             <div className="space-y-4 mb-10">
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl text-left border border-gray-100">
-                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                        <Mail className="w-5 h-5 text-brand-primary" />
+                {!showFailed && (
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl text-left border border-gray-100">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                            <Mail className="w-5 h-5 text-brand-primary" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                {t('bookingFlow.eticketLabel')}
+                            </p>
+                            <p className="text-sm font-semibold text-gray-700">
+                                {t('bookingFlow.eticketHint')}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.eticketLabel')}</p>
-                        <p className="text-sm font-semibold text-gray-700">{t('bookingFlow.eticketHint')}</p>
-                    </div>
-                </div>
+                )}
 
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl text-left border border-gray-100">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
                         <Download className="w-5 h-5 text-brand-primary" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('bookingFlow.bookingIdLabel')}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            {t('bookingFlow.bookingIdLabel')}
+                        </p>
                         <p className="text-sm font-semibold text-gray-700 font-mono tracking-wide">
-                            {paymentReference ? paymentReference : t('bookingFlow.bookingIdFallback')}
+                            {paymentReference
+                                ? paymentReference
+                                : t('bookingFlow.bookingIdFallback')}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{t('bookingFlow.bookingIdHint')}</p>
                         {paymentStatus && paymentStatus !== 'PAID' && paymentStatus !== 'CONFIRMED' && (
                             <p className="text-xs text-amber-600 mt-2">
                                 Status: {paymentStatus}
                             </p>
+                        )}
+                        {confirmError && (
+                            <p className="text-xs text-amber-700 mt-2">{confirmError}</p>
                         )}
                     </div>
                 </div>
@@ -167,8 +213,10 @@ function SuccessContent() {
                 <Button asChild variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
                     <Link href="/">{t('bookingFlow.stayOnBookAddis')}</Link>
                 </Button>
-                <Button variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
-                    {t('bookingFlow.viewBookingDetails')} <ArrowRight className="ml-2 w-4 h-4" />
+                <Button asChild variant="ghost" className="w-full text-gray-500 hover:text-brand-primary h-12 rounded-xl font-bold">
+                    <Link href="/trips">
+                        {t('bookingFlow.viewBookingDetails')} <ArrowRight className="ml-2 w-4 h-4 inline" />
+                    </Link>
                 </Button>
             </div>
         </motion.div>
@@ -178,11 +226,13 @@ function SuccessContent() {
 export default function BookingSuccessPage() {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <Suspense fallback={
-                <div className="flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-                </div>
-            }>
+            <Suspense
+                fallback={
+                    <div className="flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+                    </div>
+                }
+            >
                 <SuccessContent />
             </Suspense>
         </div>

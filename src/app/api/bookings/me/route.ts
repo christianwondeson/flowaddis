@@ -41,14 +41,21 @@ export async function GET(request: Request) {
                 method: 'GET',
                 headers: { Authorization: authHeader },
                 cache: 'no-store',
+                signal: AbortSignal.timeout(25_000),
             });
         } catch (err) {
             console.error('Bookings me: upstream fetch failed', { upstream, err });
+            const timedOut =
+                err instanceof Error &&
+                (err.name === 'TimeoutError' || err.name === 'AbortError');
             return NextResponse.json(
                 {
-                    error: 'Booking service unreachable',
-                    message:
-                        'Could not reach the API. Set BACKEND_URL (e.g. https://api.bookaddis.com) and ensure Nest is running.',
+                    error: timedOut
+                        ? 'Booking service timed out'
+                        : 'Booking service unreachable',
+                    message: timedOut
+                        ? 'The API took too long (often a stuck DB tunnel to Postgres). Restart the SSH tunnel to :5432 and Nest, then retry.'
+                        : 'Could not reach the API. Ensure Nest is running on BACKEND_URL (default http://127.0.0.1:4000) and the DB tunnel is up.',
                 },
                 { status: 502 },
             );

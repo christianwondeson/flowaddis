@@ -11,6 +11,11 @@ export const bookingFlowEn = {
         backToBookAddis: 'Back to BookAddis',
         stayOnBookAddis: 'Stay on BookAddis',
         viewBookingDetails: 'View Booking Details',
+        confirmPendingTitle: 'Confirming your payment…',
+        confirmPendingHint:
+            'We are verifying your card payment with the bank. This usually takes a few seconds.',
+        confirmFailedHint:
+            'Your card may have been charged, but we could not confirm the booking yet. Keep your payment reference and open My Trips, or contact support.',
         cancelTitle: 'Booking Cancelled',
         cancelBody:
             'Your payment was not completed and the booking was cancelled. No charges were made to your card.',

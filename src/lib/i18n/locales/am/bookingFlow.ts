@@ -11,6 +11,10 @@ export const bookingFlowAm = {
         backToBookAddis: 'ወደ ቡክአዲስ ተመለስ',
         stayOnBookAddis: 'በቡክአዲስ ይቆዩ',
         viewBookingDetails: 'የመያዣ ዝርዝር ይመልከቱ',
+        confirmPendingTitle: 'ክፍያዎ በማረጋገጥ ላይ…',
+        confirmPendingHint: 'ከባንኩ ጋር የካርድ ክፍያዎን እያረጋገጥን ነው። ይህ ብዙውን ጊዜ ጥቂት ሰከንዶች ይወስዳል።',
+        confirmFailedHint:
+            'ካርድዎ ሊከፈል ይችላል፣ ነገር ግን መያዣውን ማረጋገጥ አልቻልንም። የክፍያ ማጣቀሻዎን ያስቀምጡ እና «ጉዞዎቼ»ን ይክፈቱ፣ ወይም ድጋፍ ያግኙ።',
         cancelTitle: 'መያዣ ተሰርዟል',
         cancelBody:
             'ክፍያ አልተጠናቀቀም እና መያዣው ተሰርዟል። ካርድዎ ላይ ክፍያ አልተደረገም።',
