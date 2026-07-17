@@ -21,6 +21,14 @@ interface ErrorBoundaryProps {
  * Default error fallback UI
  */
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+    const message =
+        error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : 'An unexpected error occurred';
+    const stack = error instanceof Error ? error.stack : undefined;
+
     return (
         <div className="min-h-[400px] flex items-center justify-center p-6">
             <div className="max-w-md w-full bg-red-50 border border-red-200 rounded-xl p-6 text-center">
@@ -35,7 +43,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
                 </h2>
 
                 <p className="text-red-700 mb-4 text-sm">
-                    {error.message || 'An unexpected error occurred'}
+                    {message || 'An unexpected error occurred'}
                 </p>
 
                 <Button
@@ -46,13 +54,13 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
                     Try again
                 </Button>
 
-                {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === 'development' && stack && (
                     <details className="mt-4 text-left">
                         <summary className="text-xs text-red-600 cursor-pointer hover:underline">
                             Error details (dev only)
                         </summary>
                         <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto max-h-40">
-                            {error.stack}
+                            {stack}
                         </pre>
                     </details>
                 )}
@@ -64,7 +72,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 /**
  * Error logging function
  */
-function logError(error: Error, errorInfo: React.ErrorInfo) {
+function logError(error: unknown, errorInfo: React.ErrorInfo) {
     // In production, send to error tracking service (Sentry, LogRocket, etc.)
     console.error('Error caught by boundary:', error, errorInfo);
 
