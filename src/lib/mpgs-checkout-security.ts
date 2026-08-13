@@ -1,6 +1,6 @@
 /**
  * Client-side guards for MPGS Hosted Checkout.
- * Card data never touches BookAddis — only session IDs and script URLs are validated here.
+ * Card data never touches BookAddis  only session IDs and script URLs are validated here.
  */
 
 const DEFAULT_MPGS_GATEWAY_HOST = 'https://test-gateway.mastercard.com';

@@ -4,15 +4,39 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getUserDocSnapshotPreferServer } from '@/lib/firestore-user-doc';
 import { queryKeys } from '@/lib/react-query';
-import { User, UserRole } from '@/types/auth';
+import { HotelPartnerRequest, HotelPartnerStatus, User, UserRole } from '@/types/auth';
 import { APP_CONSTANTS } from '@/lib/constants';
+import { parseUserRole } from '@/lib/auth/admin-utils';
+
+function parseHotelPartnerStatus(raw: unknown): HotelPartnerStatus {
+    if (
+        raw === 'pending' ||
+        raw === 'approved' ||
+        raw === 'rejected' ||
+        raw === 'none' ||
+        raw === 'draft'
+    ) {
+        return raw;
+    }
+    return 'none';
+}
 
 export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
     const uid = firebaseUser?.uid ?? '';
+    const isCheckoutGuest =
+        Boolean(firebaseUser?.isAnonymous) || Boolean(firebaseUser?.uid.startsWith('guest_'));
     return useQuery({
         queryKey: queryKeys.user.profile(uid || '__signed_out__'),
         queryFn: async (): Promise<User | null> => {
-            if (!firebaseUser || !db) return null;
+            // Guest checkout sessions must not seed Firestore "users" profiles.
+            if (
+                !firebaseUser ||
+                !db ||
+                firebaseUser.isAnonymous ||
+                firebaseUser.uid.startsWith('guest_')
+            ) {
+                return null;
+            }
 
             const userDocRef = doc(db, "users", firebaseUser.uid);
             const userDoc = await getUserDocSnapshotPreferServer(userDocRef);
@@ -21,18 +45,36 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
             let name = firebaseUser.displayName || '';
             let phone = '';
             let adminStatus: 'pending' | 'approved' | 'rejected' | 'none' = 'none';
+            let hotelPartnerStatus: HotelPartnerStatus = 'none';
+            let hotelPartnerRequest: HotelPartnerRequest | undefined;
 
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                const rawRole = userData.role;
-                if (typeof rawRole === 'string' && rawRole.toLowerCase().trim() === 'admin') {
-                    role = APP_CONSTANTS.ROLES.ADMIN as UserRole;
-                } else {
-                    role = APP_CONSTANTS.ROLES.USER as UserRole;
-                }
+                role = parseUserRole(userData.role);
                 name = userData.name || name;
                 phone = typeof userData.phone === 'string' ? userData.phone : '';
                 adminStatus = userData.adminStatus || 'none';
+                hotelPartnerStatus = parseHotelPartnerStatus(userData.hotelPartnerStatus);
+                if (
+                    userData.hotelPartnerRequest &&
+                    typeof userData.hotelPartnerRequest === 'object'
+                ) {
+                    const r = userData.hotelPartnerRequest as Record<string, unknown>;
+                    hotelPartnerRequest = {
+                        hotelName: String(r.hotelName || ''),
+                        city: typeof r.city === 'string' ? r.city : undefined,
+                        phone: typeof r.phone === 'string' ? r.phone : undefined,
+                        message: typeof r.message === 'string' ? r.message : undefined,
+                        preferredPlanCode:
+                            typeof r.preferredPlanCode === 'string'
+                                ? r.preferredPlanCode
+                                : undefined,
+                        submittedAt: r.submittedAt,
+                        ...(r.kyc && typeof r.kyc === 'object'
+                            ? { kyc: r.kyc as HotelPartnerRequest['kyc'] }
+                            : {}),
+                    };
+                }
 
             } else {
 
@@ -43,6 +85,7 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
                         email: firebaseUser.email,
                         role: APP_CONSTANTS.ROLES.USER,
                         adminStatus: 'none',
+                        hotelPartnerStatus: 'none',
                         createdAt: serverTimestamp()
                     };
                     await setDoc(userDocRef, newUser);
@@ -58,10 +101,12 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
                 emailVerified: firebaseUser.emailVerified,
                 name: name,
                 ...(phone ? { phone } : {}),
-                adminStatus: adminStatus
+                adminStatus: adminStatus,
+                hotelPartnerStatus,
+                ...(hotelPartnerRequest ? { hotelPartnerRequest } : {}),
             };
         },
-        enabled: !!uid && !!db,
+        enabled: !!uid && !!db && !isCheckoutGuest,
         staleTime: 1000 * 60 * 2,
         /** Role can change server-side; avoid stale cache overwriting post-login `setQueryData`. */
         refetchOnMount: true,

@@ -54,5 +54,15 @@ export function getSafeBackendBaseUrl(): string {
             return assertSafeHttpBaseUrl(PRODUCTION_BACKEND_URL_DEFAULT, 'BACKEND_URL');
         }
     }
+    // Prefer IPv4 loopback  `localhost` can hang on IPv6 (::1) in some Node/Next setups.
+    try {
+        const parsed = new URL(url);
+        if (parsed.hostname === 'localhost') {
+            parsed.hostname = '127.0.0.1';
+            return parsed.toString().replace(/\/$/, '');
+        }
+    } catch {
+        /* keep url */
+    }
     return url;
 }

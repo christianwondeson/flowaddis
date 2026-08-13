@@ -29,7 +29,7 @@ function resolveMpgsGatewayOrigins(): string[] {
   return [...origins];
 }
 
-/** Firebase Google/email auth and Google OAuth use hidden iframes — must be in frame-src. */
+/** Firebase Google/email auth and Google OAuth use hidden iframes  must be in frame-src. */
 function resolveFirebaseAuthFrameOrigins(): string[] {
   const origins = new Set([
     "https://accounts.google.com",
@@ -60,8 +60,13 @@ function buildContentSecurityPolicy(isDev: boolean): string {
     scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https:",
-    `connect-src 'self' https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
+    // Dev Strapi serves http://127.0.0.1:1337  https:-only img-src blocks local uploads.
+    isDev
+      ? "img-src 'self' data: blob: https: http://127.0.0.1:1337 http://localhost:1337"
+      : "img-src 'self' data: blob: https:",
+    isDev
+      ? `connect-src 'self' http://127.0.0.1:1337 http://localhost:1337 http://127.0.0.1:4000 http://localhost:4000 https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`
+      : `connect-src 'self' https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
     `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com ${firebaseFrames} ${mpgsScript}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -107,7 +112,11 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    unoptimized: true,
+    // Optimize local /assets and remote hotel photos (was unoptimized: true — slow LCP).
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       {
         protocol: 'https',
@@ -120,6 +129,24 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '**.bstatic.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cms.bookaddis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cms.flowaddis.com',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: '1337',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '1337',
       },
     ],
   },

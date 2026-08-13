@@ -19,7 +19,7 @@ export function getStrapiConfig(): { baseUrl: string; token: string } {
     if (!token) {
         const hint =
             raw.includes('127.0.0.1') || raw.includes('localhost')
-                ? ' Create a token at http://127.0.0.1:1337/admin → Settings → API Tokens (Full access), set STRAPI_API_TOKEN in .env.local, and restart npm run dev. Do not use STRAPI_API_TOKEN= (empty) — that blocks the token from .env.'
+                ? ' Create a token at http://127.0.0.1:1337/admin → Settings → API Tokens (Full access), set STRAPI_API_TOKEN in .env.local, and restart npm run dev. Do not use STRAPI_API_TOKEN= (empty)  that blocks the token from .env.'
                 : ' Set STRAPI_API_TOKEN in .env or .env.local and restart npm run dev.';
         throw new Error(`STRAPI_API_TOKEN is missing or empty.${hint}`);
     }

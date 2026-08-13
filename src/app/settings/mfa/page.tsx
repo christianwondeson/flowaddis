@@ -6,8 +6,8 @@ import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, Shield } from 'lucide-react';
-import { multiFactor, PhoneMultiFactorGenerator } from 'firebase/auth';
+import { ArrowLeft, Loader2, Mail, Shield } from 'lucide-react';
+import { multiFactor, PhoneMultiFactorGenerator, reload } from 'firebase/auth';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ export default function MfaSettingsPage() {
     const {
         user,
         loading,
+        sendVerificationEmail,
         reauthenticateForMfaEnrollment,
         sendMfaEnrollmentSms,
         completeMfaEnrollment,
@@ -29,6 +30,7 @@ export default function MfaSettingsPage() {
     const [step, setStep] = useState<'reauth' | 'phone' | 'code'>('reauth');
     const [busy, setBusy] = useState(false);
     const [recaptchaReady, setRecaptchaReady] = useState(false);
+    const [emailVerifiedLocal, setEmailVerifiedLocal] = useState(false);
 
     const hasPasswordProvider = useMemo(() => {
         const u = auth?.currentUser;
@@ -41,7 +43,19 @@ export default function MfaSettingsPage() {
         return multiFactor(u).enrolledFactors.filter(
             (f) => f.factorId === PhoneMultiFactorGenerator.FACTOR_ID,
         ).length;
-    }, [user?.id, loading]);
+    }, [user?.id, loading, emailVerifiedLocal]);
+
+    useEffect(() => {
+        setEmailVerifiedLocal(Boolean(user?.emailVerified || auth?.currentUser?.emailVerified));
+    }, [user?.emailVerified, user?.id]);
+
+    useEffect(() => {
+        // Prefill from profile phone when entering the phone step
+        if (step === 'phone' && !phone && user?.phone) {
+            const p = String(user.phone).trim();
+            if (p.startsWith('+')) setPhone(p);
+        }
+    }, [step, phone, user?.phone]);
 
     useEffect(() => {
         if (step !== 'phone') return;
@@ -60,6 +74,41 @@ export default function MfaSettingsPage() {
             clearRecaptcha();
         };
     }, [step, renderRecaptcha, clearRecaptcha]);
+
+    const refreshEmailVerified = async () => {
+        if (!auth?.currentUser) return;
+        setBusy(true);
+        try {
+            await reload(auth.currentUser);
+            const ok = auth.currentUser.emailVerified;
+            setEmailVerifiedLocal(ok);
+            if (ok) {
+                toast.success('Email verified  you can set up SMS 2FA now.');
+            } else {
+                toast.message(
+                    'Still not verified. Open the link in the email from Firebase, then click again.',
+                );
+            }
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Could not refresh status');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const resendVerification = async () => {
+        setBusy(true);
+        try {
+            await sendVerificationEmail();
+            toast.success(
+                'Verification email sent. Check inbox and spam for Firebase / BookAddis.',
+            );
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Could not send email');
+        } finally {
+            setBusy(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -80,7 +129,7 @@ export default function MfaSettingsPage() {
         );
     }
 
-    if (!user.emailVerified) {
+    if (!emailVerifiedLocal) {
         return (
             <div className="container mx-auto max-w-lg px-4 py-16">
                 <Button variant="ghost" size="sm" asChild className="mb-6">
@@ -89,14 +138,54 @@ export default function MfaSettingsPage() {
                         Back
                     </Link>
                 </Button>
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950 space-y-4">
                     <h1 className="flex items-center gap-2 text-xl font-semibold">
                         <Shield className="h-6 w-6" />
                         Verify your email first
                     </h1>
-                    <p className="mt-2 text-sm">
-                        SMS two-factor authentication requires a verified email (Firebase requirement). Check your inbox
-                        for a verification link.
+                    <p className="text-sm">
+                        Firebase blocks SMS 2FA until the account email is verified. This is separate
+                        from the phone number stored on your profile document.
+                    </p>
+                    <p className="text-sm font-medium">
+                        Signed in as {user.email || 'your account'}
+                    </p>
+                    <ol className="list-decimal pl-5 text-sm space-y-1.5">
+                        <li>Click <strong>Send verification email</strong> below.</li>
+                        <li>
+                            Open the message from Firebase (check Spam / Promotions). Subject is
+                            usually “Verify your email”.
+                        </li>
+                        <li>Click the link in that email.</li>
+                        <li>Return here and click <strong>I verified  refresh</strong>.</li>
+                    </ol>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                        <Button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void resendVerification()}
+                            className="gap-2"
+                        >
+                            {busy ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Mail className="h-4 w-4" />
+                            )}
+                            Send verification email
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => void refreshEmailVerified()}
+                        >
+                            I verified  refresh
+                        </Button>
+                    </div>
+                    <p className="text-xs text-amber-900/80">
+                        No email? In Firebase Console → Authentication → Templates, confirm the
+                        “Email address verification” template is enabled. Also check the address is
+                        correct and not blocked by your provider.
                     </p>
                 </div>
             </div>
@@ -115,8 +204,7 @@ export default function MfaSettingsPage() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
                     <h1 className="text-xl font-semibold text-foreground">SMS two-factor is enabled</h1>
                     <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                        To change or remove factors, use the Firebase-supported account recovery flows or contact
-                        support.
+                        Next sign-in will ask for an SMS code after password/Google.
                     </p>
                 </div>
             </div>
@@ -143,18 +231,22 @@ export default function MfaSettingsPage() {
             return;
         }
         if (!window.recaptchaVerifier) {
-            toast.error('Security check not ready.');
+            toast.error('Security check not ready  wait for reCAPTCHA, then retry.');
             return;
         }
         setBusy(true);
+        toast.message('Sending SMS via Firebase… (can take up to ~45s)');
         try {
             const vid = await sendMfaEnrollmentSms(phone.trim(), window.recaptchaVerifier);
             setVerificationId(vid);
             setStep('code');
             toast.success('SMS sent. Enter the code below.');
         } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Could not send SMS');
+            const msg = e instanceof Error ? e.message : 'Could not send SMS';
+            console.error('[mfa-enroll] send SMS failed', e);
+            toast.error(msg, { duration: 12_000 });
             clearRecaptcha();
+            setRecaptchaReady(false);
             void renderRecaptcha('mfa-enroll-recaptcha', 'normal', () => setRecaptchaReady(true));
         } finally {
             setBusy(false);
@@ -190,7 +282,8 @@ export default function MfaSettingsPage() {
                         SMS two-factor authentication
                     </h1>
                     <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                        Add a phone number to receive a code when you sign in (Firebase Identity Platform — SMS).
+                        After password/Google, Firebase will SMS a code to this number. Profile phone
+                        in Firestore is not used for 2FA  you enroll it here.
                     </p>
 
                     {step === 'reauth' ? (
@@ -227,6 +320,10 @@ export default function MfaSettingsPage() {
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                 />
+                                <p className="text-xs text-slate-500">
+                                    Ethiopia numbers must start with +251 (no leading 0 after country
+                                    code).
+                                </p>
                             </div>
                             <div
                                 id="mfa-enroll-recaptcha"
@@ -245,12 +342,15 @@ export default function MfaSettingsPage() {
                     {step === 'code' ? (
                         <div className="mt-6 space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="mfa-sms">SMS code</Label>
+                                <Label htmlFor="mfa-sms">6-digit SMS code</Label>
                                 <Input
                                     id="mfa-sms"
                                     inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    maxLength={6}
                                     value={smsCode}
-                                    onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                                    onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="000000"
                                 />
                             </div>
                             <Button className="w-full" disabled={busy} onClick={() => void onEnroll()}>

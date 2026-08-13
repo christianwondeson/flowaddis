@@ -1,5 +1,5 @@
 /**
- * Same-origin relative paths only — blocks open redirects via
+ * Same-origin relative paths only  blocks open redirects via
  * `//evil.com`, `\evil`, newlines, and absolute URLs.
  */
 export function isSafeAppRedirectPath(path: string): boolean {

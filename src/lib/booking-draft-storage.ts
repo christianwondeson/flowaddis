@@ -1,6 +1,6 @@
 /**
  * Persists only non-sensitive booking context across sign-in (sessionStorage).
- * PII (name, email, phone) is never written — users re-enter contact after auth.
+ * PII (name, email, phone) is never written  users re-enter contact after auth.
  */
 
 const HOTEL_KEY = 'flowaddis_booking_draft_hotel_v2';

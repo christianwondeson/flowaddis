@@ -104,7 +104,7 @@ export async function assertFirebaseAndNestAdmin(req: Request): Promise<void> {
     if (firestore.ok) {
         if (nest === 'forbidden') {
             console.warn(
-                `[CMS] Nest denied admin for ${uid} but Firestore confirms admin — check api.bookaddis.com FIRESTORE_DATABASE_ID=flowaddis-db and restart Nest.`,
+                `[CMS] Nest denied admin for ${uid} but Firestore confirms admin  check api.bookaddis.com FIRESTORE_DATABASE_ID=flowaddis-db and restart Nest.`,
             );
         }
         return;

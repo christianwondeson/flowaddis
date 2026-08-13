@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { UserRole } from '@/types/auth';
+import { annotateRecaptchaAssessmentWithApi } from '@/lib/recaptcha-verify-client';
 
 type Props = {
     resolver: MultiFactorResolver;
@@ -71,6 +72,11 @@ export function MfaSignInPanel({ resolver, loginEmail, onSuccess, onCancel }: Pr
                 window.recaptchaVerifier,
             );
             setVerificationId(vid);
+            void annotateRecaptchaAssessmentWithApi({
+                reasons: ['INITIATED_TWO_FACTOR'],
+                accountId: loginEmail?.trim().toLowerCase(),
+                clearStored: false,
+            });
         } catch (e) {
             alert(e instanceof Error ? e.message : 'Could not send SMS');
             clearRecaptcha();
@@ -92,6 +98,11 @@ export function MfaSignInPanel({ resolver, loginEmail, onSuccess, onCancel }: Pr
             );
             onSuccess(role);
         } catch (e) {
+            void annotateRecaptchaAssessmentWithApi({
+                reasons: ['FAILED_TWO_FACTOR'],
+                accountId: loginEmail?.trim().toLowerCase(),
+                clearStored: false,
+            });
             alert(e instanceof Error ? e.message : 'Verification failed');
         } finally {
             setLoading(false);
@@ -145,7 +156,7 @@ export function MfaSignInPanel({ resolver, loginEmail, onSuccess, onCancel }: Pr
                     >
                         {smsHints.map(({ h }, i) => (
                             <option key={i} value={i}>
-                                {(h as { displayName?: string }).displayName || 'Phone'} —{' '}
+                                {(h as { displayName?: string }).displayName || 'Phone'}  {' '}
                                 {(h as { phoneNumber?: string }).phoneNumber}
                             </option>
                         ))}
@@ -174,14 +185,15 @@ export function MfaSignInPanel({ resolver, loginEmail, onSuccess, onCancel }: Pr
             ) : (
                 <>
                     <div className="space-y-2">
-                        <Label htmlFor="mfa-code">6-digit code</Label>
+                        <Label htmlFor="mfa-code">6-digit SMS code</Label>
                         <Input
                             id="mfa-code"
                             inputMode="numeric"
                             autoComplete="one-time-code"
+                            maxLength={6}
                             value={smsCode}
-                            onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                            placeholder="••••••"
+                            onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="000000"
                         />
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">

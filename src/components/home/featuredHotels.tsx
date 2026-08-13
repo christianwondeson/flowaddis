@@ -1,30 +1,26 @@
-"use client";
+'use client';
 
 import React from 'react';
-import { Star, MapPin, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/currency';
-import { FEATURED_HOTELS } from '@/data/featured-hotels';
-import Link from 'next/link';
-import { useAuth } from '@/components/providers/auth-provider';
-import { useRouter } from 'next/navigation';
-
-import { useHotels } from '@/hooks/use-hotels';
+import Image from 'next/image';
 import { Heart } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useHotels } from '@/hooks/use-hotels';
 import { useTripStore } from '@/store/trip-store';
 import { Popover } from '@/components/ui/popover';
 import { SectionHeading } from '@/components/home/section-heading';
+import { formatHotelPrice } from '@/lib/currency';
+import { useEtbUsdRate } from '@/hooks/use-etb-usd-rate';
 
 export function FeaturedHotels() {
-  const { user } = useAuth();
   const router = useRouter();
   const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
   const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
+  const { etbPerUsd } = useEtbUsdRate();
 
   const { data, isLoading } = useHotels({
     query: 'Addis Ababa',
-    filters: { sortOrder: 'popularity' }
+    filters: { sortOrder: 'popularity' },
   });
 
   const featuredHotels = data?.hotels.slice(0, 4) || [];
@@ -33,26 +29,26 @@ export function FeaturedHotels() {
     checkIn: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     checkOut: new Date(Date.now() + 172800000).toISOString().split('T')[0],
     adults: '2',
-    rooms: '1'
+    rooms: '1',
   });
 
   const handleBook = (hotelId: string) => {
     router.push(`/hotels/${hotelId}?${defaultParams.toString()}`);
   };
 
-  const handleHeartClick = (e: React.MouseEvent, hotel: any) => {
+  const handleHeartClick = (e: React.MouseEvent, hotel: { id: string; price?: number }) => {
     e.stopPropagation();
-    const isSaved = currentTrip.some(item => item.details?.id === hotel.id);
+    const isSaved = currentTrip.some((item) => item.details?.id === hotel.id);
 
     if (isSaved) {
-      const tripItem = currentTrip.find(item => item.details?.id === hotel.id);
+      const tripItem = currentTrip.find((item) => item.details?.id === hotel.id);
       if (tripItem) removeFromTrip(tripItem.id);
       setSavedHotelId(null);
     } else {
       addToTrip({
         type: 'hotel',
         details: hotel,
-        price: hotel.price
+        price: hotel.price,
       });
       setSavedHotelId(hotel.id);
       setTimeout(() => setSavedHotelId(null), 3000);
@@ -72,6 +68,10 @@ export function FeaturedHotels() {
     );
   }
 
+  if (featuredHotels.length === 0) {
+    return null;
+  }
+
   return (
     <section>
       <SectionHeading
@@ -80,15 +80,40 @@ export function FeaturedHotels() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {featuredHotels.map((hotel) => {
-          const isSaved = currentTrip.some(item => item.details?.id === hotel.id);
+        {featuredHotels.map((hotel, index) => {
+          const isSaved = currentTrip.some((item) => item.details?.id === hotel.id);
+          const currency = String(
+            (hotel as { currency?: string }).currency || 'USD',
+          ).toUpperCase();
+          const priceLabel = formatHotelPrice(
+            Number(hotel.price) || 0,
+            currency,
+            etbPerUsd,
+          );
+          const imgSrc =
+            typeof hotel.image === 'string' && hotel.image.trim()
+              ? hotel.image
+              : '/assets/images/addis-view.jpg';
+
           return (
-            <div key={hotel.id} className="group cursor-pointer flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden" onClick={() => handleBook(hotel.id)}>
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <img
-                  src={hotel.image}
+            <div
+              key={hotel.id}
+              className="group cursor-pointer flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+              onClick={() => handleBook(hotel.id)}
+            >
+              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                <Image
+                  src={imgSrc}
                   alt={hotel.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  quality={70}
+                  priority={index === 0}
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  unoptimized={
+                    imgSrc.startsWith('http://127.0.0.1') ||
+                    imgSrc.startsWith('http://localhost')
+                  }
                 />
                 <div className="absolute top-3 right-3">
                   <Popover
@@ -96,14 +121,22 @@ export function FeaturedHotels() {
                     onOpenChange={(open) => !open && setSavedHotelId(null)}
                     trigger={
                       <button
+                        type="button"
                         onClick={(e) => handleHeartClick(e, hotel)}
-                        className={`p-2 backdrop-blur-sm rounded-full transition-all ${isSaved ? 'bg-red-50 text-red-500' : 'bg-white/80 text-gray-600 hover:text-red-500'
-                          }`}
+                        className={`p-2 backdrop-blur-sm rounded-full transition-all ${
+                          isSaved
+                            ? 'bg-red-50 text-red-500'
+                            : 'bg-white/80 text-gray-600 hover:text-red-500'
+                        }`}
                       >
                         <Heart className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
                       </button>
                     }
-                    content={<SavedToTripPopover hotel={hotel} isOpen={savedHotelId === hotel.id} onClose={() => setSavedHotelId(null)} />}
+                    content={
+                      <SavedToTripPopover
+                        isOpen={savedHotelId === hotel.id}
+                      />
+                    }
                     placement="bottom"
                     align="right"
                   />
@@ -118,20 +151,30 @@ export function FeaturedHotels() {
 
                 <div className="flex items-center gap-2 mb-3">
                   <div className="bg-brand-primary text-white text-xs font-bold px-1.5 py-1 rounded">
-                    {hotel.rating.toFixed(1)}
+                    {Number(hotel.rating || 0).toFixed(1)}
                   </div>
                   <div className="text-xs">
-                    <span className="font-bold text-gray-900">{hotel.reviewWord || 'Excellent'}</span>
-                    <span className="text-gray-500 ml-1">· {hotel.reviews} reviews</span>
+                    <span className="font-bold text-gray-900">
+                      {hotel.reviewWord || 'Excellent'}
+                    </span>
+                    <span className="text-gray-500 ml-1">
+                      · {hotel.reviews} reviews
+                    </span>
                   </div>
                 </div>
 
                 <div className="mt-auto pt-4 flex flex-col items-end">
                   <span className="text-xs text-gray-500">Starting from</span>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xs font-bold text-brand-primary">US$</span>
-                    <span className="text-xl font-bold text-brand-primary">{Math.round(hotel.price)}</span>
+                    <span className="text-xl font-bold text-brand-primary tabular-nums">
+                      {priceLabel}
+                    </span>
                   </div>
+                  {currency === 'USD' ? (
+                    <span className="text-[10px] text-slate-400 mt-0.5">
+                      Shown in ETB (CBE FX)
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -142,26 +185,16 @@ export function FeaturedHotels() {
   );
 }
 
-function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: boolean, onClose: () => void }) {
+function SavedToTripPopover({ isOpen }: { isOpen: boolean }) {
+  if (!isOpen) return null;
   return (
     <div className="p-4 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[240px] animate-in fade-in zoom-in duration-200 relative z-[10010]">
-      <div className="flex flex-col gap-4">
-        <div>
-          <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
-            Saved to:
-            <Link href="/trips" className="text-brand-primary font-bold hover:underline">
-              My next trip
-            </Link>
-          </p>
-        </div>
-        <div className="h-px bg-gray-100" />
-        <label className="flex items-center gap-3 cursor-pointer group">
-          <div className="w-5 h-5 rounded-full border-2 border-brand-primary flex items-center justify-center">
-            <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
-          </div>
-          <span className="text-sm font-medium text-gray-900">My next trip</span>
-        </label>
-      </div>
+      <p className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+        Saved to:
+        <Link href="/trips" className="text-brand-primary font-bold hover:underline">
+          My next trip
+        </Link>
+      </p>
     </div>
   );
 }

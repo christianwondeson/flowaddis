@@ -45,11 +45,9 @@ export const Header: React.FC = () => {
 
     const isActive = (path: string) => pathname === path;
     const isTransparentPage = pathname === '/' || ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
-    // On mobile, always use solid header when on booking pages (with ads) so logo stays visible
+    // Booking listing pages use a solid header so the logo stays fully visible over teal heroes
     const isBookingPage = ['/flights', '/hotels', '/conferences', '/shuttles'].includes(pathname);
-    const useSolidOnMobile = isBookingPage;
-    // On booking pages with colored hero, use solid header when scrolled so sign buttons stay visible
-    const showSolidHeader = scrolled || useSolidOnMobile;
+    const showSolidHeader = scrolled || isBookingPage;
 
     return (
         <header
@@ -93,7 +91,7 @@ export const Header: React.FC = () => {
                         })}
                     </nav>
 
-                    {/* Auth / locale — desktop */}
+                    {/* Auth / locale  desktop */}
                     <div className="hidden md:flex items-center gap-2">
                         <HeaderLanguageSwitch transparentLight={isTransparentPage && !showSolidHeader} />
                         <UserMenu isHomePage={isTransparentPage} scrolled={showSolidHeader} />
@@ -185,6 +183,11 @@ export const Header: React.FC = () => {
                                         {canAccessAdmin(user) && (
                                             <Link href="/admin" onClick={() => setIsMenuOpen(false)}>
                                                 <Button variant="outline" className="w-full justify-center">{t('nav.dashboard')}</Button>
+                                            </Link>
+                                        )}
+                                        {(user.role === 'hotel_admin' || user.role === 'hotel_staff') && (
+                                            <Link href="/admin/hotel" onClick={() => setIsMenuOpen(false)}>
+                                                <Button variant="outline" className="w-full justify-center">Hotel Portal</Button>
                                             </Link>
                                         )}
                                         <Button variant="ghost" className="w-full justify-center text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => { logout(); setIsMenuOpen(false); }}>{t('common.signOut')}</Button>

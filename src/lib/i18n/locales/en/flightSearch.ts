@@ -46,7 +46,7 @@ export const flightSearchEn = {
         select: 'Select',
         viewDetails: 'View details',
         airlineFallback: 'Airline',
-        bookingServiceName: '{airline} — {from} to {to}',
+        bookingServiceName: '{airline}  {from} to {to}',
         bookingDefaultName: 'Flight booking',
         modalJourney: 'Journey',
         modalSeatMap: 'Seat map',

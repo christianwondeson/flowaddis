@@ -8,6 +8,7 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TripCartSessionBridge } from "@/components/providers/trip-cart-session-bridge";
+import { RequestLoadingProvider } from "@/components/providers/request-loading-provider";
 import type { AppLocale } from "@/lib/i18n/config";
 
 export function Providers({
@@ -22,9 +23,11 @@ export function Providers({
             <LocaleProvider initialLocale={initialLocale}>
                 <ThemeProvider>
                     <AuthProvider>
-                        <TripCartSessionBridge />
-                        <Toaster position="top-center" richColors />
-                        {children}
+                        <RequestLoadingProvider>
+                            <TripCartSessionBridge />
+                            <Toaster position="top-center" richColors />
+                            {children}
+                        </RequestLoadingProvider>
                     </AuthProvider>
                 </ThemeProvider>
             </LocaleProvider>

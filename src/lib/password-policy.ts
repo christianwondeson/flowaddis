@@ -14,7 +14,7 @@ const HAS_LOWER = /[a-z]/;
 const HAS_DIGIT = /[0-9]/;
 const HAS_SYMBOL = /[^A-Za-z0-9]/;
 
-/** Top weak / breached-style passwords — block even if they meet character-class rules */
+/** Top weak / breached-style passwords  block even if they meet character-class rules */
 const COMMON_PASSWORDS = new Set(
     [
         'password',
@@ -114,15 +114,15 @@ export function getPasswordStrengthMeter(password: string): PasswordMeterState {
     if (!p) {
         label = 'Password strength';
     } else if (meetsAllRules) {
-        label = 'Strong — meets all requirements';
+        label = 'Strong  meets all requirements';
     } else if (filledCount <= 1) {
-        label = 'Weak — keep typing';
+        label = 'Weak  keep typing';
     } else if (filledCount === 2) {
-        label = 'Fair — add more variety';
+        label = 'Fair  add more variety';
     } else if (filledCount === 3) {
-        label = 'Good — almost there';
+        label = 'Good  almost there';
     } else {
-        label = 'Almost — adjust per message above';
+        label = 'Almost  adjust per message above';
     }
 
     return { bars, meetsAllRules, label, filledCount };

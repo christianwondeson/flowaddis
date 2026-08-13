@@ -16,9 +16,11 @@ interface HotelDetailHeaderProps {
     onBook?: (price?: number, name?: string, id?: string) => void;
     /** Pre-built `/hotels/map?...` URL (destination + dates from list context). */
     detailMapHref: string;
+    /** Explicit back target (search list)  prefer over router.back() from reserve. */
+    backHref?: string;
 }
 
-export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook, detailMapHref }) => {
+export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, activeTab, onTabChange, onBook, detailMapHref, backHref }) => {
     const { t } = useTranslations();
     const router = useRouter();
     const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
@@ -45,7 +47,7 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
 
     const tabs = [
         { id: 'overview', label: t('hotelDetail.tabs.overview'), icon: 'home' },
-        { id: 'pricing', label: t('hotelDetail.tabs.pricing'), icon: 'dollar' },
+        { id: 'pricing', label: 'Rooms', icon: 'dollar' },
         { id: 'facilities', label: t('hotelDetail.tabs.facilities'), icon: 'grid' },
         { id: 'rules', label: t('hotelDetail.tabs.rules'), icon: 'book' },
         { id: 'reviews', label: t('hotelDetail.tabs.reviews'), icon: 'star' },
@@ -74,9 +76,21 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                 {/* Top Bar with Back Button */}
                 <div className="flex items-center py-2 border-b border-gray-50 dark:border-slate-800">
                     <button
+                        type="button"
                         onClick={() => {
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                            router.back();
+                            if (backHref) {
+                                router.push(backHref);
+                                return;
+                            }
+                            // Avoid bouncing to /reserve when history stack is reserve → detail
+                            if (
+                                typeof window !== 'undefined' &&
+                                window.history.length > 1
+                            ) {
+                                router.back();
+                                return;
+                            }
+                            router.push('/hotels');
                         }}
                         className="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 hover:text-brand-primary transition-colors"
                     >
@@ -159,37 +173,36 @@ export const HotelDetailHeader: React.FC<HotelDetailHeaderProps> = ({ hotel, act
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="relative">
-                    {/* Left fade indicator - hidden on large screens */}
-                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none lg:hidden" />
-
-                    <div className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-1 lg:gap-0">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => onTabChange(tab.id)}
-                                className={`
-                                    snap-start flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4
-                                    text-xs sm:text-sm font-bold whitespace-nowrap
-                                    border-b-3 transition-all duration-200
-                                    min-w-[110px] sm:min-w-[120px] lg:min-w-0
-                                    ${activeTab === tab.id
-                                        ? 'border-brand-primary text-brand-primary bg-brand-primary/5 dark:bg-brand-primary/15'
-                                        : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-brand-primary hover:bg-gray-50 dark:hover:bg-slate-800'
-                                    }
-                                `}
-                            >
-                                <div className="flex items-center gap-2 justify-center">
-                                    <span className="hidden sm:inline">{getTabIcon(tab.icon)}</span>
+                {/* Section jump nav  continuous page, not tab panels */}
+                <div className="relative pb-3">
+                    <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none lg:hidden" />
+                    <div className="flex overflow-x-auto scrollbar-hide gap-2 py-1">
+                        {tabs.map((tab) => {
+                            const active = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => onTabChange(tab.id)}
+                                    className={`
+                                        snap-start shrink-0 inline-flex items-center gap-1.5
+                                        px-3.5 py-2 rounded-full text-xs sm:text-sm font-semibold
+                                        transition-colors whitespace-nowrap
+                                        ${active
+                                            ? 'bg-brand-primary text-white shadow-sm'
+                                            : 'bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted'
+                                        }
+                                    `}
+                                >
+                                    <span className="hidden sm:inline opacity-90">
+                                        {getTabIcon(tab.icon)}
+                                    </span>
                                     <span>{tab.label}</span>
-                                </div>
-                            </button>
-                        ))}
+                                </button>
+                            );
+                        })}
                     </div>
-
-                    {/* Right fade indicator - hidden on large screens */}
-                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-900 to-transparent z-10 pointer-events-none lg:hidden" />
+                    <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white dark:from-slate-900 to-transparent z-10 pointer-events-none lg:hidden" />
                 </div>
             </div>
         </div>

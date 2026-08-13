@@ -1,4 +1,7 @@
 import { User } from '@/types/auth';
+import type { UserRole } from '@/types/auth';
+import { APP_CONSTANTS } from '@/lib/constants';
+import { isHotelPortalUnlocked } from '@/lib/hotel-partner-kyc';
 
 /**
  * Admin status constants for type safety and consistency
@@ -12,11 +15,26 @@ export const ADMIN_STATUS = {
 
 export type AdminStatus = typeof ADMIN_STATUS[keyof typeof ADMIN_STATUS];
 
+/** Normalize Firestore role string into a known UserRole. */
+export function parseUserRole(raw: unknown): UserRole {
+    if (typeof raw !== 'string') return APP_CONSTANTS.ROLES.USER;
+    const r = raw.toLowerCase().trim();
+    if (r === 'admin') return APP_CONSTANTS.ROLES.ADMIN;
+    if (r === 'hotel_admin') return APP_CONSTANTS.ROLES.HOTEL_ADMIN;
+    if (r === 'hotel_staff') return APP_CONSTANTS.ROLES.HOTEL_STAFF;
+    return APP_CONSTANTS.ROLES.USER;
+}
+
 /**
- * Type guard to check if user has admin role
+ * Type guard to check if user has platform Super Admin role
  */
 export function isAdminRole(user: User | null | undefined): boolean {
     return user?.role === 'admin';
+}
+
+/** Hotel partner extranet roles only (not platform Super Admin). */
+export function isHotelPortalRole(user: User | null | undefined): boolean {
+    return user?.role === 'hotel_admin' || user?.role === 'hotel_staff';
 }
 
 /**
@@ -89,9 +107,32 @@ export function getAdminStatusMessage(user: User | null | undefined): string {
 }
 
 /**
- * Check if user can access admin routes
- * This is the main function to use for admin access control
+ * Platform Super Admin  global `/admin` console.
+ */
+export function canAccessSuperAdmin(user: User | null | undefined): boolean {
+    return isAdminRole(user) && !isAdminBlocked(user);
+}
+
+/**
+ * @deprecated Prefer `canAccessSuperAdmin`  kept for existing call sites.
  */
 export function canAccessAdmin(user: User | null | undefined): boolean {
-    return isAdminRole(user) && !isAdminBlocked(user);
+    return canAccessSuperAdmin(user);
+}
+
+/**
+ * Hotel partner extranet (`/admin/hotel`)  hotel desk only.
+ * Platform Super Admin manages inventory under `/admin/partners` (Hotels) instead.
+ */
+export function isHotelOperator(user: User | null | undefined): boolean {
+    return user?.role === 'hotel_admin' || user?.role === 'hotel_staff';
+}
+
+/**
+ * Hotel partner extranet (`/admin/hotel`).
+ * Requires hotel_admin/hotel_staff AND not blocked by unfinished/rejected KYC.
+ * Super Admin uses `/admin/partners`  not this portal.
+ */
+export function canAccessHotelPortal(user: User | null | undefined): boolean {
+    return isHotelPortalUnlocked(user);
 }

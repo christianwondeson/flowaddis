@@ -15,37 +15,8 @@ import { HotelFAQ } from '@/components/hotels/hotel-faq';
 import { HotelFilterBar } from '@/components/hotels/hotel-filter-bar';
 import { Preloader } from '@/components/ui/preloader';
 import { AdContainer } from '@/components/ads/ad-container';
-import { AdConfig } from '@/lib/types/ads';
+import { HOTEL_ADS_LEFT, HOTEL_ADS_RIGHT } from '@/lib/ads/service-ads';
 import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
-
-// Left sidebar ads (sticky with filters)
-const HOTEL_ADS_LEFT: AdConfig[] = [
-    {
-        id: 'hotel-left-1',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
-
-// Right sidebar ads (sticky when scrolling)
-const HOTEL_ADS_RIGHT: AdConfig[] = [
-    {
-        id: 'hotel-promo-1',
-        imageUrl: '/ads/hotel-ad-sample.png',
-        altText: 'Luxury Stays in Addis Ababa',
-        linkUrl: '#',
-        targetBlank: false
-    },
-    {
-        id: 'partnership-opportunity-2',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
 
 function HotelsPageContent() {
     // Read initial params from URL synchronously to avoid an extra initial fetch
@@ -217,7 +188,7 @@ function HotelsPageContent() {
     // Stabilize total count
     const [initialTotalCount, setInitialTotalCount] = useState<number | null>(null);
 
-    /** Legacy key: previously stored full hotel results (prices/PII risk). Removed — URL + refetch is source of truth. */
+    /** Legacy key: previously stored full hotel results (prices/PII risk). Removed  URL + refetch is source of truth. */
     const LEGACY_HOTEL_SEARCH_STORAGE_KEY = 'hotel_search_state';
     useEffect(() => {
         try {
@@ -332,9 +303,12 @@ function HotelsPageContent() {
     const handleBook = (hotel: any) => {
         const params = new URLSearchParams();
         if (hotel.name) params.set('name', hotel.name);
-        // Never put price in the URL — auditors flagged tampering; Stripe/Nest always derive amount server-side.
+        // Never put price in the URL  auditors flagged tampering; Stripe/Nest always derive amount server-side.
         if (hotel.image) params.set('image', hotel.image);
         if (hotel.location) params.set('location', hotel.location);
+        if (hotel.inventory_source) params.set('inventory_source', hotel.inventory_source);
+        if (hotel.bookable === true) params.set('bookable', '1');
+        if (hotel.bookable === false) params.set('bookable', '0');
         if (searchParams.query) params.set('searchQuery', searchParams.query);
         if (searchParams.destId) params.set('searchDestId', searchParams.destId);
         if (searchParams.destType) params.set('searchDestType', searchParams.destType);
@@ -423,28 +397,32 @@ function HotelsPageContent() {
     }, [searchParams.checkIn, searchParams.checkOut, searchParams.adults]);
 
     return (
-        <AdContainer leftAds={HOTEL_ADS_LEFT} rightAds={HOTEL_ADS_RIGHT}>
-            <div className="min-h-screen pt-0 pb-8 md:pb-20 page-muted">
-                {/* Header Section - compact per mockup */}
-                <div className="bg-teal-600 text-white py-4 sm:py-5 md:py-6">
-                    <div className="container mx-auto px-4 sm:px-6 lg:px-6">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 md:mb-2 tracking-tight">
+        <AdContainer
+            leftAds={HOTEL_ADS_LEFT}
+            rightAds={HOTEL_ADS_RIGHT}
+            header={
+                <div className="listing-hero">
+                    <div className="listing-hero-inner">
+                        <h1 className="text-2xl sm:text-3xl md:text-[2.35rem] font-bold mb-1.5 tracking-tight leading-tight">
                             Luxury Stays in {displayLocation}
                         </h1>
                         {isPickLocationMode ? (
-                            <p className="text-teal-100/95 text-sm sm:text-base max-w-2xl mt-1">
-                                Pick your destination from the suggestions, then press Search — we have not run your hotel search yet.
+                            <p className="text-teal-50/95 text-sm sm:text-base max-w-2xl">
+                                Pick your destination from the suggestions, then press
+                                Search  we have not run your hotel search yet.
                             </p>
                         ) : (
-                            <p className="text-teal-100/90 text-sm sm:text-base max-w-2xl">
+                            <p className="text-teal-50/90 text-sm sm:text-base max-w-2xl">
                                 Discover the perfect accommodation for your trip.
                             </p>
                         )}
                     </div>
                 </div>
-
-                <div className="container mx-auto px-4 sm:px-6 lg:px-6 -mt-4 sm:-mt-5 md:-mt-6">
-                    <div id="hotel-search-anchor" className="scroll-mt-20 sm:scroll-mt-24">
+            }
+        >
+            <div className="min-h-[50vh] pb-4 md:pb-8">
+                <div className="w-full">
+                    <div id="hotel-search-anchor" className="scroll-mt-24">
                     <HotelSearchForm
                         destination={destination}
                         checkIn={checkIn}
@@ -465,7 +443,7 @@ function HotelsPageContent() {
                     />
                     </div>
 
-                    {/* Mobile Filter Bar (Sort, Filter, Map) — hidden until a real search runs */}
+                    {/* Mobile Filter Bar (Sort, Filter, Map)  hidden until a real search runs */}
                     {!isPickLocationMode && (
                     <div className="mt-4">
                         <HotelFilterBar
@@ -496,11 +474,13 @@ function HotelsPageContent() {
                     </div>
                     )}
 
-                    <div className="flex flex-col lg:flex-row gap-8 mt-4">
-                        {/* Filters Sidebar (visible on lg and above, sticky when scrolling) */}
+                    <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 mt-5">
+                        {/* Filters  comfortable width, sticky, scroll without visible scrollbar */}
                         {!isPickLocationMode && (
-                        <div className="hidden lg:block lg:w-1/4 shrink-0">
-                            <div className="sticky top-24 self-start">
+                        <aside className="hidden lg:block w-[280px] xl:w-[300px] shrink-0">
+                            <div
+                                className="sticky top-[calc(4.75rem+env(safe-area-inset-top,0px))] self-start max-h-[calc(100vh-5.25rem-env(safe-area-inset-top,0px))] overflow-y-auto overscroll-contain scrollbar-hide"
+                            >
                                 <HotelFilters
                                 hotels={allHotels}
                                 filters={filters}
@@ -527,14 +507,13 @@ function HotelsPageContent() {
                                 }}
                             />
                             </div>
-                        </div>
+                        </aside>
                         )}
 
-                        {/* Results Content */}
-                        <div className={isPickLocationMode ? 'w-full space-y-6' : 'w-full lg:w-3/4 space-y-6'}>
-                            {/* Results Header - mockup: "Addis Ababa - 207 hotels" */}
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                                <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">
+                        {/* Results Content  takes remaining width */}
+                        <div className={isPickLocationMode ? 'w-full space-y-5' : 'w-full min-w-0 flex-1 space-y-5'}>
+                            <div className="listing-toolbar">
+                                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                                     {isPickLocationMode
                                         ? 'Ready when you are'
                                         : `${searchParams.query || DEFAULT_HOTEL_DESTINATION_QUERY} – ${filters.hotelName
@@ -544,21 +523,20 @@ function HotelsPageContent() {
                                               : initialTotalCount ?? 0} hotels`}
                                 </h2>
 
-                                {/* Sorting Tabs - mockup style */}
                                 {!isPickLocationMode && (
                                 <div className="flex flex-wrap gap-2">
                                     {[
-                                        { label: 'Lowest Price First', value: 'price' },
-                                        { label: 'Star rating and price', value: 'class_descending' },
+                                        { label: 'Lowest price', value: 'price' },
+                                        { label: 'Stars & price', value: 'class_descending' },
                                     ].map((tab) => {
                                         const isActive = filters.sortOrder === tab.value;
                                         return (
                                             <button
                                                 key={tab.value}
                                                 onClick={() => handleFilterChange({ ...filters, sortOrder: tab.value })}
-                                                className={`px-4 py-2.5 text-sm font-bold rounded-xl border transition-all duration-200 min-h-[44px] ${isActive
+                                                className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all duration-200 min-h-[40px] ${isActive
                                                     ? "bg-teal-600 border-teal-600 text-white shadow-sm"
-                                                    : "bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-teal-600 hover:text-teal-600 dark:hover:text-teal-400"
+                                                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-teal-500 hover:text-teal-700"
                                                     }`}
                                             >
                                                 {tab.label}

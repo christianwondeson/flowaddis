@@ -15,16 +15,22 @@ import { AuthLayout } from "@/components/layout/auth-layout"
 import { FormField } from "@/components/auth/form-field"
 import { isMfaSignInRequiredError } from "@/lib/mfa-sign-in-error"
 import { MfaSignInPanel } from "@/components/auth/mfa-sign-in-panel"
-import { getPostLoginPath } from "@/lib/auth/post-login-path"
+import { buildAuthContinueHref } from "@/lib/auth/post-login-path"
 import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
-import { verifyRecaptchaEnterpriseWithApi } from "@/lib/recaptcha-verify-client"
+import {
+    annotateRecaptchaAssessmentWithApi,
+    isIncorrectPasswordAuthError,
+    verifyRecaptchaEnterpriseWithApi,
+} from "@/lib/recaptcha-verify-client"
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions"
 import { getSignInMethodsForEmail, isGoogleOnlySignIn } from "@/lib/auth/sign-in-methods"
+import { Preloader } from "@/components/ui/preloader"
 
 function SignInContent() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [submitting, setSubmitting] = useState(false)
+    const [routing, setRouting] = useState(false)
     const [recaptchaSolved, setRecaptchaSolved] = useState(false)
     const [googleOnlyAccount, setGoogleOnlyAccount] = useState(false)
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
@@ -40,29 +46,38 @@ function SignInContent() {
     /** Prevents useEffect from overriding pushAfterLogin with stale role=user before Firestore loads */
     const skipSessionRedirectRef = useRef(false)
 
-    const pushAfterLogin = (role: UserRole) => {
+    const pushAfterLogin = (_role?: UserRole) => {
         skipSessionRedirectRef.current = true
-        const path = getPostLoginPath(role, from)
-        router.replace(path)
+        setRouting(true)
+        // Resolve role + hotelPartnerStatus on /auth/continue (avoids wrong dashboard for pending hotels).
+        router.replace(buildAuthContinueHref(from))
     }
 
     useEffect(() => {
         if (skipSessionRedirectRef.current || mfaResolver || loading || !user) return
-        router.replace(getPostLoginPath(user.role, from))
+        setRouting(true)
+        router.replace(buildAuthContinueHref(from))
     }, [mfaResolver, loading, user, from, router])
 
     useEffect(() => {
         if (mfaResolver) return;
-        if (!recaptchaSolved) {
-            renderRecaptcha('recaptcha-container', 'normal', () => {
-                setRecaptchaSolved(true);
-            });
-        }
+        let cancelled = false;
+        setRecaptchaSolved(false);
+        void renderRecaptcha('recaptcha-container', 'normal', () => {
+            if (!cancelled) setRecaptchaSolved(true);
+        });
 
         return () => {
+            cancelled = true;
+            // Only clear on real unmount / MFA switch  avoids wiping the widget
+            // when auth finishes initializing (renderRecaptcha identity changes).
             clearRecaptcha();
+            setRecaptchaSolved(false);
         };
-    }, [renderRecaptcha, clearRecaptcha, mfaResolver]);
+        // Intentionally omit renderRecaptcha from deps: it changes when Firebase
+        // auth hydrates and was clearing the checkbox in normal browser sessions.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mfaResolver, clearRecaptcha]);
 
     const refreshSignInMethods = async (value: string) => {
         if (!value.includes("@")) {
@@ -89,7 +104,7 @@ function SignInContent() {
         const methods = await getSignInMethodsForEmail(email)
         if (isGoogleOnlySignIn(methods)) {
             setGoogleOnlyAccount(true)
-            toast.error("This account uses Google Sign-In. Use the Google button below — your Gmail password does not sign in here.")
+            toast.error("This account uses Google Sign-In. Use the Google button below  your Gmail password does not sign in here.")
             return
         }
 
@@ -102,30 +117,64 @@ function SignInContent() {
             let enterpriseToken: string | undefined
             try {
                 enterpriseToken = await executeRecaptchaEnterprise(RECAPTCHA_ACTIONS.LOGIN)
-            } catch {
-                toast.error("Security verification failed. Refresh the page and try again.")
+            } catch (err) {
+                console.error("[signin] reCAPTCHA Enterprise execute failed", err)
+                toast.error(
+                    "Security verification failed. Use your BookAddis site key in .env (not the Identity Platform key). Refresh and try again.",
+                )
                 return
             }
             if (!enterpriseToken) {
                 toast.error("Security verification failed. Refresh the page and try again.")
                 return
             }
-            const verified = await verifyRecaptchaEnterpriseWithApi(enterpriseToken, RECAPTCHA_ACTIONS.LOGIN)
+            const accountId = email.trim().toLowerCase()
+            const verified = await verifyRecaptchaEnterpriseWithApi(
+                enterpriseToken,
+                RECAPTCHA_ACTIONS.LOGIN,
+                { email: accountId, accountId },
+            )
             if (!verified.ok) {
-                toast.error(verified.reason || "Verification failed. Please try again.")
+                console.error("[signin] reCAPTCHA verify API rejected", verified)
+                const reason = verified.reason || "Verification failed. Please try again."
+                const lowScore = /score below threshold/i.test(reason)
+                toast.error(
+                    lowScore
+                        ? "Google scored this sign-in as risky (extensions, VPN, or automation). Disable ad blockers, try a normal window or Incognito, then retry."
+                        : reason,
+                )
                 return
             }
         }
 
+        const accountId = email.trim().toLowerCase()
         setSubmitting(true)
         try {
             const role = await login(email, password)
+            void annotateRecaptchaAssessmentWithApi({
+                annotation: "LEGITIMATE",
+                reasons: ["CORRECT_PASSWORD"],
+                accountId,
+                clearStored: true,
+            })
             pushAfterLogin(role)
         } catch (error: unknown) {
             if (isMfaSignInRequiredError(error)) {
+                void annotateRecaptchaAssessmentWithApi({
+                    reasons: ["CORRECT_PASSWORD"],
+                    accountId,
+                    clearStored: false,
+                })
                 setMfaEmail(email)
                 setMfaResolver(error.resolver)
                 return
+            }
+            if (isIncorrectPasswordAuthError(error)) {
+                void annotateRecaptchaAssessmentWithApi({
+                    reasons: ["INCORRECT_PASSWORD"],
+                    accountId,
+                    clearStored: true,
+                })
             }
             const message = error instanceof Error ? error.message : "An unexpected error occurred during sign-in."
             toast.error(message)
@@ -137,7 +186,7 @@ function SignInContent() {
     const handleGoogleSignIn = async () => {
         setSubmitting(true)
         try {
-            // Google OAuth uses Firebase signInWithPopup — no Enterprise execute needed.
+            // Google OAuth uses Firebase signInWithPopup  no Enterprise execute needed.
             // A separate action (e.g. google_signin) is rejected by policy-based reCAPTCHA keys.
             const role = await loginWithGoogle()
             pushAfterLogin(role)
@@ -154,15 +203,38 @@ function SignInContent() {
         }
     }
 
+    // Auth bootstrap, post-login navigation, or already-signed-in redirect
+    if (loading || routing || (user && !mfaResolver)) {
+        return (
+            <Preloader
+                fullScreen
+                size="lg"
+                label={
+                    loading
+                        ? "Checking your session…"
+                        : routing
+                          ? "Opening your account…"
+                          : "Signing you in…"
+                }
+            />
+        )
+    }
+
     if (mfaResolver) {
         return (
             <AuthLayout title="Two-step verification" subtitle="Complete sign-in with your phone">
                 <MfaSignInPanel
                     resolver={mfaResolver}
                     loginEmail={mfaEmail || undefined}
-                    onSuccess={(role) => {
+                    onSuccess={() => {
+                        void annotateRecaptchaAssessmentWithApi({
+                            annotation: "LEGITIMATE",
+                            reasons: ["PASSED_TWO_FACTOR"],
+                            accountId: mfaEmail.trim().toLowerCase() || undefined,
+                            clearStored: true,
+                        })
                         setMfaResolver(null);
-                        pushAfterLogin(role);
+                        pushAfterLogin();
                     }}
                     onCancel={() => setMfaResolver(null)}
                 />
@@ -275,7 +347,11 @@ function SignInContent() {
 
 export default function SignInPage() {
     return (
-        <Suspense fallback={null}>
+        <Suspense
+            fallback={
+                <Preloader fullScreen size="lg" label="Loading…" />
+            }
+        >
             <SignInContent />
         </Suspense>
     )

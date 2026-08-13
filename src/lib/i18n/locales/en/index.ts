@@ -8,6 +8,7 @@ import { flightSearchEn } from './flightSearch';
 import { conferencesEn } from './conferences';
 import { shuttlesEn } from './shuttles';
 import { bookingUiEn } from './bookingUi';
+import { reserveEn } from './reserve';
 
 export const en = {
     ...shellEn,
@@ -20,6 +21,7 @@ export const en = {
     ...conferencesEn,
     ...shuttlesEn,
     ...bookingUiEn,
+    ...reserveEn,
 } as const;
 
 type DeepStringValues<T> = {

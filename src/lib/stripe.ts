@@ -2,7 +2,7 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 
 /**
  * Stripe.js sets first-party cookies (__stripe_mid, __stripe_sid, etc.) for Radar / device signals.
- * Merchants cannot set HttpOnly on those cookies — Stripe’s client must read them.
+ * Merchants cannot set HttpOnly on those cookies  Stripe’s client must read them.
  * Mitigations: strict Content-Security-Policy (see next.config.ts), no inline script for unrelated logic,
  * and XSS-safe patterns in your own code.
  * @see https://github.com/stripe/stripe-js/issues/906 (Stripe: cookies intentionally readable by Stripe.js for Radar)

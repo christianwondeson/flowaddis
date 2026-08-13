@@ -1,6 +1,6 @@
 import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
 
-/** Params only used for map “focus” mode — drop when returning to the full hotel list. */
+/** Params only used for map “focus” mode  drop when returning to the full hotel list. */
 const MAP_FOCUS_PARAM_KEYS = ['highlightId', 'lat', 'lng', 'fromDetail'] as const;
 
 export function destinationQueryFromUrlParams(sp: URLSearchParams): string {

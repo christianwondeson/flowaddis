@@ -10,6 +10,20 @@ import { BOOKADDIS_HOME, sanitizeCheckoutReturnUrl } from '@/lib/checkout-return
 import { isValidMpgsResultIndicator } from '@/lib/mpgs-checkout-security';
 import { useTranslations } from '@/components/providers/locale-provider';
 import { auth } from '@/lib/firebase';
+import { readCheckoutGuestContact } from '@/lib/checkout-guest-session';
+
+async function resolveCheckoutBearerToken(): Promise<string | null> {
+    if (!auth) return null;
+    if (auth.currentUser) {
+        return auth.currentUser.getIdToken(true);
+    }
+
+    const contact = readCheckoutGuestContact();
+    if (!contact) return null;
+
+    const { ensureCheckoutIdToken } = await import('@/lib/guest-checkout-auth');
+    return ensureCheckoutIdToken(contact);
+}
 
 function SuccessContent() {
     const { t } = useTranslations();
@@ -30,6 +44,8 @@ function SuccessContent() {
         (!resultIndicator && !!sessionId && !confirmError);
 
     useEffect(() => {
+        let cancelled = false;
+
         try {
             const saved = sessionStorage.getItem('last_pay_nar');
             if (saved) setStoredRef(saved);
@@ -38,15 +54,15 @@ function SuccessContent() {
         }
 
         const pollStatus = async (ref: string) => {
-            if (!auth?.currentUser) return;
             try {
-                const token = await auth.currentUser.getIdToken();
+                const token = await resolveCheckoutBearerToken();
+                if (!token || cancelled) return;
                 const res = await fetch(`/api/payments/status/${encodeURIComponent(ref)}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data?.status) setPaymentStatus(data.status);
+                    if (!cancelled && data?.status) setPaymentStatus(data.status);
                 }
             } catch {
                 /* ignore */
@@ -54,9 +70,14 @@ function SuccessContent() {
         };
 
         const confirmMpgs = async (ref: string, indicator: string) => {
-            if (!auth?.currentUser) return;
             try {
-                const token = await auth.currentUser.getIdToken();
+                const token = await resolveCheckoutBearerToken();
+                if (!token) {
+                    if (!cancelled) {
+                        setConfirmError(t('bookingFlow.confirmFailedHint'));
+                    }
+                    return;
+                }
                 const res = await fetch('/api/payments/mpgs/confirm', {
                     method: 'POST',
                     headers: {
@@ -66,6 +87,7 @@ function SuccessContent() {
                     body: JSON.stringify({ paymentReference: ref, resultIndicator: indicator }),
                 });
                 const data = await res.json().catch(() => ({}));
+                if (cancelled) return;
                 if (res.ok) {
                     setConfirmError(null);
                     if (data?.status) setPaymentStatus(data.status);
@@ -81,40 +103,41 @@ function SuccessContent() {
                 setConfirmError(message);
                 void pollStatus(ref);
             } catch {
-                setConfirmError(t('bookingFlow.confirmFailedHint'));
+                if (!cancelled) setConfirmError(t('bookingFlow.confirmFailedHint'));
             }
         };
 
-        const ref = refFromQuery || sessionStorage.getItem('last_pay_nar');
+        const run = async () => {
+            const ref = refFromQuery || sessionStorage.getItem('last_pay_nar');
 
-        // After the MPGS redirect this is a fresh page load, so auth.currentUser may not be
-        // hydrated yet. Wait for the first auth state before confirming, otherwise the
-        // booking is never marked PAID. Runs once when a user becomes available.
-        const runWhenAuthed = () => {
+            // Wait briefly for Firebase to hydrate after Mastercard redirect.
+            if (auth && !auth.currentUser) {
+                await new Promise<void>((resolve) => {
+                    let settled = false;
+                    const finish = () => {
+                        if (settled) return;
+                        settled = true;
+                        unsub?.();
+                        resolve();
+                    };
+                    const unsub = auth?.onAuthStateChanged(() => finish());
+                    setTimeout(finish, 2500);
+                });
+            }
+
+            if (cancelled) return;
+
             if (ref && resultIndicator && isValidMpgsResultIndicator(resultIndicator)) {
-                void confirmMpgs(ref, resultIndicator);
+                await confirmMpgs(ref, resultIndicator);
             } else if (ref && !sessionId) {
-                void pollStatus(ref);
+                await pollStatus(ref);
             }
+            if (!cancelled) setLoading(false);
         };
 
-        let unsubscribe: (() => void) | undefined;
-        if (auth?.currentUser) {
-            runWhenAuthed();
-        } else if (auth) {
-            let done = false;
-            unsubscribe = auth.onAuthStateChanged((user) => {
-                if (user && !done) {
-                    done = true;
-                    runWhenAuthed();
-                }
-            });
-        }
-
-        const timer = setTimeout(() => setLoading(false), 1500);
+        void run();
         return () => {
-            clearTimeout(timer);
-            unsubscribe?.();
+            cancelled = true;
         };
     }, [sessionId, refFromQuery, resultIndicator, t]);
 

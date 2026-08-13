@@ -10,7 +10,7 @@ import { useCmsList } from "@/hooks/use-cms-list";
 import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
 
 function fmtDate(iso: unknown): string {
-    if (!iso || typeof iso !== "string") return "—";
+    if (!iso || typeof iso !== "string") return "Not set";
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
 }
@@ -78,7 +78,7 @@ export default function AdminFlightsPage() {
                                     const dest = String(row.destination_code ?? "");
                                     const dep = fmtDate(row.departure_at);
                                     const price = row.price_usd != null ? Number(row.price_usd) : null;
-                                    const status = String(row.status ?? "—");
+                                    const status = String(row.status ?? "Not set");
                                     return (
                                         <tr key={id} className="hover:bg-gray-50 transition-colors group">
                                             <td className="px-6 py-4">
@@ -99,7 +99,7 @@ export default function AdminFlightsPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-brand-dark font-semibold text-sm">
-                                                    {price != null && Number.isFinite(price) ? `$${price.toFixed(2)}` : "—"}
+                                                    {price != null && Number.isFinite(price) ? `$${price.toFixed(2)}` : "Not set"}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">

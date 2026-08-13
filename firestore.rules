@@ -7,11 +7,15 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
 
+    function signedIn() {
+      return request.auth != null;
+    }
+
     // Align with Nest RolesGuard: admin role + not pending/rejected
     function isAdmin() {
       let path = adminUserPath();
       let data = exists(path) ? get(path).data : null;
-      return request.auth != null
+      return signedIn()
         && data != null
         && data.role == 'admin'
         && (
@@ -20,17 +24,95 @@ service cloud.firestore {
         );
     }
 
+    function userRole() {
+      let path = adminUserPath();
+      return exists(path) ? get(path).data.role : null;
+    }
+
+    function isHotelStaff() {
+      return signedIn() && userRole() in ['hotel_admin', 'hotel_staff'];
+    }
+
+    function threadPath(hotelId, threadId) {
+      return /databases/$(database)/documents/hotelChats/$(hotelId)/threads/$(threadId);
+    }
+
+    function canAccessThread(hotelId, threadId) {
+      let path = threadPath(hotelId, threadId);
+      let data = exists(path) ? get(path).data : null;
+      return data != null && (
+        isAdmin() ||
+        isHotelStaff() ||
+        data.guestUid == request.auth.uid ||
+        request.auth.uid in data.participantUids
+      );
+    }
+
     // Rules for users collection
     match /users/{userId} {
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      // Explicitly allow creating a new user document during signup
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if signedIn() && request.auth.uid == userId;
     }
 
     // Rules for trips collection
     match /trips/{tripId} {
-      allow read, write: if request.auth != null && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read, write: if signedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    /**
+     * Hotel messaging  ops (SA↔desk) + guest (guest↔desk)
+     * hotelChats/{hotelId}/threads/{threadId}/messages/{messageId}
+     *
+     * Desk staff must be able to post even when the thread doc is mid-create
+     * (canAccessThread alone races). Guest posts still require thread access.
+     */
+    match /hotelChats/{hotelId}/threads/{threadId} {
+      allow read: if signedIn() && (
+        isAdmin() ||
+        isHotelStaff() ||
+        resource.data.guestUid == request.auth.uid ||
+        request.auth.uid in resource.data.participantUids
+      );
+
+      allow create, update: if signedIn() && (
+        isAdmin() ||
+        isHotelStaff() ||
+        (
+          threadId == ('guest_' + request.auth.uid) &&
+          request.resource.data.guestUid == request.auth.uid &&
+          request.resource.data.type == 'guest'
+        ) ||
+        (
+          threadId == ('support_' + request.auth.uid) &&
+          request.resource.data.guestUid == request.auth.uid &&
+          request.resource.data.type == 'support'
+        ) ||
+        (threadId == 'ops' && (isAdmin() || isHotelStaff()))
+      );
+
+      match /messages/{messageId} {
+        allow read: if canAccessThread(hotelId, threadId)
+          || isAdmin()
+          || isHotelStaff();
+
+        allow create: if signedIn()
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.body is string
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 4000
+          && (
+            isAdmin() ||
+            isHotelStaff() ||
+            canAccessThread(hotelId, threadId)
+          );
+
+        allow update, delete: if false;
+      }
     }
 
     // Default deny for everything else

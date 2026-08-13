@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { clsx } from 'clsx';
 
 interface LogoProps {
@@ -10,6 +11,8 @@ interface LogoProps {
     light?: boolean;
     /** When true, use white text (for dark backgrounds like footer). Defaults to light. */
     textLight?: boolean;
+    /** LCP-critical (auth / header). */
+    priority?: boolean;
 }
 
 const sizeMap = {
@@ -20,15 +23,15 @@ const sizeMap = {
 };
 
 /**
- * BookAddis logo – uses logo.png image, icon only by default.
- * Zooms in on the icon (object-fit) so it is visible; on light header uses invert for contrast.
+ * BookAddis logo – optimized via next/image.
  */
 export const Logo: React.FC<LogoProps> = ({
-    className = "",
+    className = '',
     size = 'md',
     showText = false,
     light = false,
-    textLight
+    textLight,
+    priority = false,
 }) => {
     const useLightText = textLight ?? light;
     const width = typeof size === 'number' ? size : sizeMap[size].width;
@@ -36,25 +39,26 @@ export const Logo: React.FC<LogoProps> = ({
 
     return (
         <div className={clsx('flex items-center gap-2', className)}>
-            <img
+            <Image
                 src="/assets/images/logo.png"
                 alt="BookAddis"
                 width={width}
                 height={width}
+                priority={priority}
                 className={clsx(
-                    'object-contain',
-                    'object-center',
-                    // NOTE: This logo asset is multi-color; inverting it makes it an all-white block.
-                    // For "light" contexts (transparent header over hero), keep colors and add contrast.
-                    light && 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]'
+                    'shrink-0 object-contain object-center',
+                    light && 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]',
                 )}
+                style={{ width, height: width, maxHeight: width }}
             />
             {showText && (
-                <span className={clsx(
-                    'font-extrabold tracking-tight leading-none',
-                    textSize,
-                    useLightText ? "text-white" : "text-teal-600"
-                )}>
+                <span
+                    className={clsx(
+                        'font-extrabold tracking-tight leading-none',
+                        textSize,
+                        useLightText ? 'text-white' : 'text-teal-600',
+                    )}
+                >
                     Book<span className="text-teal-500">Addis</span>
                 </span>
             )}

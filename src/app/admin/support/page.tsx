@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import type { SupportTicket, SupportTicketStatus } from '@/types/support';
-import { CheckCircle2, Clock, Filter, LifeBuoy, Search, ShieldAlert, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Filter, LifeBuoy, Search, ShieldAlert, Star, XCircle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DisputedReviewsPanel } from '@/components/admin/disputed-reviews-panel';
+import { AdminLoader } from '@/components/ui/admin-loader';
+import { cn } from '@/lib/utils';
 
 function statusLabel(status: SupportTicketStatus) {
   switch (status) {
@@ -34,7 +38,11 @@ function statusBadge(status: SupportTicketStatus) {
   }
 }
 
-export default function AdminSupportPage() {
+function AdminSupportInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') === 'reviews' ? 'reviews' : 'tickets';
+
   const [items, setItems] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -45,13 +53,25 @@ export default function AdminSupportPage() {
   const [note, setNote] = useState('');
   const [resolution, setResolution] = useState('');
 
+  const setTab = (next: 'tickets' | 'reviews') => {
+    const qs = new URLSearchParams(searchParams.toString());
+    if (next === 'tickets') qs.delete('tab');
+    else qs.set('tab', 'reviews');
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    router.replace(`/admin/support${suffix}`, { scroll: false });
+  };
+
   const fetchTickets = async () => {
     setLoading(true);
     try {
+      const { auth } = await import('@/lib/firebase');
+      const token = await auth?.currentUser?.getIdToken();
       const url = new URL('/api/admin/support-tickets', window.location.origin);
       if (status !== 'all') url.searchParams.set('status', status);
       if (q.trim()) url.searchParams.set('q', q.trim());
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setItems(data?.items || []);
     } finally {
@@ -83,9 +103,14 @@ export default function AdminSupportPage() {
     if (!selected) return;
     setSaving(true);
     try {
+      const { auth } = await import('@/lib/firebase');
+      const token = await auth?.currentUser?.getIdToken();
       const res = await fetch(`/api/admin/support-tickets/${encodeURIComponent(selected.id)}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(patch),
       });
       const data = await res.json();
@@ -106,13 +131,56 @@ export default function AdminSupportPage() {
             <LifeBuoy className="w-6 h-6 text-brand-primary" />
             Support & Disputes
           </h1>
-          <p className="text-gray-500">Resolve booking issues, duplicates, transaction conflicts, and technical problems.</p>
+          <p className="text-gray-500">
+            Support tickets and hotel review reverse requests  one place for Super Admin.
+          </p>
         </div>
-        <Button onClick={fetchTickets} className="bg-brand-primary hover:bg-brand-secondary text-white">
-          Refresh
-        </Button>
+        {tab === 'tickets' ? (
+          <Button onClick={fetchTickets} className="bg-brand-primary hover:bg-brand-secondary text-white">
+            Refresh
+          </Button>
+        ) : null}
       </div>
 
+      <div className="flex gap-2 border-b border-gray-100">
+        <button
+          type="button"
+          onClick={() => setTab('tickets')}
+          className={cn(
+            'inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            tab === 'tickets'
+              ? 'border-brand-primary text-brand-primary'
+              : 'border-transparent text-gray-500 hover:text-brand-dark',
+          )}
+        >
+          <LifeBuoy className="w-4 h-4" />
+          Support tickets
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('reviews')}
+          className={cn(
+            'inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            tab === 'reviews'
+              ? 'border-brand-primary text-brand-primary'
+              : 'border-transparent text-gray-500 hover:text-brand-dark',
+          )}
+        >
+          <Star className="w-4 h-4" />
+          Review disputes
+        </button>
+      </div>
+
+      {tab === 'reviews' ? (
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600">
+            Hotels must persuade BookAddis Super Admin before a verified review can be
+            reversed. Approving hides it from the guest page.
+          </p>
+          <DisputedReviewsPanel />
+        </div>
+      ) : (
+      <>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between">
@@ -351,7 +419,17 @@ export default function AdminSupportPage() {
           </div>
         ) : null}
       </Modal>
+      </>
+      )}
     </div>
+  );
+}
+
+export default function AdminSupportPage() {
+  return (
+    <Suspense fallback={<AdminLoader label="Loading support…" />}>
+      <AdminSupportInner />
+    </Suspense>
   );
 }
 

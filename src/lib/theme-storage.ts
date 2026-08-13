@@ -39,7 +39,7 @@ export function writeStoredThemePreference(pref: ThemePreference): void {
     try {
         localStorage.setItem(THEME_STORAGE_KEY, pref);
     } catch {
-        /* private mode / quota — still apply class + notify so UI and React state can recover */
+        /* private mode / quota  still apply class + notify so UI and React state can recover */
     }
     applyDarkClassToHtml(pref === "dark");
     if (typeof window !== "undefined") {

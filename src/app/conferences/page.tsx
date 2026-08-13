@@ -1,164 +1,170 @@
-"use client";
+'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Briefcase } from 'lucide-react';
 import { ServicePageWrapper } from '@/components/layout/service-page-wrapper';
-import { VenueCard } from '@/components/conferences/venue-card';
-import { toast } from 'sonner';
+import {
+    VenueCard,
+    type ConferenceVenue,
+} from '@/components/conferences/venue-card';
 import { AdContainer } from '@/components/ads/ad-container';
-import { AdConfig } from '@/lib/types/ads';
+import {
+    CONFERENCE_ADS_LEFT,
+    CONFERENCE_ADS_RIGHT,
+} from '@/lib/ads/service-ads';
 import { useTranslations } from '@/components/providers/locale-provider';
+import { BookingModal } from '@/components/booking/booking-modal';
+import { AdminLoader } from '@/components/ui/admin-loader';
+import { Input } from '@/components/ui/input';
+import { DateField } from '@/components/ui/date-field';
+import { formatDateLocal } from '@/lib/date-utils';
 
-// Left sidebar ads (sticky when scrolling)
-const CONFERENCE_ADS_LEFT: AdConfig[] = [
-    {
-        id: 'conference-left-1',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
-
-// Right sidebar ads (sticky when scrolling)
-const CONFERENCE_ADS_RIGHT: AdConfig[] = [
-    {
-        id: 'conference-venue-1',
-        imageUrl: '/ads/hotel-ad-sample.png',
-        altText: 'Conference Venues in Addis Ababa',
-        linkUrl: '/conferences',
-        targetBlank: false
-    },
-    {
-        id: 'partnership-conference',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
-
-// Real hotel venue data for conferences (Pricing in USD)
-const mockConferences = [
-    {
-        id: 16,
-        name: 'Sheraton Addis (Luxury Collection)',
-        location: 'Taitu Street, Addis Ababa',
-        capacity: 1000,
-        price: 2581,
-        rating: 4.9,
-        features: ['Premium AV Setup', 'Stage & Podium', 'VIP Lounge', 'Full Catering', 'Luxury Amenities']
-    },
-    {
-        id: 17,
-        name: 'Radisson Blu Addis Ababa',
-        location: 'Kazanchis, Addis Ababa',
-        capacity: 450,
-        price: 1419,
-        rating: 4.8,
-        features: ['High-Speed WiFi', 'AV Equipment', 'Catering Services', 'Parking Available']
-    },
-    {
-        id: 18,
-        name: 'Hilton Addis Ababa',
-        location: 'Meskel Square, Addis Ababa',
-        capacity: 500,
-        price: 1613,
-        rating: 4.7,
-        features: ['Projector & Screen', 'Sound System', 'Breakout Rooms', 'Coffee Service', 'Business Center']
-    },
-    {
-        id: 19,
-        name: 'Hyatt Regency Addis Ababa',
-        location: 'Meskel Square, Addis Ababa',
-        capacity: 650,
-        price: 1935,
-        rating: 4.9,
-        features: ['State-of-the-art AV', 'Executive Lounge', 'Premium Catering', 'Valet Parking']
-    },
-    {
-        id: 20,
-        name: 'Marriott Executive Apartments Addis',
-        location: 'Bole, Addis Ababa',
-        capacity: 300,
-        price: 1161,
-        rating: 4.8,
-        features: ['Modern Facilities', 'WiFi', 'Catering Options', 'Parking']
-    },
-    {
-        id: 21,
-        name: 'Elilly International Hotel',
-        location: 'Bole, Addis Ababa',
-        capacity: 300,
-        price: 1032,
-        rating: 4.6,
-        features: ['Conference Facilities', 'AV Equipment', 'Catering', 'Free Parking']
-    },
-    {
-        id: 22,
-        name: 'Getfam Hotel',
-        location: 'Bole, Addis Ababa',
-        capacity: 220,
-        price: 774,
-        rating: 4.5,
-        features: ['Meeting Rooms', 'WiFi', 'Basic AV', 'Refreshments']
-    },
-    {
-        id: 23,
-        name: 'Friendship Hotel',
-        location: 'Bole, Addis Ababa',
-        capacity: 180,
-        price: 645,
-        rating: 4.4,
-        features: ['Conference Hall', 'Projector', 'Sound System', 'Parking']
-    },
-    {
-        id: 24,
-        name: 'Intercontinental Hotel Addis Ababa',
-        location: 'Bole, Addis Ababa',
-        capacity: 450,
-        price: 1419,
-        rating: 4.7,
-        features: ['International Standard', 'Full AV Suite', 'Catering', 'Business Services']
-    },
-    {
-        id: 25,
-        name: 'Skylight Hotel',
-        location: 'Bole, Addis Ababa',
-        capacity: 2000,
-        price: 3500,
-        rating: 5.0,
-        features: ['Largest Ballroom', 'World-class AV', 'Luxury Catering', 'VIP Suites']
-    }
-];
+type ApiItem = {
+    id: string;
+    hotel_id: string;
+    hotel_name: string;
+    hotel_city?: string | null;
+    hotel_location?: string | null;
+    name: string;
+    capacity: number;
+    price: number;
+    currency: string;
+    image_url?: string | null;
+    features?: string[];
+    description?: string | null;
+};
 
 export default function ConferencesPage() {
     const { t } = useTranslations();
+    const [items, setItems] = useState<ConferenceVenue[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [city, setCity] = useState('');
+    const [minCapacity, setMinCapacity] = useState('');
+    const [booking, setBooking] = useState<ConferenceVenue | null>(null);
+    const [eventDate, setEventDate] = useState(() => formatDateLocal(new Date()));
 
-    const handleBook = (venue: { name: string }) => {
-        toast.success(t('conferences.toastBookingFor', { name: venue.name }));
-    };
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const url = new URL('/api/guest/conferences', window.location.origin);
+            if (city.trim()) url.searchParams.set('city', city.trim());
+            if (minCapacity.trim()) {
+                url.searchParams.set('minCapacity', minCapacity.trim());
+            }
+            const res = await fetch(url.toString(), { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            const rows = (data.items || []) as ApiItem[];
+            setItems(
+                rows.map((r) => ({
+                    id: r.id,
+                    hotel_id: r.hotel_id,
+                    hotel_name: r.hotel_name,
+                    name: r.name,
+                    location: r.hotel_location || r.hotel_city || 'Addis Ababa',
+                    capacity: r.capacity,
+                    price: r.price,
+                    currency: r.currency || 'ETB',
+                    features: Array.isArray(r.features) ? r.features : [],
+                    image: r.image_url,
+                    description: r.description,
+                })),
+            );
+        } catch {
+            setItems([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [city, minCapacity]);
+
+    useEffect(() => {
+        void load();
+    }, [load]);
+
+    const tomorrow = useMemo(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return formatDateLocal(d);
+    }, []);
 
     return (
-        <AdContainer leftAds={CONFERENCE_ADS_LEFT} rightAds={CONFERENCE_ADS_RIGHT}>
-            <ServicePageWrapper
-                icon={Briefcase}
-                title={t('conferences.title')}
-                description={t('conferences.description')}
-                accentColor="primary"
+        <ServicePageWrapper
+            title={t('conferences.title')}
+            description={t('conferences.description')}
+            icon={Briefcase}
+        >
+            <AdContainer
+                leftAds={CONFERENCE_ADS_LEFT}
+                rightAds={CONFERENCE_ADS_RIGHT}
+                clearFixedHeader={false}
             >
-                {/* Venues Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {mockConferences.map((venue, index) => (
-                        <VenueCard
-                            key={venue.id}
-                            venue={venue}
-                            index={index}
-                            onBook={handleBook}
+                <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">City</label>
+                        <Input
+                            placeholder="e.g. Addis"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            className="h-11 rounded-xl"
                         />
-                    ))}
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Min capacity</label>
+                        <Input
+                            type="number"
+                            min={1}
+                            placeholder="Guests"
+                            value={minCapacity}
+                            onChange={(e) => setMinCapacity(e.target.value)}
+                            className="h-11 rounded-xl"
+                        />
+                    </div>
+                    <DateField
+                        label="Event date"
+                        value={eventDate}
+                        onChange={setEventDate}
+                        minDate={new Date()}
+                    />
                 </div>
-            </ServicePageWrapper>
-        </AdContainer>
+
+                {loading ? (
+                    <AdminLoader label="Loading conference halls…" />
+                ) : items.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+                        <p className="text-sm text-slate-600 max-w-md mx-auto">
+                            No conference halls match your filters.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                        {items.map((venue) => (
+                            <VenueCard
+                                key={`${venue.hotel_id}-${venue.id}`}
+                                venue={venue}
+                                onBook={setBooking}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                <BookingModal
+                    isOpen={Boolean(booking)}
+                    onClose={() => setBooking(null)}
+                    serviceName={
+                        booking
+                            ? `${booking.hotel_name} · ${booking.name}`
+                            : 'Conference'
+                    }
+                    price={booking?.price || 0}
+                    type="conference"
+                    productId={booking?.id}
+                    externalItemId={booking?.hotel_id || ''}
+                    inventorySource="bookaddis_direct"
+                    isLocal={(booking?.currency || 'ETB').toUpperCase() === 'ETB'}
+                    initialCheckIn={eventDate || tomorrow}
+                    initialCheckOut={eventDate || tomorrow}
+                    preferredPaymentTiming="pay_now"
+                />
+            </AdContainer>
+        </ServicePageWrapper>
     );
 }

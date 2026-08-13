@@ -1,8 +1,11 @@
 /**
- * reCAPTCHA Enterprise (v3-style execute) for protected actions (login, signup, etc.).
- * Site key is public; optional backend verification uses a separate secret.
+ * reCAPTCHA Enterprise for **BookAddis signup/login** only.
+ * Site key: NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY (e.g. 6LeEZ90s…).
+ *
+ * Do NOT wire Firebase's managed Identity Platform key (6Le4llYs…) here.
+ * Phone/MFA SMS uses that key inside the Firebase Auth SDK  no Nest assessment.
+ *
  * @see https://cloud.google.com/recaptcha/docs/instrument-web-pages
- * @see https://cloud.google.com/recaptcha/docs/actions-website
  */
 
 declare global {
@@ -39,6 +42,7 @@ function loadEnterpriseScript(siteKey: string): Promise<void> {
         const s = document.createElement('script');
         s.id = id;
         s.async = true;
+        // Score-based keys need ?render=YOUR_APP_SITE_KEY for execute().
         s.src = `https://www.google.com/recaptcha/enterprise.js?render=${encodeURIComponent(siteKey)}`;
         s.onload = () => resolve();
         s.onerror = () => {

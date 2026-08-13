@@ -27,16 +27,18 @@ import {
     multiFactor,
     PhoneAuthProvider,
     PhoneMultiFactorGenerator,
+    initializeRecaptchaConfig,
 } from 'firebase/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getUserDocSnapshotPreferServer } from '@/lib/firestore-user-doc';
-import { AuthContextType, User, UserRole } from '@/types/auth';
+import { AuthContextType, RegisterOptions, User, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 
 import { APP_CONSTANTS } from '@/lib/constants';
 import { validatePasswordStrength } from '@/lib/password-policy';
+import { parseUserRole } from '@/lib/auth/admin-utils';
 // import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies'; // Deprecated in favor of HttpOnly cookies
 import { useUserProfile } from '@/hooks/use-user-profile';
 import {
@@ -89,16 +91,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
+        // Prefetch Identity Platform reCAPTCHA config (managed key used for phone/MFA SMS).
+        void initializeRecaptchaConfig(auth).catch((err) => {
+            console.warn('[auth] initializeRecaptchaConfig failed', err);
+        });
+
         const unsubscribe = onIdTokenChanged(auth, async (user) => {
             if (user) {
-                const token = await user.getIdToken(true);
-                const res = await postSessionCookie(token);
-                if (res.status === 429) {
-                    toast.error(
-                        'Too many session requests from this network. Wait a few minutes or refresh the page.',
-                    );
-                } else if (!res.ok) {
-                    console.warn('[auth] Session cookie sync failed:', res.status);
+                // Guest checkout sessions (anonymous / guest_* custom token) must not set
+                // the HttpOnly session cookie (would unlock /dashboard and bounce /signin).
+                const isCheckoutGuest =
+                    user.isAnonymous || user.uid.startsWith('guest_');
+                if (!isCheckoutGuest) {
+                    const token = await user.getIdToken(true);
+                    const res = await postSessionCookie(token);
+                    if (res.status === 429) {
+                        toast.error(
+                            'Too many session requests from this network. Wait a few minutes or refresh the page.',
+                        );
+                    } else if (!res.ok) {
+                        console.warn('[auth] Session cookie sync failed:', res.status);
+                    }
                 }
                 setFirebaseUser(user);
             } else {
@@ -139,7 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Optimize: use useMemo to prevent recomputing on every render
     const user = useMemo(() => {
-        if (!firebaseUser) return null;
+        // Guest checkout sessions power Nest JWT only  treat as signed-out in the UI.
+        if (!firebaseUser || firebaseUser.isAnonymous || firebaseUser.uid.startsWith('guest_')) {
+            return null;
+        }
         const uid = firebaseUser.uid;
         const profileKey = queryKeys.user.profile(uid);
         const fromCache = queryClient.getQueryData<User>(profileKey);
@@ -148,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return (
             resolved ?? {
                 id: uid,
-                email: firebaseUser.email!,
+                email: firebaseUser.email || '',
                 role: APP_CONSTANTS.ROLES.USER as UserRole,
                 emailVerified: firebaseUser.emailVerified,
                 name: firebaseUser.displayName || '',
@@ -156,7 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
     }, [userProfile, firebaseUser, queryClient]);
 
-    const loading = authLoading || (!!firebaseUser && !profileReady);
+    const isCheckoutGuestUser =
+        !!firebaseUser &&
+        (firebaseUser.isAnonymous || firebaseUser.uid.startsWith('guest_'));
+    const loading =
+        authLoading || (!!firebaseUser && !isCheckoutGuestUser && !profileReady);
 
     /**
      * Wait for the user state to update with the expected role.
@@ -217,11 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     );
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
-                        const rawRole = userData.role;
-                        const role: UserRole =
-                            typeof rawRole === 'string' && rawRole.toLowerCase().trim() === 'admin'
-                                ? APP_CONSTANTS.ROLES.ADMIN
-                                : APP_CONSTANTS.ROLES.USER;
+                        const role: UserRole = parseUserRole(userData.role);
 
                         const userProfileData: User = {
                             id: firebaseUser.uid,
@@ -242,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         typeof e === 'object' && e !== null && 'code' in e
                             ? String((e as { code?: string }).code)
                             : '';
-                    /** Rules/network: still signed in with Firebase Auth — avoid generic toast + blocked redirect */
+                    /** Rules/network: still signed in with Firebase Auth  avoid generic toast + blocked redirect */
                     if (
                         code === 'permission-denied' ||
                         code === 'unavailable' ||
@@ -296,7 +312,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
-    const register = useCallback(async (name: string, email: string, password?: string, requestAdmin?: boolean) => {
+    const register = useCallback(async (
+        name: string,
+        email: string,
+        password?: string,
+        options?: RegisterOptions,
+    ) => {
         if (!auth) throw new Error("Auth not initialized");
         if (!db) {
             console.error('❌ Firestore (db) is undefined!');
@@ -309,26 +330,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw new Error(pwCheck.message);
         }
 
+        const accountType = options?.accountType || 'guest';
+        if (accountType === 'hotel_partner') {
+            const asDraft = options?.hotelPartner?.asDraft !== false;
+            const hotelName = options?.hotelPartner?.hotelName?.trim();
+            if (!asDraft && !hotelName) {
+                throw new Error('Hotel name is required for a partner account');
+            }
+        }
+
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Default role is user. Admin role is granted only after approval.
+            // Guests + hotel partners start as role=user.
+            // Super Admin (BookAddis staff) is never self-serve  only via Admin Requests.
+            // Hotel portal opens only after Super Admin assigns a hotel_membership.
             const role = APP_CONSTANTS.ROLES.USER;
-            const adminStatus = requestAdmin ? 'pending' : 'none';
+            const referralCode = options?.referralCode?.trim();
 
             const userDocRef = doc(db, "users", user.uid);
-            const userData = {
+            const userData: Record<string, unknown> = {
                 name,
                 email,
                 role,
-                adminStatus,
-                createdAt: serverTimestamp()
+                adminStatus: 'none',
+                hotelPartnerStatus: 'none',
+                createdAt: serverTimestamp(),
             };
+
+            if (accountType === 'hotel_partner' && options?.hotelPartner) {
+                const asDraft = options.hotelPartner.asDraft !== false;
+                userData.hotelPartnerStatus = asDraft ? 'draft' : 'pending';
+                userData.hotelPartnerRequest = {
+                    hotelName:
+                        options.hotelPartner.hotelName?.trim() || 'Draft application',
+                    city: options.hotelPartner.city?.trim() || null,
+                    phone: options.hotelPartner.phone?.trim() || null,
+                    message: options.hotelPartner.message?.trim() || null,
+                    preferredPlanCode:
+                        options.hotelPartner.preferredPlanCode?.trim() || null,
+                    ...(asDraft ? {} : { submittedAt: serverTimestamp() }),
+                    ...(options.hotelPartner.kyc
+                        ? { kyc: options.hotelPartner.kyc }
+                        : {}),
+                };
+            }
+
+            if (referralCode) {
+                userData.referralCode = referralCode;
+            }
 
             await setDoc(userDocRef, userData);
 
-            // Verify the document was created
             const verifyDoc = await getDoc(userDocRef);
             if (!verifyDoc.exists()) {
                 console.error('❌ Warning: Document was not found after creation!');
@@ -417,12 +471,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const sendMfaEnrollmentSms = useCallback(
         async (e164Phone: string, recaptchaVerifier: RecaptchaVerifier): Promise<string> => {
             if (!auth?.currentUser) throw new Error('Not signed in');
-            const session = await multiFactor(auth.currentUser).getSession();
-            const phoneAuthProvider = new PhoneAuthProvider(auth);
-            return phoneAuthProvider.verifyPhoneNumber(
-                { phoneNumber: e164Phone.trim(), session },
-                recaptchaVerifier,
-            );
+            try {
+                const session = await multiFactor(auth.currentUser).getSession();
+                const phoneAuthProvider = new PhoneAuthProvider(auth);
+                const verifyPromise = phoneAuthProvider.verifyPhoneNumber(
+                    { phoneNumber: e164Phone.trim(), session },
+                    recaptchaVerifier,
+                );
+                // Firebase can hang on reCAPTCHA / billing / region misconfig  surface that.
+                const timeoutMs = 45_000;
+                const timed = await Promise.race([
+                    verifyPromise,
+                    new Promise<never>((_, reject) => {
+                        window.setTimeout(() => {
+                            reject(
+                                new Error(
+                                    'SMS request timed out after 45s. Check: Blaze billing, Identity Platform upgrade, Ethiopia SMS region allow-list, reCAPTCHA solved, and browser Network tab for identitytoolkit.googleapis.com failures.',
+                                ),
+                            );
+                        }, timeoutMs);
+                    }),
+                ]);
+                return timed;
+            } catch (error) {
+                if (error instanceof Error && error.message.startsWith('SMS request timed out')) {
+                    throw error;
+                }
+                throw new Error(getFirebaseAuthUserMessage(error, 'sendMfaEnrollmentSms'));
+            }
         },
         [auth],
     );
@@ -440,8 +516,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     const sendVerificationEmail = async () => {
-        if (!auth?.currentUser) throw new Error("No user logged in");
-        await sendEmailVerification(auth.currentUser);
+        if (!auth?.currentUser) throw new Error('No user logged in');
+        try {
+            const origin =
+                typeof window !== 'undefined' ? window.location.origin : '';
+            if (origin) {
+                await sendEmailVerification(auth.currentUser, {
+                    url: `${origin}/settings/mfa`,
+                    handleCodeInApp: false,
+                });
+            } else {
+                await sendEmailVerification(auth.currentUser);
+            }
+        } catch (error) {
+            throw new Error(
+                getFirebaseAuthUserMessage(error, 'sendVerificationEmail'),
+            );
+        }
     };
 
     const sendPasswordReset = async (email: string) => {

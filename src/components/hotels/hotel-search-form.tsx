@@ -105,7 +105,7 @@ export const HotelSearchForm: React.FC<HotelSearchFormProps> = ({
     }, [showCI, showCO]);
 
     return (
-        <Card className="p-4 sm:p-5 md:p-6 shadow-lg mb-4 md:mb-6 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-700 overflow-visible relative z-50">
+        <Card className="listing-search p-4 sm:p-5 md:p-6 mb-0">
             {/* Mobile compact bar - app-like tap target */}
             <div className="md:hidden">
                 {!mobileOpen && (

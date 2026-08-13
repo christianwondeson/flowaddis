@@ -8,14 +8,14 @@ import { APP_CONSTANTS } from '../constants';
 export const setAuthCookie = (_token: string): void => {
     if (process.env.NODE_ENV === 'development') {
         console.warn(
-            `[${APP_CONSTANTS.AUTH.COOKIE_NAME}] setAuthCookie is disabled — use POST /api/auth/session for HttpOnly session.`,
+            `[${APP_CONSTANTS.AUTH.COOKIE_NAME}] setAuthCookie is disabled  use POST /api/auth/session for HttpOnly session.`,
         );
     }
 };
 
 export const clearAuthCookie = (): void => {
     if (process.env.NODE_ENV === 'development') {
-        console.warn(`[${APP_CONSTANTS.AUTH.COOKIE_NAME}] clearAuthCookie is disabled — use DELETE /api/auth/session.`);
+        console.warn(`[${APP_CONSTANTS.AUTH.COOKIE_NAME}] clearAuthCookie is disabled  use DELETE /api/auth/session.`);
     }
 };
 

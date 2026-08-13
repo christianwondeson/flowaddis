@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const status = searchParams.get('status');
-        const limit = searchParams.get('limit') || '20';
+        const limit = searchParams.get('limit') || '500';
         const offset = searchParams.get('offset') || '0';
 
         let backendUrl: string;

@@ -26,12 +26,12 @@ export interface LeafletMapProps {
   markers?: PriceMarker[];
   className?: string;
   height?: string;
-  /** Fit all markers (ignored when routeSelectedId is set — we fly to that hotel instead) */
+  /** Fit all markers (ignored when routeSelectedId is set  we fly to that hotel instead) */
   fitToMarkers?: boolean;
   scrollWheelZoom?: boolean;
   /** List hover */
   hoveredId?: string;
-  /** Deep-linked hotel from detail page — zoom + bounce */
+  /** Deep-linked hotel from detail page  zoom + bounce */
   routeSelectedId?: string | null;
 }
 

@@ -7,29 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { ShuttleForm } from "@/components/admin/forms/shuttle-form";
 import { AdContainer } from "@/components/ads/ad-container";
-import { AdConfig } from "@/lib/types/ads";
+import { SHUTTLE_ADS_LEFT, SHUTTLE_ADS_RIGHT } from "@/lib/ads/service-ads";
 import { useCmsList } from "@/hooks/use-cms-list";
 import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
-
-const SHUTTLE_ADS_LEFT: AdConfig[] = [
-    {
-        id: "flight-ad-1",
-        imageUrl: "/ads/flight-ad-sample.png",
-        altText: "Discover Ethiopia",
-        linkUrl: "/flights",
-        targetBlank: false,
-    },
-];
-
-const SHUTTLE_ADS_RIGHT: AdConfig[] = [
-    {
-        id: "hotel-ad-1",
-        imageUrl: "/ads/hotel-ad-sample.png",
-        altText: "Luxury Stays in Addis Ababa",
-        linkUrl: "/hotels",
-        targetBlank: false,
-    },
-];
 
 export default function AdminShuttlesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,8 +73,8 @@ export default function AdminShuttlesPage() {
                                         const pickup = String(row.pickup_location ?? "");
                                         const drop = String(row.dropoff_location ?? "");
                                         const schedule = String(row.schedule ?? "");
-                                        const cap = row.capacity != null ? Number(row.capacity) : "—";
-                                        const status = String(row.status ?? "—");
+                                        const cap = row.capacity != null ? Number(row.capacity) : " ";
+                                        const status = String(row.status ?? " ");
                                         return (
                                             <tr key={id} className="hover:bg-gray-50 transition-colors group">
                                                 <td className="px-6 py-4">

@@ -7,7 +7,7 @@ import { buildSignInHref } from '@/lib/auth/post-login-path';
 
 /**
  * Client-side guard for account pages. Middleware protects full page loads;
- * after client logout the URL can stay on /dashboard while user is null — redirect instead of a blank screen.
+ * after client logout the URL can stay on /dashboard while user is null  redirect instead of a blank screen.
  */
 export function useRequireSignedIn() {
     const { user, loading } = useAuth();

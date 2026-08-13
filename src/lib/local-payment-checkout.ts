@@ -43,8 +43,14 @@ export function buildLocalCheckoutMetadata(params: {
 }
 
 export type PaymentStatusPollResult =
-    | { status: 'PAID' | 'CONFIRMED' }
-    | { status: 'FAILED' | 'EXPIRED' | 'INITIATED' | string }
+    | {
+          status: 'PAID' | 'CONFIRMED';
+          amount?: number;
+          currency?: string;
+          bookingId?: string;
+          paymentReference?: string;
+      }
+    | { status: 'FAILED' | 'EXPIRED' | 'INITIATED' | 'UNKNOWN'; failureReason?: string }
     | { error: string };
 
 /** Poll Nest payment status via Next proxy. */
@@ -55,15 +61,44 @@ export async function fetchPaymentStatus(
     const res = await fetch(`/api/payments/status/${encodeURIComponent(paymentReference)}`, {
         headers: { Authorization: `Bearer ${idToken}` },
     });
-    const data = (await res.json().catch(() => ({}))) as { status?: string; message?: string; error?: string };
+    const data = (await res.json().catch(() => ({}))) as {
+        status?: string;
+        message?: string;
+        error?: string;
+        failureReason?: string;
+        amount?: number;
+        currency?: string;
+        bookingId?: string;
+        paymentReference?: string;
+    };
     if (!res.ok) {
         return { error: data.message || data.error || `Status check failed (${res.status})` };
     }
     const status = typeof data.status === 'string' ? data.status : 'UNKNOWN';
+    const failureReason =
+        typeof data.failureReason === 'string' && data.failureReason.trim()
+            ? data.failureReason.trim()
+            : undefined;
     if (status === 'PAID' || status === 'CONFIRMED') {
-        return { status };
+        return {
+            status,
+            amount: typeof data.amount === 'number' ? data.amount : undefined,
+            currency: typeof data.currency === 'string' ? data.currency : undefined,
+            bookingId: typeof data.bookingId === 'string' ? data.bookingId : undefined,
+            paymentReference:
+                typeof data.paymentReference === 'string'
+                    ? data.paymentReference
+                    : paymentReference,
+        };
     }
-    return { status };
+    const known =
+        status === 'FAILED' ||
+        status === 'EXPIRED' ||
+        status === 'INITIATED' ||
+        status === 'UNKNOWN'
+            ? status
+            : 'UNKNOWN';
+    return failureReason ? { status: known, failureReason } : { status: known };
 }
 
 export const ET_MOBILE_PATTERN = /^(09|07)\d{8}$/;

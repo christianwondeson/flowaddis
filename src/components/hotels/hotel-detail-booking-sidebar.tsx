@@ -5,7 +5,6 @@ import { Calendar as CalendarIcon, Users, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { formatCurrency } from '@/lib/currency';
 import { parseDateLocal, formatDateLocal } from '@/lib/date-utils';
 import { useTranslations, useLocaleContext } from '@/components/providers/locale-provider';
 import type { AppLocale } from '@/lib/i18n/config';
@@ -56,8 +55,6 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
         }
     }, [isGuestOpen, adults, children, rooms]);
 
-    const price = hotel?.price ?? 150;
-    const total = price; // 1 night
     const guestLabel =
         adults === 1 ? t('hotelDetail.booking.guestOne') : t('hotelDetail.booking.guestsMany', { count: adults });
 
@@ -84,23 +81,26 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
     };
 
     return (
-        <div className="bg-card rounded-2xl border border-border shadow-lg overflow-hidden">
-            {/* Best Price Guarantee - mockup header */}
-            <div className="px-6 py-4 border-b border-border">
-                <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">{t('hotelDetail.booking.bestPriceGuarantee')}</span>
+        <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-border bg-muted/30">
+                <p className="text-sm font-bold text-foreground">Your stay</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {hotel?.name || 'Select dates to see rooms'}
+                </p>
             </div>
 
-            <div className="p-6 space-y-4">
-                {/* Check-in - mockup: date field with calendar */}
+            <div className="p-5 space-y-4">
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('hotelDetail.booking.checkInLabel')}</label>
+                    <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
+                        {t('hotelDetail.booking.checkInLabel')}
+                    </label>
                     <Popover
                         isOpen={isCheckInOpen}
                         onOpenChange={setIsCheckInOpen}
                         trigger={
-                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-600/40 transition-all cursor-pointer">
-                                <CalendarIcon className="w-5 h-5 text-teal-600 shrink-0" />
-                                <span className="text-gray-900 dark:text-slate-100 font-medium">
+                            <div className="flex items-center gap-3 w-full px-3.5 py-2.5 bg-background border border-border rounded-xl hover:border-brand-primary/40 transition-all cursor-pointer">
+                                <CalendarIcon className="w-4 h-4 text-brand-primary shrink-0" />
+                                <span className="text-foreground font-medium text-sm">
                                     {checkIn ? formatShortDate(checkIn, locale) : t('hotelDetail.booking.selectDate')}
                                 </span>
                             </div>
@@ -117,16 +117,17 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
                     />
                 </div>
 
-                {/* Check-out - mockup: date field with calendar */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('hotelDetail.booking.checkOutLabel')}</label>
+                    <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
+                        {t('hotelDetail.booking.checkOutLabel')}
+                    </label>
                     <Popover
                         isOpen={isCheckOutOpen}
                         onOpenChange={setIsCheckOutOpen}
                         trigger={
-                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-600/40 transition-all cursor-pointer">
-                                <CalendarIcon className="w-5 h-5 text-teal-600 shrink-0" />
-                                <span className="text-gray-900 dark:text-slate-100 font-medium">
+                            <div className="flex items-center gap-3 w-full px-3.5 py-2.5 bg-background border border-border rounded-xl hover:border-brand-primary/40 transition-all cursor-pointer">
+                                <CalendarIcon className="w-4 h-4 text-brand-primary shrink-0" />
+                                <span className="text-foreground font-medium text-sm">
                                     {checkOut ? formatShortDate(checkOut, locale) : t('hotelDetail.booking.selectDate')}
                                 </span>
                             </div>
@@ -143,17 +144,18 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
                     />
                 </div>
 
-                {/* Guest selector - mockup */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">{t('hotelDetail.booking.guestsHeading')}</label>
+                    <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5">
+                        {t('hotelDetail.booking.guestsHeading')}
+                    </label>
                     <Popover
                         isOpen={isGuestOpen}
                         onOpenChange={setIsGuestOpen}
                         trigger={
-                            <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-600/40 transition-all cursor-pointer">
-                                <Users className="w-5 h-5 text-teal-600 shrink-0" />
-                                <span className="text-gray-900 dark:text-slate-100 font-medium flex-1">{guestLabel}</span>
-                                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-slate-400" />
+                            <div className="flex items-center gap-3 w-full px-3.5 py-2.5 bg-background border border-border rounded-xl hover:border-brand-primary/40 transition-all cursor-pointer">
+                                <Users className="w-4 h-4 text-brand-primary shrink-0" />
+                                <span className="text-foreground font-medium text-sm flex-1">{guestLabel}</span>
+                                <ChevronDown className="w-4 h-4 text-muted-foreground" />
                             </div>
                         }
                         content={
@@ -162,15 +164,17 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
                                     <span className="text-sm font-medium text-foreground">{t('hotelDetail.booking.adults')}</span>
                                     <div className="flex gap-2">
                                         <button
+                                            type="button"
                                             onClick={() => setTempAdults(Math.max(1, tempAdults - 1))}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
+                                            className="w-8 h-8 rounded-lg border border-border hover:bg-muted font-bold text-foreground"
                                         >
                                             −
                                         </button>
                                         <span className="w-8 text-center font-medium">{tempAdults}</span>
                                         <button
+                                            type="button"
                                             onClick={() => setTempAdults(tempAdults + 1)}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
+                                            className="w-8 h-8 rounded-lg border border-border hover:bg-muted font-bold text-foreground"
                                         >
                                             +
                                         </button>
@@ -180,21 +184,23 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
                                     <span className="text-sm font-medium text-foreground">{t('hotelDetail.booking.children')}</span>
                                     <div className="flex gap-2">
                                         <button
+                                            type="button"
                                             onClick={() => setTempChildren(Math.max(0, tempChildren - 1))}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
+                                            className="w-8 h-8 rounded-lg border border-border hover:bg-muted font-bold text-foreground"
                                         >
                                             −
                                         </button>
                                         <span className="w-8 text-center font-medium">{tempChildren}</span>
                                         <button
+                                            type="button"
                                             onClick={() => setTempChildren(tempChildren + 1)}
-                                            className="w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800 font-bold text-foreground"
+                                            className="w-8 h-8 rounded-lg border border-border hover:bg-muted font-bold text-foreground"
                                         >
                                             +
                                         </button>
                                     </div>
                                 </div>
-                                <Button onClick={handleGuestsApply} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
+                                <Button onClick={handleGuestsApply} className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white">
                                     {t('hotelDetail.booking.apply')}
                                 </Button>
                             </div>
@@ -202,26 +208,15 @@ export const HotelDetailBookingSidebar: React.FC<HotelDetailBookingSidebarProps>
                     />
                 </div>
 
-                {/* Price breakdown - mockup */}
-                <div className="pt-4 border-t border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-slate-400">{t('hotelDetail.booking.priceRoomNight')}</span>
-                        <span className="font-bold text-foreground">{formatCurrency(price)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-slate-400">{t('hotelDetail.booking.taxesFees')}</span>
-                        <span className="text-gray-500 dark:text-slate-400">{t('hotelDetail.booking.included')}</span>
-                    </div>
-                    <div className="flex justify-between text-base font-bold pt-2">
-                        <span>{t('hotelDetail.booking.total')}</span>
-                        <span className="text-teal-600">{formatCurrency(total)}</span>
-                    </div>
-                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                    Room totals come from the hotel calendar in{' '}
+                    <span className="font-semibold text-foreground">Available rooms</span>
+                     BookAddis does not add a separate price list.
+                </p>
 
-                {/* Check Availability button - mockup */}
                 <Button
                     onClick={onCheckAvailability}
-                    className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl min-h-[48px]"
+                    className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white font-bold py-3 rounded-xl min-h-[48px]"
                 >
                     {t('hotelDetail.booking.checkAvailability')}
                 </Button>

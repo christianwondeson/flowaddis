@@ -1,7 +1,7 @@
 /**
  * Nest `InitiateBookingDto` uses `forbidNonWhitelisted: true`.
  * Forward only allowed keys so extra client fields (e.g. returnUrl) never hit the API.
- * Never forward client-reported price — Stripe amounts are computed only on the server.
+ * Never forward client-reported price  Stripe amounts are computed only on the server.
  */
 export const NEST_CREATE_SESSION_KEYS = [
     'bookingType',

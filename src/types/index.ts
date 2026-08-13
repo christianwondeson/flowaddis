@@ -21,6 +21,10 @@ export interface Hotel {
     paymentPolicy?: string;
     cancellationPolicy?: string;
     priceIncludesTaxes?: boolean;
+    /** bookaddis_direct | pms_synced | rapidapi */
+    inventory_source?: 'bookaddis_direct' | 'pms_synced' | 'rapidapi';
+    /** False for RapidAPI partner listings (no BookAddis reservation). */
+    bookable?: boolean;
 }
 
 export interface HotelFilters {
@@ -31,9 +35,9 @@ export interface HotelFilters {
     minRating?: number;
     amenities?: string[];
     hotelName?: string;
-    /** Destination text (city / region label) — same as home SearchWidget */
+    /** Destination text (city / region label)  same as home SearchWidget */
     query?: string;
-    /** From LocationInput / URL — pins search to Booking.com destination */
+    /** From LocationInput / URL  pins search to Booking.com destination */
     destId?: string;
     destType?: string;
 }
@@ -61,7 +65,7 @@ export interface PriceMarker {
     lat: number;
     lng: number;
     image?: string;
-    /** Hotel opened from detail page — bounce + fly-to on map */
+    /** Hotel opened from detail page  bounce + fly-to on map */
     isRouteSelected?: boolean;
     /** List hover */
     isHovered?: boolean;

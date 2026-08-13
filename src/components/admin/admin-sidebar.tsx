@@ -3,7 +3,16 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Hotel, Plane, Bus, LogOut, Users, CreditCard, LifeBuoy } from 'lucide-react';
+import {
+    LayoutDashboard,
+    Plane,
+    LogOut,
+    Users,
+    CreditCard,
+    LifeBuoy,
+    Hotel,
+    MessageSquare,
+} from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -13,22 +22,42 @@ interface AdminSidebarProps {
     onNavigate?: () => void;
 }
 
+/**
+ * Platform Super Admin nav.
+ * Partners + Direct inventory live under Hotels; partners use Hotel Portal separately.
+ */
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigate }) => {
     const pathname = usePathname();
     const { logout } = useAuth();
 
     const navItems = [
         { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
-        { name: 'Manage Hotels', path: '/admin/hotels', icon: Hotel },
+        { name: 'Hotels', path: '/admin/partners', icon: Hotel },
         { name: 'Manage Flights', path: '/admin/flights', icon: Plane },
-        { name: 'Manage Shuttles', path: '/admin/shuttles', icon: Bus },
         { name: 'Support & Disputes', path: '/admin/support', icon: LifeBuoy },
+        { name: 'Hotel messages', path: '/admin/messages', icon: MessageSquare },
         { name: 'User Management', path: '/admin/users', icon: Users },
         { name: 'Transactions', path: '/admin/transactions', icon: CreditCard },
     ];
 
     const isActive = (path: string) => {
         if (path === '/admin' && pathname === '/admin') return true;
+        if (path === '/admin/partners') {
+            return (
+                pathname === '/admin/partners' ||
+                pathname.startsWith('/admin/partners/') ||
+                pathname === '/admin/inventory' ||
+                pathname.startsWith('/admin/inventory/')
+            );
+        }
+        if (path === '/admin/support') {
+            return (
+                pathname === '/admin/support' ||
+                pathname.startsWith('/admin/support/') ||
+                pathname === '/admin/reviews' ||
+                pathname.startsWith('/admin/reviews/')
+            );
+        }
         if (path !== '/admin' && pathname.startsWith(path)) return true;
         return false;
     };

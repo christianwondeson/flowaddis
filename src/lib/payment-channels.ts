@@ -1,5 +1,5 @@
 /**
- * Payment channel registry — mirrors Nest PaymentChannel enum.
+ * Payment channel registry  mirrors Nest PaymentChannel enum.
  * Enable via NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED and per-bank flags on the API.
  */
 export type PaymentChannelId =
@@ -37,7 +37,7 @@ export const PAYMENT_CHANNELS: PaymentChannelConfig[] = [
         accentColor: '#006838',
         requiresApiFlag: 'CBE_PAYMENTS_ENABLED',
     },
-    // NOTE: Additional Ethiopian rails are temporarily disabled — only CBE Birr is live.
+    // NOTE: Additional Ethiopian rails are temporarily disabled  only CBE Birr is live.
     // Re-enable by uncommenting; each reuses the same phone/USSD checkout flow, themed by `accentColor`.
     // {
     //     id: 'cbe_internet_banking',

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency';
 import { Hotel } from '@/types';
+import { HotelInventoryBadge, isBookaddisBookableHotel } from '@/components/hotels/hotel-inventory-badge';
 
 interface HotelCardProps {
     hotel: Hotel;
@@ -25,6 +26,8 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
     const imgSrc = imgError
         ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'
         : hotel.image;
+    const bookable = isBookaddisBookableHotel(hotel);
+    const ctaLabel = bookable ? 'Book' : 'Check availability';
 
     React.useEffect(() => {
         setImgError(false);
@@ -45,8 +48,11 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                         className="object-cover transform group-hover:scale-105 transition-transform duration-500"
                         onError={() => setImgError(true)}
                     />
+                    <div className="absolute top-2 left-2 z-10">
+                        <HotelInventoryBadge inventorySource={hotel.inventory_source} />
+                    </div>
                     {hotel.discountPercentage && (
-                        <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">
+                        <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-sm">
                             -{hotel.discountPercentage}%
                         </div>
                     )}
@@ -63,7 +69,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                     <div className="flex items-center justify-between gap-2 mt-1">
                         <div className="flex items-center gap-2">
                             <div className="w-7 h-7 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold text-xs">
-                                {hotel.rating != null ? Number(hotel.rating).toFixed(1) : '—'}
+                                {hotel.rating != null ? Number(hotel.rating).toFixed(1) : ' '}
                             </div>
                             <div className="text-xs">
                                 <span className="font-semibold text-gray-900 dark:text-slate-100">{hotel.reviewWord || 'Exceptional'}</span>
@@ -119,8 +125,11 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                         className="object-cover transform group-hover:scale-105 transition-transform duration-500"
                         onError={() => setImgError(true)}
                     />
+                    <div className="absolute top-2 left-2 z-10 sm:hidden">
+                        <HotelInventoryBadge inventorySource={hotel.inventory_source} />
+                    </div>
                     {hotel.discountPercentage && (
-                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm">
+                        <div className="absolute top-2 right-2 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm">
                             -{hotel.discountPercentage}%
                         </div>
                     )}
@@ -134,6 +143,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                                 <h3 className="text-sm md:text-base font-bold text-teal-600 hover:underline cursor-pointer truncate">
                                     {hotel.name}
                                 </h3>
+                                <HotelInventoryBadge inventorySource={hotel.inventory_source} className="hidden sm:inline-flex" />
                                 <div className="flex items-center gap-0.5">
                                     {Array.from({ length: Math.floor(hotel.rating || 0) }).map((_, i) => (
                                         <Star key={i} className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
@@ -234,7 +244,7 @@ export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStar
                             onClick={(e) => { e.stopPropagation(); onBook(hotel); }}
                             className="w-full mt-2 h-8 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all"
                         >
-                            View Deal
+                            {ctaLabel}
                         </Button>
                     </div>
                 </div>

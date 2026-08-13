@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Calendar, Loader2 } from "lucide-react";
 import { ProfileBackendSection } from "@/components/settings/profile-backend-section";
+import { HotelPartnerRequestForm } from "@/components/account/hotel-partner-request-form";
 import Link from "next/link";
 import { AccountShell } from "@/components/account/account-shell";
 
@@ -82,7 +83,15 @@ export default function ProfilePage() {
                                 <Shield className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     id="role"
-                                    value={user.role === "admin" ? "Administrator" : "Standard user"}
+                                    value={
+                                        user.role === "admin"
+                                            ? "Super Admin"
+                                            : user.role === "hotel_admin"
+                                              ? "Hotel Admin"
+                                              : user.role === "hotel_staff"
+                                                ? "Hotel Staff"
+                                                : "Standard user"
+                                    }
                                     readOnly
                                     className={`${inputReadOnlyClass} capitalize`}
                                 />
@@ -107,6 +116,10 @@ export default function ProfilePage() {
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <div className="border-t border-border pt-6 dark:border-slate-700">
+                        <HotelPartnerRequestForm />
                     </div>
 
                     <div className="flex flex-col gap-3 border-t border-border pt-4 dark:border-slate-700 sm:flex-row sm:justify-between">

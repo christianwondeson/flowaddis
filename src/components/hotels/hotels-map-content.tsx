@@ -170,7 +170,7 @@ export function HotelsMapContent() {
         return [injected, ...flat];
     }, [data?.pages, paramsKey]);
 
-    // Sidebar / markers: optional property filter on the client (not on each API page — see search route).
+    // Sidebar / markers: optional property filter on the client (not on each API page  see search route).
     // Skip name narrowing when `highlightId` is set (detail → map) so slight title mismatches never hide the pin.
     const displayHotels = useMemo(() => {
         let list = hotels;

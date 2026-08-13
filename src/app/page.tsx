@@ -1,10 +1,12 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { HeroSlider } from '@/components/home/heroSlider';
 import { SearchWidget } from '@/components/home/searchWidget';
 import { FeaturedHotels } from '@/components/home/featuredHotels';
 import { SectionHeading } from '@/components/home/section-heading';
+import { PartnerPlansSection } from '@/components/home/partner-plans-section';
 import {
   TrendingDestinations,
   ExploreEthiopia,
@@ -46,6 +48,11 @@ export default function HomePage() {
         {/* Featured Hotels */}
         <section>
           <FeaturedHotels />
+        </section>
+
+        {/* Hotel partner SaaS plans */}
+        <section>
+          <PartnerPlansSection />
         </section>
 
         {/* Popular with travelers */}
@@ -166,19 +173,18 @@ function PopularDestinationsTabs() {
               className="group block rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900"
             >
               <div className="aspect-[4/3] sm:aspect-[3/2] relative overflow-hidden bg-gray-100">
-                <img
-                  src={image}
+                <Image
+                  src={image || FALLBACK_IMAGE}
                   alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => e.currentTarget.src = FALLBACK_IMAGE}
+                  fill
+                  sizes="(max-width: 640px) 50vw, 25vw"
+                  quality={65}
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-0.5">
                   <span className="text-white font-bold text-sm sm:text-base drop-shadow-md">
                     {item.name.replace(' hotels', '')}
-                  </span>
-                  <span className="text-teal-200 text-xs font-medium drop-shadow-md">
-                    Starting ${[85, 120, 95, 75, 110][idx % 5]}
                   </span>
                 </div>
               </div>

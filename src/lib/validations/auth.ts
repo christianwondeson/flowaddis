@@ -11,12 +11,21 @@ export const signUpSchema = z
         name: z.string().min(2, { message: "Name must be at least 2 characters" }),
         email: z.string().email({ message: "Please enter a valid email address" }),
         password: z.string().min(1, { message: "Password is required" }),
-        requestAdmin: z.boolean().optional(),
+        accountType: z.enum(['guest', 'hotel_partner']).optional(),
+        hotelName: z.string().optional(),
+        referralCode: z.string().optional(),
     })
     .superRefine((data, ctx) => {
         const r = validatePasswordStrength(data.password);
         if (!r.ok) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: r.message, path: ["password"] });
+        }
+        if (data.accountType === 'hotel_partner' && !data.hotelName?.trim()) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Hotel name is required for partner signup',
+                path: ['hotelName'],
+            });
         }
     });
 

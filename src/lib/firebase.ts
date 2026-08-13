@@ -48,7 +48,7 @@ if (typeof window !== "undefined") {
             }),
         } as const;
 
-        // Always use the named database (flowaddis-db) — see firebase.json
+        // Always use the named database (flowaddis-db)  see firebase.json
         db = initializeFirestore(app, settings, databaseId);
     } catch (error) {
         console.error('❌ Error initializing Firestore:', error);

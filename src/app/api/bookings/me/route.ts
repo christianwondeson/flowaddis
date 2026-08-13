@@ -3,7 +3,7 @@ import { verifyFirebaseIdToken } from '@/lib/verify-firebase-id-token';
 import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
 
 /**
- * Proxies to Nest GET /api/v1/bookings/me — Postgres bookings for the signed-in user (Stripe/RapidAPI).
+ * Proxies to Nest GET /api/v1/bookings/me  Postgres bookings for the signed-in user (Stripe/RapidAPI).
  */
 export async function GET(request: Request) {
     try {

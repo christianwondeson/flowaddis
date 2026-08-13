@@ -102,7 +102,7 @@ export const Popover: React.FC<PopoverProps> = ({
     const popoverContent = isOpen && (
         <div
             className={clsx(
-                "bg-white rounded-xl shadow-2xl border border-gray-100 p-4 min-w-[240px] z-[10005] animate-in fade-in zoom-in-95 duration-200",
+                "bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 p-4 min-w-[240px] z-[10005] animate-in fade-in zoom-in-95 duration-150",
                 className
             )}
             style={portal && coords ? {

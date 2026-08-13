@@ -1,5 +1,6 @@
 import { auth } from '@/lib/firebase';
 import type { AdminCmsErrorCode } from '@/lib/admin-cms-error-codes';
+import { compressImagesForUpload } from '@/lib/compress-image';
 
 export class AdminCmsFetchError extends Error {
     constructor(
@@ -41,8 +42,9 @@ async function getBearer(): Promise<string> {
 export async function uploadCmsFiles(files: File[]): Promise<number[]> {
     if (files.length === 0) return [];
     const authorization = await getBearer();
+    const compressed = await compressImagesForUpload(files);
     const fd = new FormData();
-    for (const f of files) {
+    for (const f of compressed) {
         fd.append('files', f);
     }
     const res = await fetch('/api/admin/cms/upload', {

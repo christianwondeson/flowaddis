@@ -1,207 +1,253 @@
-"use client";
+'use client';
 
-import React, { useState } from 'react';
-import { MapPin, Calendar as CalendarIcon, Users, Search, ArrowRight, Clock, Shield } from 'lucide-react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import {
+    MapPin,
+    Users,
+    Bus,
+    Shield,
+    Baby,
+    Navigation,
+} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { LocationInput } from '@/components/search/location-input';
-import { GuestSelector } from '@/components/search/guest-selector';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/currency';
 import { AdContainer } from '@/components/ads/ad-container';
-import { AdConfig } from '@/lib/types/ads';
+import { SHUTTLE_ADS_LEFT, SHUTTLE_ADS_RIGHT } from '@/lib/ads/service-ads';
 import { useTranslations } from '@/components/providers/locale-provider';
+import { BookingModal } from '@/components/booking/booking-modal';
+import { AdminLoader } from '@/components/ui/admin-loader';
+import { DateField } from '@/components/ui/date-field';
+import { formatDateLocal } from '@/lib/date-utils';
+import { ServicePageWrapper } from '@/components/layout/service-page-wrapper';
 
-// Left sidebar ads (sticky when scrolling)
-const SHUTTLE_ADS_LEFT: AdConfig[] = [
-    {
-        id: 'shuttle-left-1',
-        imageUrl: '/ads/hotel-ad-sample.png',
-        altText: 'Luxury Stays in Addis Ababa',
-        linkUrl: '/hotels',
-        targetBlank: false
-    }
-];
+type ShuttleProduct = {
+    id: string;
+    hotel_id: string;
+    hotel_name: string;
+    hotel_city?: string | null;
+    hotel_location?: string | null;
+    name: string;
+    from: string;
+    to: string;
+    price: number;
+    currency: string;
+    vehicle_type?: string | null;
+    capacity: number;
+    image_url?: string | null;
+    meet_and_greet?: boolean;
+    child_seat?: boolean;
+    gps_tracked?: boolean;
+};
 
-// Right sidebar ads (sticky when scrolling)
-const SHUTTLE_ADS_RIGHT: AdConfig[] = [
-    {
-        id: 'shuttle-promo-1',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Airport & City Shuttles - Advertise Your Service',
-        linkUrl: '/contact',
-        targetBlank: false
-    },
-    {
-        id: 'hotel-shuttle',
-        imageUrl: '/ads/hotel-ad-sample.png',
-        altText: 'Luxury Stays in Addis Ababa',
-        linkUrl: '/hotels',
-        targetBlank: false
-    }
-];
-
-// Mock data
-const mockShuttles = [
-    {
-        id: 1,
-        type: 'Airport Transfer',
-        vehicle: 'Luxury Sedan',
-        capacity: 4,
-        price: 50,
-        image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&auto=format&fit=crop',
-        features: ['Professional Driver', 'Meet & Greet', 'Free WiFi', 'Bottled Water']
-    },
-    {
-        id: 2,
-        type: 'Group Shuttle',
-        vehicle: 'Mini Van',
-        capacity: 12,
-        price: 120,
-        image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop',
-        features: ['Air Conditioned', 'Luggage Space', 'USB Charging', 'Tour Guide']
-    },
-    {
-        id: 3,
-        type: 'Executive Transfer',
-        vehicle: 'Mercedes S-Class',
-        capacity: 3,
-        price: 100,
-        image: 'https://images.unsplash.com/photo-1563720360172-67b8f3dce741?w=800&auto=format&fit=crop',
-        features: ['Premium Comfort', 'Privacy Glass', 'Refreshments', 'Business Amenities']
-    }
-];
-
-export default function ShuttlesPage() {
+function ShuttlesPageContent() {
     const { t } = useTranslations();
-    const [selectedShuttle, setSelectedShuttle] = useState<any>(null);
+    const searchParams = useSearchParams();
+    const [items, setItems] = useState<ShuttleProduct[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [city, setCity] = useState('');
+    const [minCapacity, setMinCapacity] = useState('');
+    const [pickupDate, setPickupDate] = useState(() =>
+        formatDateLocal(new Date()),
+    );
+    const [selected, setSelected] = useState<ShuttleProduct | null>(null);
 
-    const handleBook = (shuttle: any) => {
-        setSelectedShuttle(shuttle);
-        alert(t('shuttles.bookingAlert', { type: shuttle.type }));
-    };
+    useEffect(() => {
+        const cityParam = searchParams.get('city') || searchParams.get('pickup');
+        const dateParam = searchParams.get('date');
+        if (cityParam) setCity(cityParam);
+        if (dateParam) setPickupDate(dateParam);
+    }, [searchParams]);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        try {
+            const url = new URL('/api/guest/shuttles', window.location.origin);
+            if (city.trim()) url.searchParams.set('city', city.trim());
+            if (minCapacity.trim()) {
+                url.searchParams.set('minCapacity', minCapacity.trim());
+            }
+            const res = await fetch(url.toString(), { cache: 'no-store' });
+            const data = await res.json().catch(() => ({}));
+            setItems((data.items || []) as ShuttleProduct[]);
+        } catch {
+            setItems([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [city, minCapacity]);
+
+    useEffect(() => {
+        void load();
+    }, [load]);
 
     return (
-        <AdContainer leftAds={SHUTTLE_ADS_LEFT} rightAds={SHUTTLE_ADS_RIGHT}>
-        <div className="min-h-screen bg-brand-gray/30 dark:bg-background pb-8 md:pb-12 pt-0 text-foreground">
-            {/* Header Section */}
-            <div className="bg-teal-600 text-white py-12 md:py-16">
-                <div className="container mx-auto px-4">
-                    <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4">{t('shuttles.heroTitle')}</h1>
-                    <p className="text-teal-100 text-base md:text-lg max-w-2xl">
-                        {t('shuttles.heroSubtitle')}
-                    </p>
-                </div>
-            </div>
-
-            <div className="container mx-auto px-4 -mt-8 md:-mt-10">
-                {/* Search Widget */}
-                <Card className="p-4 md:p-6 shadow-lg rounded-2xl mb-8 md:mb-12 overflow-visible">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                        <div className="md:col-span-4">
-                            <LocationInput
-                                label={t('shuttles.pickupLocation')}
-                                placeholder={t('shuttles.pickupPlaceholder')}
-                                value={""}
-                                onChange={() => { }}
-                            />
-                        </div>
-                        <div className="md:col-span-3">
-                            <Popover
-                                trigger={
-                                    <div className="w-full cursor-pointer">
-                                        <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">{t('shuttles.pickupDate')}</label>
-                                        <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
-                                            <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
-                                            <span className="text-gray-900 dark:text-slate-100 font-medium">{t('shuttles.selectDate')}</span>
-                                        </div>
-                                    </div>
-                                }
-                                content={
-                                    <Calendar
-                                        selected={undefined}
-                                        onSelect={() => { }}
-                                        minDate={new Date()}
-                                    />
-                                }
-                            />
-                        </div>
-                        <div className="md:col-span-3">
-                            <GuestSelector
-                                adults={1}
-                                children={0}
-                                rooms={1}
-                                onChange={() => { }}
-                            />
-                        </div>
-                        <div className="md:col-span-2">
-                            <Button className="w-full h-[52px] min-h-[48px] flex items-center justify-center gap-2 text-white font-bold text-lg rounded-2xl shadow-lg shadow-brand-primary/30 hover:shadow-brand-primary/50 transition-all duration-300">
-                                <Search className="w-5 h-5" /> {t('shuttles.search')}
-                            </Button>
-                        </div>
+        <ServicePageWrapper
+            title={t('shuttles.heroTitle')}
+            description={t('shuttles.heroSubtitle')}
+            icon={Bus}
+        >
+            <AdContainer
+                leftAds={SHUTTLE_ADS_LEFT}
+                rightAds={SHUTTLE_ADS_RIGHT}
+                clearFixedHeader={false}
+            >
+                <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">City</label>
+                        <Input
+                            placeholder="e.g. Addis"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            className="h-11 rounded-xl"
+                        />
                     </div>
-                </Card>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Min passengers</label>
+                        <Input
+                            type="number"
+                            min={1}
+                            placeholder="Passengers"
+                            value={minCapacity}
+                            onChange={(e) => setMinCapacity(e.target.value)}
+                            className="h-11 rounded-xl"
+                        />
+                    </div>
+                    <DateField
+                        label={t('shuttles.pickupDate')}
+                        value={pickupDate}
+                        onChange={setPickupDate}
+                        minDate={new Date()}
+                        placeholder={t('shuttles.selectDate')}
+                    />
+                </div>
 
-                {/* Shuttle Results */}
-                <div className="space-y-6 md:space-y-8">
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 md:mb-6">{t('shuttles.availableTitle')}</h2>
+                <h2 className="text-lg font-extrabold text-brand-dark mb-4">
+                    {t('shuttles.availableTitle')}
+                </h2>
 
-                    {mockShuttles.map((shuttle) => (
-                        <Card key={shuttle.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 rounded-2xl">
-                            <div className="flex flex-col md:flex-row">
-                                {/* Image */}
-                                <div className="w-full md:w-2/5 h-48 md:h-auto relative">
-                                    <img src={shuttle.image} alt={shuttle.type} className="w-full h-full object-cover" />
-                                    <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur px-3 py-1 rounded-lg text-white text-sm font-medium flex items-center gap-2">
-                                        <Users className="w-4 h-4" />
-                                        {t('shuttles.upToPassengers', { count: shuttle.capacity })}
-                                    </div>
+                {loading ? (
+                    <AdminLoader label="Loading shuttles…" />
+                ) : items.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+                        <p className="text-sm text-slate-600 max-w-md mx-auto">
+                            No shuttles match your filters.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                        {items.map((s) => (
+                            <Card
+                                key={`${s.hotel_id}-${s.id}`}
+                                className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col"
+                            >
+                                <div className="relative aspect-[16/10] bg-slate-100">
+                                    {s.image_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={s.image_url}
+                                            alt={s.name}
+                                            className="absolute inset-0 w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                                            <Bus className="w-10 h-10" />
+                                        </div>
+                                    )}
                                 </div>
-
-                                {/* Content */}
-                                <div className="w-full md:w-3/5 p-4 md:p-6 lg:p-8 flex flex-col justify-between">
-                                    <div>
-                                        <div className="flex flex-col sm:flex-row justify-between items-start mb-4 gap-3">
-                                            <div className="flex-1">
-                                                <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">{shuttle.type}</h3>
-                                                <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400 text-sm">
-                                                    <Shield className="w-4 h-4 text-brand-secondary" />
-                                                    {shuttle.vehicle}
-                                                </div>
-                                            </div>
-                                            <div className="text-left sm:text-right">
-                                                <div className="text-sm text-gray-400 dark:text-slate-500 mb-1">{t('shuttles.startingFrom')}</div>
-                                                <div className="text-2xl md:text-3xl font-bold text-brand-primary">
-                                                    {formatCurrency(shuttle.price)}
-                                                </div>
-                                                <div className="text-xs text-gray-400 dark:text-slate-500">{t('shuttles.perTrip')}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Features */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
-                                            {shuttle.features.map((feature: string, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-2 text-gray-600 dark:text-slate-300 text-sm">
-                                                    <Clock className="w-4 h-4 text-brand-secondary flex-shrink-0" />
-                                                    <span>{feature}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+                                <div className="p-5 flex flex-col flex-1 gap-2">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        {s.hotel_name}
+                                    </p>
+                                    <h3 className="text-lg font-extrabold text-brand-dark">
+                                        {s.name}
+                                    </h3>
+                                    <p className="text-sm text-slate-600 flex items-start gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                        <span>
+                                            {s.from} → {s.to}
+                                        </span>
+                                    </p>
+                                    <p className="text-sm text-slate-700 inline-flex items-center gap-1.5">
+                                        <Users className="w-4 h-4 text-brand-primary" />
+                                        {t('shuttles.upToPassengers', {
+                                            count: s.capacity,
+                                        })}
+                                        {s.vehicle_type ? ` · ${s.vehicle_type}` : ''}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                                        {s.meet_and_greet ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border px-2 py-0.5">
+                                                <Shield className="w-3 h-3" /> Meet &
+                                                greet
+                                            </span>
+                                        ) : null}
+                                        {s.child_seat ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border px-2 py-0.5">
+                                                <Baby className="w-3 h-3" /> Child seat
+                                            </span>
+                                        ) : null}
+                                        {s.gps_tracked ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 border px-2 py-0.5">
+                                                <Navigation className="w-3 h-3" /> GPS
+                                            </span>
+                                        ) : null}
                                     </div>
-
-                                    <div className="flex justify-end pt-4 border-t border-border">
-                                        <Button onClick={() => handleBook(shuttle)} className="w-full md:w-auto rounded-2xl min-h-[48px]">
-                                            {t('shuttles.bookNow')} <ArrowRight className="w-4 h-4 ml-2" />
+                                    <div className="mt-auto pt-3 flex items-end justify-between gap-3">
+                                        <div>
+                                            <p className="text-[11px] font-semibold uppercase text-slate-500">
+                                                {t('shuttles.startingFrom')}
+                                            </p>
+                                            <p className="text-lg font-extrabold text-brand-dark">
+                                                {formatCurrency(s.price, s.currency)}
+                                            </p>
+                                            <p className="text-[11px] text-slate-500">
+                                                {t('shuttles.perTrip')}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            className="rounded-xl font-bold"
+                                            onClick={() => setSelected(s)}
+                                        >
+                                            {t('shuttles.bookNow')}
                                         </Button>
                                     </div>
                                 </div>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-        </div>
-        </AdContainer>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+
+                <BookingModal
+                    isOpen={Boolean(selected)}
+                    onClose={() => setSelected(null)}
+                    serviceName={
+                        selected
+                            ? `${selected.hotel_name} · ${selected.name}`
+                            : 'Shuttle'
+                    }
+                    price={selected?.price || 0}
+                    type="shuttle"
+                    productId={selected?.id}
+                    externalItemId={selected?.hotel_id || ''}
+                    inventorySource="bookaddis_direct"
+                    isLocal={(selected?.currency || 'ETB').toUpperCase() === 'ETB'}
+                    initialCheckIn={pickupDate}
+                    initialCheckOut={pickupDate}
+                    preferredPaymentTiming="pay_now"
+                />
+            </AdContainer>
+        </ServicePageWrapper>
+    );
+}
+
+export default function ShuttlesPage() {
+    return (
+        <Suspense fallback={<AdminLoader label="Loading shuttles…" />}>
+            <ShuttlesPageContent />
+        </Suspense>
     );
 }

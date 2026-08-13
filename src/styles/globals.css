@@ -33,7 +33,7 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
-/* Amharic / Ethiopic script — stacks with Latin UI via layout body class */
+/* Amharic / Ethiopic script  stacks with Latin UI via layout body class */
 .font-ethiopic {
   font-family: 'Noto Sans Ethiopic', var(--font-sans);
 }
@@ -136,6 +136,31 @@ html.dark {
 
   .surface-field-interactive {
     @apply bg-gray-50 dark:bg-slate-800/90 border-gray-200 dark:border-slate-600 text-gray-900 dark:text-slate-100 hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 dark:hover:border-teal-500/40 transition-all;
+  }
+
+  /* Shared hotel / flight listing surfaces */
+  .listing-hero {
+    @apply bg-teal-600 text-white;
+  }
+
+  .listing-hero-inner {
+    @apply mx-auto w-full max-w-[1760px] px-4 sm:px-5 lg:px-4 py-5 sm:py-6 md:py-7;
+  }
+
+  .listing-search {
+    @apply bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700
+      rounded-2xl shadow-[0_8px_30px_rgba(15,23,42,0.08)] overflow-visible relative z-50;
+  }
+
+  .listing-toolbar {
+    @apply flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4
+      rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-700
+      px-3.5 py-3 sm:px-4 backdrop-blur-sm;
+  }
+
+  .listing-panel {
+    @apply rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-700
+      shadow-sm;
   }
 }
 

@@ -1,6 +1,6 @@
 /**
  * Safe Firebase Auth error messages for end users.
- * Never return raw `error.message` — REST failures often embed project numbers,
+ * Never return raw `error.message`  REST failures often embed project numbers,
  * API hostnames (identitytoolkit.googleapis.com), key restriction hints, etc.
  */
 
@@ -60,7 +60,7 @@ export function getFirebaseAuthUserMessage(error: unknown, context: string): str
         case 'auth/operation-not-allowed':
             return 'Email/password sign-in is currently disabled. Please contact support.';
         case 'auth/requires-recent-login':
-            return 'For security, sign out and sign in again, then try changing your password.';
+            return 'For security, sign out and sign in again (or re-enter your password), then retry.';
 
         case 'auth/expired-action-code':
             return 'This link has expired. Please request a new one.';
@@ -73,6 +73,20 @@ export function getFirebaseAuthUserMessage(error: unknown, context: string): str
             return 'Invalid verification code. Please check the SMS and try again.';
         case 'auth/code-expired':
             return 'That code has expired. Request a new SMS code.';
+        case 'auth/invalid-phone-number':
+            return 'Invalid phone number. Use E.164 format, e.g. +2519XXXXXXXX.';
+        case 'auth/missing-phone-number':
+            return 'Enter a phone number in E.164 format.';
+        case 'auth/quota-exceeded':
+            return 'SMS quota exceeded for this project. Check Firebase Billing / SMS usage.';
+        case 'auth/maximum-second-factor-count-exceeded':
+            return 'This account already has the maximum number of second factors.';
+        case 'auth/second-factor-already-in-use':
+            return 'That phone number is already enrolled as a second factor.';
+        case 'auth/unsupported-first-factor':
+            return 'This sign-in method cannot enroll SMS MFA. Use email/password or Google.';
+        case 'auth/unverified-email':
+            return 'Verify your email first, then try SMS 2FA again.';
 
         case 'auth/popup-closed-by-user':
         case 'auth/cancelled-popup-request':

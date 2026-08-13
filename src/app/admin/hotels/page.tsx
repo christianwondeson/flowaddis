@@ -72,7 +72,7 @@ export default function AdminHotelsPage() {
                                     const rating = hotel.rating != null ? Number(hotel.rating) : null;
                                     const price = hotel.price_per_night != null ? Number(hotel.price_per_night) : null;
                                     const currency = String(hotel.currency ?? "USD");
-                                    const status = String(hotel.status ?? "—");
+                                    const status = String(hotel.status ?? "Not set");
                                     const thumb = getStrapiSingleMediaUrl(hotel.primary_image);
                                     return (
                                         <tr key={id} className="hover:bg-gray-50 transition-colors group">
@@ -99,14 +99,14 @@ export default function AdminHotelsPage() {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-1 text-brand-dark font-extrabold text-sm">
                                                     <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                                                    {rating != null && Number.isFinite(rating) ? rating.toFixed(1) : "—"}
+                                                    {rating != null && Number.isFinite(rating) ? rating.toFixed(1) : " "}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-brand-dark font-semibold text-sm">
                                                     {price != null && Number.isFinite(price)
                                                         ? new Intl.NumberFormat(undefined, { style: "currency", currency }).format(price)
-                                                        : "—"}
+                                                        : " "}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">

@@ -1,28 +1,48 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from 'react';
+import { Camera, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { APP_CONSTANTS } from '@/lib/constants';
+import { resolveStrapiFileUrl } from '@/lib/admin-cms-client';
 
 interface HotelDetailGalleryProps {
     images: string[];
     loading?: boolean;
-    /** Fallback when API returns 500 or image fails. Generic hotel room/bed image shared by all hotels. */
+    /** Fallback when API returns 500 or image fails. */
     placeholderImage?: string;
+    hotelName?: string;
 }
 
-const DEFAULT_PLACEHOLDER = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+const DEFAULT_PLACEHOLDER =
+    APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER ||
+    'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
 
-export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, loading = false, placeholderImage }) => {
+function normalizeUrl(url: string, placeholder: string): string {
+    if (!url) return placeholder;
+    return resolveStrapiFileUrl(url) || url;
+}
+
+/**
+ * Booking.com / Expedia-style photo mosaic for hotel detail.
+ */
+export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({
+    images,
+    loading = false,
+    placeholderImage,
+    hotelName = 'Hotel',
+}) => {
     const PLACEHOLDER_IMG = placeholderImage || DEFAULT_PLACEHOLDER;
     const safeImages = useMemo(() => {
-        const list = images && images.length ? images.filter((url): url is string => typeof url === 'string' && url.length > 0) : [];
+        const list = (images || [])
+            .filter((url): url is string => typeof url === 'string' && url.length > 0)
+            .map((u) => normalizeUrl(u, PLACEHOLDER_IMG));
         return list.length ? list : [PLACEHOLDER_IMG];
-    }, [images]);
+    }, [images, PLACEHOLDER_IMG]);
 
     const [current, setCurrent] = useState(0);
+    const [lightbox, setLightbox] = useState(false);
     const total = safeImages.length;
 
-    // Touch swipe for mobile
     const touchStartX = useRef<number | null>(null);
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartX.current = e.touches[0].clientX;
@@ -31,7 +51,8 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
         if (touchStartX.current == null) return;
         const dx = e.changedTouches[0].clientX - touchStartX.current;
         if (Math.abs(dx) > 30) {
-            if (dx < 0) next(); else prev();
+            if (dx < 0) next();
+            else prev();
         }
         touchStartX.current = null;
     };
@@ -39,166 +60,180 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({ images, 
     const prev = () => setCurrent((c) => (c - 1 + total) % total);
     const next = () => setCurrent((c) => (c + 1) % total);
 
-    const thumbs = useMemo(() => safeImages.slice(0, 20), [safeImages]);
+    const side = safeImages.slice(1, 5);
+    while (side.length < 4 && total > 0) {
+        side.push(safeImages[side.length % total] || PLACEHOLDER_IMG);
+    }
 
     if (loading) {
         return (
-            <div className="space-y-3">
-                <div className="md:hidden h-[280px] rounded-xl overflow-hidden bg-gray-200 dark:bg-slate-800 animate-pulse" />
-                <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-3 h-[420px]">
-                    <div className="md:col-span-3 rounded-xl bg-gray-200 dark:bg-slate-800 animate-pulse" />
-                    <div className="hidden md:flex md:flex-col gap-3">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="h-24 rounded-lg bg-gray-200 dark:bg-slate-800 animate-pulse" />
-                        ))}
-                    </div>
-                </div>
+            <div
+                id="gallery"
+                className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-1.5 md:gap-2 h-[280px] md:h-[420px] rounded-2xl overflow-hidden"
+            >
+                <div className="md:col-span-2 md:row-span-2 bg-gray-200 dark:bg-slate-800 animate-pulse" />
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="hidden md:block bg-gray-200 dark:bg-slate-800 animate-pulse" />
+                ))}
             </div>
         );
     }
 
     return (
-        <div className="space-y-3">
-            {/* Mobile slider */}
-            <div className="md:hidden relative h-[280px] rounded-xl overflow-hidden">
-                <img
-                    src={safeImages[current]}
-                    alt={`Hotel image ${current + 1}`}
-                    className="w-full h-full object-cover"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    onError={(e) => {
-                        e.currentTarget.src = PLACEHOLDER_IMG;
-                    }}
-                />
-
-                {/* Left/Right controls (bottom aligned) */}
-                <button onClick={prev} aria-label="Previous image" className="absolute left-2 bottom-3 bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 w-8 h-8 rounded-full grid place-items-center shadow border border-gray-200/80 dark:border-slate-600">
-                    ‹
-                </button>
-                <button onClick={next} aria-label="Next image" className="absolute right-2 bottom-3 bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-gray-700 dark:text-slate-200 w-8 h-8 rounded-full grid place-items-center shadow border border-gray-200/80 dark:border-slate-600">
-                    ›
-                </button>
-
-                {/* Counter */}
-                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md">
-                    {current + 1}/{total}
-                </div>
-            </div>
-
-            {/* Desktop/Laptop layout */}
-            <div className="hidden md:block">
-                {/* Top row: main + two stacked previews */}
-                <div className="grid grid-cols-3 gap-3 h-[400px]">
-                    {/* Main image */}
-                    <div className="col-span-2 relative rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800">
-                        <img
-                            src={safeImages[current]}
-                            alt={`Hotel main ${current + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                                e.currentTarget.src = PLACEHOLDER_IMG;
-                            }}
-                        />
-                    </div>
-
-                    {/* Two stacked previews on the right */}
-                    <div className="grid grid-rows-2 gap-3 min-h-0">
-                                {safeImages.slice(1, 3).map((img, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setCurrent(i + 1)}
-                                className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-800 h-full w-full"
-                                aria-label={`Show image ${i + 2}`}
-                            >
-                                {img ? (
-                                    <img
-                                        src={img}
-                                        alt={`Preview ${i + 2}`}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.src = PLACEHOLDER_IMG;
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-gray-200 dark:bg-slate-700" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Bottom thumbnail slider (desktop) */}
-                {total > 1 && (
-                    <div className="relative mt-3">
-                        <div className="absolute left-0 bottom-2 z-10">
-                            <button
-                                onClick={() => {
-                                    const el = document.getElementById('thumb-strip');
-                                    if (el) el.scrollBy({ left: -400, behavior: 'smooth' });
-                                }}
-                                className="w-9 h-9 rounded-full bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 shadow grid place-items-center text-gray-800 dark:text-slate-200 border border-gray-200/80 dark:border-slate-600"
-                                aria-label="Scroll thumbnails left"
-                            >
-                                ‹
-                            </button>
-                        </div>
-                        <div className="absolute right-0 bottom-2 z-10">
-                            <button
-                                onClick={() => {
-                                    const el = document.getElementById('thumb-strip');
-                                    if (el) el.scrollBy({ left: 400, behavior: 'smooth' });
-                                }}
-                                className="w-9 h-9 rounded-full bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 shadow grid place-items-center text-gray-800 dark:text-slate-200 border border-gray-200/80 dark:border-slate-600"
-                                aria-label="Scroll thumbnails right"
-                            >
-                                ›
-                            </button>
-                        </div>
-                        <div id="thumb-strip" className="overflow-x-auto no-scrollbar">
-                            <div className="flex gap-3 pr-8">
-                                {thumbs.map((img, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setCurrent(idx)}
-                                        className={`relative rounded-xl overflow-hidden h-24 w-40 flex-shrink-0 border ${idx === current ? 'border-brand-primary' : 'border-transparent'}`}
-                                        aria-label={`Show image ${idx + 1}`}
-                                    >
-                                        <img
-                                            src={img}
-                                            alt={`Thumb ${idx + 1}`}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                e.currentTarget.src = PLACEHOLDER_IMG;
-                                            }}
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Bottom thumbnail strip for all screens (optional) */}
-            <div className="grid grid-cols-5 gap-2 md:hidden">
-                {thumbs.slice(0, 10).map((img, idx) => (
+        <>
+            <div id="gallery" className="relative">
+                {/* Mobile */}
+                <div className="md:hidden relative h-[300px] rounded-2xl overflow-hidden bg-gray-100 dark:bg-slate-800">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={safeImages[current]}
+                        alt={`${hotelName} photo ${current + 1}`}
+                        className="w-full h-full object-cover"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                        onClick={() => setLightbox(true)}
+                        onError={(e) => {
+                            e.currentTarget.src = PLACEHOLDER_IMG;
+                        }}
+                    />
                     <button
-                        key={idx}
-                        onClick={() => setCurrent(idx)}
-                        className={`relative overflow-hidden rounded-md h-14 border ${idx === current ? 'border-brand-primary' : 'border-transparent'}`}
+                        type="button"
+                        onClick={prev}
+                        aria-label="Previous"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 shadow grid place-items-center"
                     >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={next}
+                        aria-label="Next"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 shadow grid place-items-center"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                        {current + 1} / {total}
+                    </div>
+                </div>
+
+                {/* Desktop mosaic  reference style */}
+                <div className="hidden md:grid grid-cols-4 grid-rows-2 gap-2 h-[420px] rounded-2xl overflow-hidden">
+                    <button
+                        type="button"
+                        className="col-span-2 row-span-2 relative group"
+                        onClick={() => {
+                            setCurrent(0);
+                            setLightbox(true);
+                        }}
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src={img}
-                            alt={`Thumb ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            src={safeImages[0]}
+                            alt={`${hotelName} main`}
+                            className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]"
                             onError={(e) => {
                                 e.currentTarget.src = PLACEHOLDER_IMG;
                             }}
                         />
                     </button>
-                ))}
+                    {side.map((img, i) => (
+                        <button
+                            type="button"
+                            key={`${img}-${i}`}
+                            className="relative group overflow-hidden bg-gray-100"
+                            onClick={() => {
+                                setCurrent(Math.min(i + 1, total - 1));
+                                setLightbox(true);
+                            }}
+                        >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={img}
+                                alt={`${hotelName} ${i + 2}`}
+                                className="w-full h-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                                onError={(e) => {
+                                    e.currentTarget.src = PLACEHOLDER_IMG;
+                                }}
+                            />
+                            {i === 3 && total > 5 ? (
+                                <span className="absolute inset-0 bg-black/45 flex items-center justify-center text-white font-bold text-sm gap-2">
+                                    <Camera className="w-4 h-4" />
+                                    See all {total} photos
+                                </span>
+                            ) : null}
+                        </button>
+                    ))}
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => setLightbox(true)}
+                    className="hidden md:inline-flex absolute bottom-4 right-4 items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-brand-dark shadow-lg border border-slate-200 hover:bg-slate-50"
+                >
+                    <Camera className="w-4 h-4" />
+                    {total} photos
+                </button>
             </div>
-        </div>
+
+            {lightbox ? (
+                <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 text-white">
+                        <p className="text-sm font-semibold">
+                            {hotelName} · {current + 1} / {total}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setLightbox(false)}
+                            className="p-2 rounded-full hover:bg-white/10"
+                            aria-label="Close"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 relative flex items-center justify-center px-4 pb-6">
+                        <button
+                            type="button"
+                            onClick={prev}
+                            className="absolute left-3 md:left-8 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center"
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={safeImages[current]}
+                            alt=""
+                            className="max-h-[80vh] max-w-full object-contain rounded-lg"
+                        />
+                        <button
+                            type="button"
+                            onClick={next}
+                            className="absolute right-3 md:right-8 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center"
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    </div>
+                    <div className="overflow-x-auto px-4 pb-4">
+                        <div className="flex gap-2 justify-center min-w-min mx-auto">
+                            {safeImages.map((img, idx) => (
+                                <button
+                                    type="button"
+                                    key={idx}
+                                    onClick={() => setCurrent(idx)}
+                                    className={`h-14 w-20 shrink-0 rounded-md overflow-hidden border-2 ${
+                                        idx === current
+                                            ? 'border-white'
+                                            : 'border-transparent opacity-70'
+                                    }`}
+                                >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+        </>
     );
 };

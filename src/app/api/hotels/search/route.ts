@@ -1,6 +1,45 @@
 import { NextResponse } from 'next/server';
 import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
 import axios from 'axios';
+import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
+import { getPublicEtbPerUsd, usdToEtbDisplay } from '@/lib/etb-usd';
+
+async function fetchEtbPerUsd(): Promise<number> {
+    try {
+        const backend = getSafeBackendBaseUrl();
+        const res = await fetch(`${backend}/api/v1/fx/etb-usd`, {
+            next: { revalidate: 60 },
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const rate = Number(data?.etbPerUsd);
+            if (Number.isFinite(rate) && rate > 0) return rate;
+        }
+    } catch {
+        /* fallback */
+    }
+    return getPublicEtbPerUsd();
+}
+
+/** RapidAPI returns USD  convert list prices to ETB with live CBE rate. */
+function convertRapidApiHotelToEtb(h: any, etbPerUsd: number) {
+    if (!h || h.inventory_source !== 'rapidapi') return h;
+    const priceUsd = Number(h.price) || 0;
+    const origUsd = Number(h.originalPrice) || 0;
+    return {
+        ...h,
+        price_usd: priceUsd,
+        original_price_usd: origUsd || undefined,
+        price: usdToEtbDisplay(priceUsd, etbPerUsd),
+        originalPrice: origUsd
+            ? usdToEtbDisplay(origUsd, etbPerUsd)
+            : undefined,
+        currency: 'ETB',
+        fx_etb_per_usd: etbPerUsd,
+        // Partner listings often mark "includes taxes"  we do not add tax ourselves.
+        priceIncludesTaxes: false,
+    };
+}
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -27,6 +66,45 @@ export async function GET(request: Request) {
     const stars = searchParams.get('stars');
     const minRating = searchParams.get('minRating');
     const amenities = searchParams.get('amenities');
+    const inventorySourceFilter = searchParams.get('inventory_source') || searchParams.get('inventorySource');
+
+    const fetchBookaddisInventory = async (sourceFilter?: string | null) => {
+        try {
+            const { getSafeBackendBaseUrl } = await import('@/lib/safe-backend-url');
+            const backend = getSafeBackendBaseUrl();
+            const nestParams = new URLSearchParams({
+                query,
+                limit: String(Math.min(pageSize, 20)),
+            });
+            if (sourceFilter === 'bookaddis_direct' || sourceFilter === 'pms_synced') {
+                nestParams.set('inventory_source', sourceFilter);
+            }
+            const nestRes = await fetch(
+                `${backend}/api/v1/hotels/search?${nestParams.toString()}`,
+                { next: { revalidate: 30 } },
+            );
+            if (!nestRes.ok) return [];
+            const nestJson = await nestRes.json();
+            return Array.isArray(nestJson?.hotels) ? nestJson.hotels : [];
+        } catch (e) {
+            console.warn('BookAddis inventory search unavailable:', (e as Error)?.message);
+            return [];
+        }
+    };
+
+    // Direct/PMS-only: skip RapidAPI entirely (ingestion path unchanged for mixed/partner searches).
+    if (
+        inventorySourceFilter === 'bookaddis_direct' ||
+        inventorySourceFilter === 'pms_synced'
+    ) {
+        const hotels = await fetchBookaddisInventory(inventorySourceFilter);
+        return NextResponse.json({
+            hotels,
+            total: hotels.length,
+            hasNextPage: false,
+            destId: urlDestId,
+        });
+    }
 
     try {
         let destId = urlDestId;
@@ -354,11 +432,14 @@ export async function GET(request: Request) {
                 roomType: roomType || undefined,
                 paymentPolicy: paymentPolicy || undefined,
                 cancellationPolicy: cancellationPolicy || undefined,
-                priceIncludesTaxes,
+                priceIncludesTaxes: false,
+                currency: 'USD',
+                inventory_source: 'rapidapi' as const,
+                bookable: false,
             };
         });
 
-        // Do not filter by `hotelName` here: results are paginated — the matching property may be on
+        // Do not filter by `hotelName` here: results are paginated  the matching property may be on
         // another page, which produced "0 hotels" on the map while the list page worked (client-side filter).
         // Main `/hotels` UI already filters by property name on the client.
 
@@ -371,6 +452,35 @@ export async function GET(request: Request) {
             });
             if (filtered.length > 0) hotels = filtered;
         }
+
+        // Merge BookAddis Direct / PMS inventory from Nest (tagged inventory_source).
+        // RapidAPI ingestion above is unchanged  we only tag + merge.
+        let directHotels: any[] = [];
+        const wantsRapidApi =
+            !inventorySourceFilter ||
+            inventorySourceFilter === 'rapidapi' ||
+            inventorySourceFilter === 'all';
+        const wantsDirect =
+            !inventorySourceFilter ||
+            inventorySourceFilter === 'all';
+
+        if (wantsDirect && inventorySourceFilter !== 'rapidapi') {
+            directHotels = await fetchBookaddisInventory(null);
+        }
+
+        if (!wantsRapidApi) {
+            hotels = [];
+        }
+
+        // Direct inventory first, then partner (RapidAPI) listings.
+        hotels = [...directHotels, ...hotels];
+
+        if (inventorySourceFilter === 'rapidapi') {
+            hotels = hotels.filter((h: any) => h.inventory_source === 'rapidapi');
+        }
+
+        const etbPerUsd = await fetchEtbPerUsd();
+        hotels = hotels.map((h: any) => convertRapidApiHotelToEtb(h, etbPerUsd));
 
         // The external API already handles pagination via page_number parameter
         // So hotels array should already contain just the hotels for this page
@@ -388,18 +498,37 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             hotels: hotels,
-            total: totalCount,
+            total: totalCount + directHotels.length,
             hasNextPage,
             destId,
+            fx: { etbPerUsd, currency: 'ETB' },
         });
 
     } catch (error: any) {
         const status = error?.response?.status;
+        const detail = error?.response?.data;
         console.error('Error fetching hotels:', status, error?.message);
-        if (error?.response?.data) {
-            console.error('API Error Details:', JSON.stringify(error.response.data, null, 2));
+        if (detail) {
+            console.error('API Error Details:', JSON.stringify(detail, null, 2));
         }
-        // Return empty results on error (no mock data)
+        // RapidAPI auth/quota failures (e.g. code 1008) must not hide BookAddis direct hotels.
+        try {
+            const directHotels = await fetchBookaddisInventory(null);
+            if (directHotels.length > 0) {
+                return NextResponse.json({
+                    hotels: directHotels,
+                    total: directHotels.length,
+                    hasNextPage: false,
+                    destId: urlDestId,
+                    warning:
+                        status === 400 || status === 401 || status === 403
+                            ? 'Partner hotel search is unavailable (RapidAPI token invalid or expired). Showing BookAddis inventory only.'
+                            : 'Partner hotel search failed. Showing BookAddis inventory only.',
+                });
+            }
+        } catch {
+            /* ignore */
+        }
         return NextResponse.json({ hotels: [], total: 0, hasNextPage: false });
     }
 }

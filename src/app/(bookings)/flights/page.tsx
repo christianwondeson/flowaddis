@@ -22,7 +22,7 @@ import { FlightCardSkeleton } from '@/components/flights/flight-card-skeleton';
 import { SeatMap } from '@/components/flights/seat-map';
 import { FlightDetails } from '@/components/flights/flight-details';
 import { AdContainer } from '@/components/ads/ad-container';
-import { AdConfig } from '@/lib/types/ads';
+import { FLIGHT_ADS_LEFT, FLIGHT_ADS_RIGHT } from '@/lib/ads/service-ads';
 import { useTranslations } from '@/components/providers/locale-provider';
 
 function cabinClassLabel(t: (key: string, vars?: Record<string, string | number>) => string, cls: string) {
@@ -38,35 +38,6 @@ function cabinClassLabel(t: (key: string, vars?: Record<string, string | number>
             return t('flightSearch.cabinEconomy');
     }
 }
-
-// Left sidebar ads (sticky with filters)
-const FLIGHT_ADS_LEFT: AdConfig[] = [
-    {
-        id: 'flight-left-1',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
-
-// Right sidebar ads (sticky when scrolling)
-const FLIGHT_ADS_RIGHT: AdConfig[] = [
-    {
-        id: 'ethiopian-airlines-1',
-        imageUrl: '/ads/flight-ad-sample.png',
-        altText: 'Discover Ethiopia with Ethiopian Airlines',
-        linkUrl: 'https://www.ethiopianairlines.com',
-        targetBlank: true
-    },
-    {
-        id: 'partnership-opportunity-2',
-        imageUrl: '/ads/partnership-mobile-ad.png',
-        altText: 'Partnership Opportunities - Advertise Your Brand',
-        linkUrl: '/contact',
-        targetBlank: false
-    }
-];
 
 
 const LOCATION_NAME_MAPPING: Record<string, string> = {
@@ -246,23 +217,26 @@ function FlightsPageContent() {
     const cabinStr = cabinClassLabel(t, trav.cabinClass || 'ECONOMY');
 
     return (
-        <AdContainer leftAds={FLIGHT_ADS_LEFT} rightAds={FLIGHT_ADS_RIGHT}>
-            <div className="min-h-screen pb-8 md:pb-20 page-muted">
-                {/* Header Section - compact on mobile */}
-                <div className="bg-teal-600 text-white py-6 sm:py-8 md:py-12 lg:py-16">
-                    <div className="container mx-auto px-4 sm:px-6">
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 md:mb-4 tracking-tight">
+        <AdContainer
+            leftAds={FLIGHT_ADS_LEFT}
+            rightAds={FLIGHT_ADS_RIGHT}
+            header={
+                <div className="listing-hero">
+                    <div className="listing-hero-inner">
+                        <h1 className="text-2xl sm:text-3xl md:text-[2.35rem] font-bold mb-1.5 tracking-tight leading-tight">
                             {t('flightSearch.heroTitle')}
                         </h1>
-                        <p className="text-teal-100/90 text-sm sm:text-base md:text-lg max-w-2xl">
+                        <p className="text-teal-50/90 text-sm sm:text-base max-w-2xl">
                             {t('flightSearch.heroSubtitle')}
                         </p>
                     </div>
                 </div>
-
-                <div className="container mx-auto px-4 sm:px-6 -mt-6 sm:-mt-8 md:-mt-12">
+            }
+        >
+            <div className="min-h-[50vh] pb-4 md:pb-8">
+                <div className="w-full">
                     {/* Search Widget */}
-                    <Card className="p-4 md:p-6 shadow-xl mb-4 md:mb-6 overflow-visible relative z-50">
+                    <Card className="listing-search p-4 sm:p-5 md:p-6 mb-0">
                         {!hasSearched ? (
                             <div className="space-y-4">
                                 <div className="flex items-center gap-4">
@@ -446,34 +420,34 @@ function FlightsPageContent() {
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-4 text-sm">
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                <div className="flex flex-wrap gap-2 text-sm">
+                                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-sm">
                                         {flightType === 'ROUNDTRIP' ? t('flightSearch.tripRound') : flightType === 'MULTISTOP' ? t('flightSearch.tripMulti') : t('flightSearch.tripOneWay')}
                                     </span>
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
+                                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-sm">
                                         {flightType === 'MULTISTOP' ? t('flightSearch.flightsCount', { count: segments.length }) : `${fromCode} → ${toCode}`}
                                     </span>
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
-                                        {flightType === 'MULTISTOP' ? `${formatDateEnglishStr(segments[0].date)} — ${formatDateEnglishStr(segments[segments.length - 1].date)}` : `${formatDateEnglishStr(departDate)}${flightType === 'ROUNDTRIP' && flightReturnDate ? ` — ${formatDateEnglishStr(flightReturnDate)}` : ''}`}
+                                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-sm">
+                                        {flightType === 'MULTISTOP' ? `${formatDateEnglishStr(segments[0].date)}  ${formatDateEnglishStr(segments[segments.length - 1].date)}` : `${formatDateEnglishStr(departDate)}${flightType === 'ROUNDTRIP' && flightReturnDate ? `  ${formatDateEnglishStr(flightReturnDate)}` : ''}`}
                                     </span>
-                                    <span className="inline-flex items-center px-3 py-2 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-full font-semibold text-gray-700 dark:text-slate-200">
+                                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-600 rounded-lg font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-sm">
                                         {`${adultsPart}${childrenPart} • ${cabinStr}`}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" onClick={() => setHasSearched(false)} size="sm">{t('flightSearch.editSearch')}</Button>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Button variant="outline" onClick={() => setHasSearched(false)} size="sm" className="rounded-lg">{t('flightSearch.editSearch')}</Button>
                                 </div>
                             </div>
                         )}
                     </Card>
 
                     {/* Flight Results Layout */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 mt-5">
                         {/* Sidebar Filters */}
-                        <aside className="lg:col-span-3 space-y-6">
-                            <Card className="p-6 shadow-sm sticky top-24">
-                                <div className="flex items-center justify-between mb-6">
+                        <aside className="lg:col-span-3 space-y-5">
+                            <Card className="listing-panel p-4 sm:p-5 sticky top-[calc(4.75rem+env(safe-area-inset-top,0px))] max-h-[calc(100vh-5.25rem-env(safe-area-inset-top,0px))] overflow-y-auto overscroll-contain scrollbar-hide">
+                                <div className="flex items-center justify-between mb-5">
                                     <h3 className="font-bold text-slate-900 dark:text-slate-100">{t('flightSearch.filtersTitle')}</h3>
                                     <button
                                         onClick={() => setSearchParams(prev => ({ ...prev, stops: undefined, airlines: undefined }))}
@@ -570,13 +544,13 @@ function FlightsPageContent() {
                         </aside>
 
                         {/* Main Content */}
-                        <div className="lg:col-span-9 space-y-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                        <div className="lg:col-span-9 space-y-3">
+                            <div className="listing-toolbar mb-1">
+                                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                                     {isLoading ? t('flightSearch.resultsSearching') : t('flightSearch.resultsAvailable', { count: displayFlights.length })}
                                 </h2>
                                 {!isLoading && displayFlights.length > 0 && (
-                                    <div className="text-sm text-gray-500 dark:text-slate-400">
+                                    <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                                         {t('flightSearch.showingResults', { from: fromCode, to: toCode })}
                                     </div>
                                 )}
@@ -616,16 +590,16 @@ function FlightsPageContent() {
                             )}
 
                             {displayFlights.map((flight: any) => (
-                                <Card key={flight.id || Math.random()} className="group overflow-hidden hover:shadow-xl transition-all duration-300">
+                                <Card key={flight.id || Math.random()} className="listing-panel group overflow-hidden hover:shadow-md hover:border-teal-200/80 dark:hover:border-teal-800 transition-all duration-300">
                                     <div className="flex flex-col md:flex-row">
                                         {/* Main Info */}
-                                        <div className="flex-1 p-5 md:p-6">
-                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                        <div className="flex-1 p-4 sm:p-5">
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
                                                 {/* Airline */}
-                                                <div className="flex items-center gap-4 w-full md:w-48">
-                                                    <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-50 dark:bg-slate-800 rounded-xl p-2 flex items-center justify-center border border-gray-100 dark:border-slate-600 group-hover:border-brand-primary/20 transition-colors">
+                                                <div className="flex items-center gap-3 w-full md:w-48">
+                                                    <div className="w-12 h-12 md:w-14 md:h-14 shrink-0 bg-slate-50 dark:bg-slate-800 rounded-xl p-1.5 flex items-center justify-center border border-slate-100 dark:border-slate-600 group-hover:border-teal-200 transition-colors overflow-hidden">
                                                         {flight.airlineLogo ? (
-                                                            <img src={flight.airlineLogo} alt={flight.airline} className="max-w-full max-h-full object-contain" />
+                                                            <img src={flight.airlineLogo} alt={flight.airline} className="w-full h-full object-contain" />
                                                         ) : (
                                                             <Plane className="w-6 h-6 text-gray-300 dark:text-slate-600" />
                                                         )}

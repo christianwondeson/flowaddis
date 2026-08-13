@@ -37,13 +37,13 @@ export const HotelMapPreview: React.FC<HotelMapPreviewProps> = ({ hotels = [], l
   });
 
   return (
-    <div className="relative">
-      <LeafletMap center={center} markers={markers} height="180px" className="rounded-xl overflow-hidden" />
+    <div className="relative overflow-hidden rounded-xl h-[140px] bg-slate-100 dark:bg-slate-800">
+      <LeafletMap center={center} markers={markers} height="140px" className="rounded-xl overflow-hidden pointer-events-none" />
       <Link
         href={`/hotels/map${params.toString() ? `?${params.toString()}` : ''}`}
-        className="absolute inset-0 flex items-center justify-center z-[20]"
+        className="absolute inset-0 flex items-center justify-center z-[20] bg-slate-900/10 hover:bg-slate-900/20 transition-colors"
       >
-        <Button className="bg-brand-primary text-white font-bold rounded-full px-4 py-2 shadow-lg shadow-brand-primary/30">
+        <Button className="bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-full px-4 py-2 text-sm shadow-lg shadow-teal-600/25">
           Show on map
         </Button>
       </Link>

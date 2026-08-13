@@ -16,10 +16,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-    saveFlightBookingDraftForAuthRedirect,
-    consumeMatchedFlightDraft,
-} from '@/lib/booking-draft-storage';
+import { consumeMatchedFlightDraft } from '@/lib/booking-draft-storage';
+import type { PaymentSuccessResult } from '@/lib/payment-success';
 
 interface FlightBookingModalProps {
     isOpen: boolean;
@@ -70,7 +68,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
 }) => {
     const pathname = usePathname();
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
-    const { user, requireAuth } = useAuth();
+    const { user } = useAuth();
     const [step, setStep] = useState<'form' | 'payment' | 'receipt'>('form');
     const [bookingData, setBookingData] = useState<any>(null);
 
@@ -95,7 +93,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
     const selectedCountry: Country = useMemo(() => COUNTRIES.find(c => c.code === countryCode) || COUNTRIES[0], [countryCode]);
     const [nationalNumber, setNationalNumber] = useState<string>('');
 
-    /** RapidAPI flight offer token — required for server-side price verification at checkout */
+    /** RapidAPI flight offer token  required for server-side price verification at checkout */
     const flightOfferToken =
         (flightData?.selectionKey as string | undefined) ||
         (flightData?.id as string | undefined) ||
@@ -105,11 +103,6 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         const natDigits = nat.replace(/\D/g, '');
         const e164 = `${cc.dial}${natDigits}`;
         setValue('phone', e164, { shouldValidate: true });
-    };
-
-    const persistDraftAndRequireAuth = () => {
-        saveFlightBookingDraftForAuthRedirect({ pathname });
-        requireAuth();
     };
 
     useEffect(() => {
@@ -131,10 +124,6 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         user?.email?.trim() ? user.email.trim() : data.email;
 
     const handleAddToTrip = (data: FlightBookingFormData) => {
-        if (!user) {
-            persistDraftAndRequireAuth();
-            return;
-        }
         const email = resolveBookingEmail(data);
         addToTrip({
             type: 'flight',
@@ -153,10 +142,6 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
     };
 
     const handleFormSubmit = (data: FlightBookingFormData) => {
-        if (!user) {
-            persistDraftAndRequireAuth();
-            return;
-        }
         // Additional country-based length validation
         const natDigits = nationalNumber.replace(/\D/g, '');
         if (natDigits.length < selectedCountry.min || natDigits.length > selectedCountry.max) {
@@ -167,22 +152,28 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         setStep('payment');
     };
 
-    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'mpgs' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
+    const handlePaymentSuccess = async (result: PaymentSuccessResult) => {
         if (!bookingData) return;
 
         const formData = bookingData as FlightBookingFormData;
         const email = user?.email?.trim() ? user.email.trim() : formData.email;
+        const settledAmount =
+            typeof result.amount === 'number' && result.amount > 0
+                ? result.amount
+                : price;
+        const settledCurrency = result.currency || (isLocal ? 'ETB' : 'USD');
 
         if (currentTrip.length === 0) {
             addToTrip({
                 type: 'flight',
-                price,
+                price: settledAmount,
                 details: {
                     serviceName,
                     customerName: formData.name,
                     email,
                     phone: formData.phone,
                     flightDetails: flightData,
+                    currency: settledCurrency,
                 },
             });
         }
@@ -191,18 +182,25 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
         const tripId = await checkoutTrip(userId);
 
         const newBooking = {
-            id: tripId,
+            id: result.bookingId || tripId,
             clientName: formData.name,
             email,
             service: serviceName,
             date: new Date().toLocaleDateString(),
-            amount: price,
+            amount: settledAmount,
+            currency: settledCurrency,
             status: 'Confirmed' as const,
-            paymentMethod,
+            paymentMethod: result.method,
+            paymentReference: result.paymentReference || null,
         };
         setBookingData(newBooking);
         setStep('receipt');
-        toast.success(paymentMethod === 'pay_on_site' ? 'Booking reserved. Pay on site.' : 'Payment successful! Your booking is confirmed.');
+        const moneyLabel = formatCurrency(settledAmount, settledCurrency);
+        toast.success(
+            result.method === 'pay_on_site'
+                ? `Booking reserved. Pay on site. · ${moneyLabel}`
+                : `Payment successful! · ${moneyLabel}`,
+        );
     };
 
     const handleClose = () => {
@@ -344,7 +342,7 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                         {step === 'payment' && (
                             <PaymentForm
                                 amount={price}
-                                onSuccess={handlePaymentSuccess as any}
+                                onSuccess={handlePaymentSuccess}
                                 onCancel={() => setStep('form')}
                                 isLocal={isLocal}
                                 bookingType="flight"
@@ -356,6 +354,12 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
                                     type: 'flight',
                                     airline: flightData?.airline,
                                     flightNumber: flightData?.flightNumber,
+                                    guestName: (bookingData as FlightBookingFormData | null)?.name,
+                                    guestEmail: (bookingData as FlightBookingFormData | null)?.email,
+                                    guestPhone: (bookingData as FlightBookingFormData | null)?.phone,
+                                    customerName: (bookingData as FlightBookingFormData | null)?.name,
+                                    email: (bookingData as FlightBookingFormData | null)?.email,
+                                    phone: (bookingData as FlightBookingFormData | null)?.phone,
                                 }}
                                 customerPhone={(bookingData as FlightBookingFormData | null)?.phone}
                             />

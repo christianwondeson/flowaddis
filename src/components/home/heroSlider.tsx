@@ -1,39 +1,40 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const slides = [
   {
     image: '/assets/images/addis-ababa-night.jpg',
     title: 'Experience Addis at Night',
-    subtitle: 'Discover the vibrant nightlife and culture.'
+    subtitle: 'Discover the vibrant nightlife and culture.',
   },
   {
     image: '/assets/images/addis-view.jpg',
     title: 'Modern Cityscapes',
-    subtitle: 'Stay in the heart of the developing metropolis.'
+    subtitle: 'Stay in the heart of the developing metropolis.',
   },
   {
     image: '/assets/images/wnchi-lake-crater.png',
     title: 'Breathtaking Landscapes',
-    subtitle: 'Explore the natural beauty of Wenchi Crater Lake.'
+    subtitle: 'Explore the natural beauty of Wenchi Crater Lake.',
   },
   {
     image: '/assets/images/sofomar-cave.png',
     title: 'Natural Wonders',
-    subtitle: 'Visit the spectacular Sof Omar Caves.'
+    subtitle: 'Visit the spectacular Sof Omar Caves.',
   },
   {
     image: '/assets/images/addis-ababa-2.png',
     title: 'Urban Elegance',
-    subtitle: 'Navigate the city with ease and comfort.'
+    subtitle: 'Navigate the city with ease and comfort.',
   },
   {
     image: '/assets/images/benuna.jpg',
     title: 'Discover Ethiopia',
-    subtitle: 'Unforgettable journeys await you.'
-  }
+    subtitle: 'Unforgettable journeys await you.',
+  },
 ];
 
 interface HeroSliderProps {
@@ -46,27 +47,29 @@ export function HeroSlider({ children }: HeroSliderProps) {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(timer);
   }, []);
 
   return (
     <>
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1.5 }}
-          className="absolute inset-0 z-0 overflow-hidden transform-gpu"
-          style={{ willChange: 'transform, opacity' }}
+          transition={{ duration: 0.7 }}
+          className="absolute inset-0 z-0 overflow-hidden"
         >
-          <img
+          <Image
             src={slides[currentSlide].image}
             alt={slides[currentSlide].title}
-            className="w-full h-full object-cover transform-gpu"
-            style={{ willChange: 'transform, opacity' }}
+            fill
+            priority={currentSlide === 0}
+            sizes="100vw"
+            quality={72}
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/25 to-black/75" />
         </motion.div>
@@ -76,9 +79,9 @@ export function HeroSlider({ children }: HeroSliderProps) {
         <div className="text-center mb-10 md:mb-12 pointer-events-none w-full">
           <motion.div
             key={`text-${currentSlide}`}
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.45 }}
           >
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white mb-3 md:mb-5 tracking-tight leading-tight px-2 md:px-4 drop-shadow-lg">
               {slides[currentSlide].title}
@@ -90,8 +93,6 @@ export function HeroSlider({ children }: HeroSliderProps) {
         </div>
         {children}
       </div>
-
-
     </>
   );
 }

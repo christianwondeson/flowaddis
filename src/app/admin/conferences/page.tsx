@@ -7,33 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { ConferenceForm } from "@/components/admin/forms/conference-form";
 import { AdContainer } from "@/components/ads/ad-container";
-import { AdConfig } from "@/lib/types/ads";
+import {
+    CONFERENCE_ADS_LEFT,
+    CONFERENCE_ADS_RIGHT,
+} from "@/lib/ads/service-ads";
 import { useCmsList } from "@/hooks/use-cms-list";
 import { getStrapiSingleMediaUrl } from "@/lib/admin-cms-client";
 import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
 
-const CONFERENCE_ADS_LEFT: AdConfig[] = [
-    {
-        id: "hotel-ad-1",
-        imageUrl: "/ads/hotel-ad-sample.png",
-        altText: "Luxury Stays in Addis Ababa",
-        linkUrl: "/hotels",
-        targetBlank: false,
-    },
-];
-
-const CONFERENCE_ADS_RIGHT: AdConfig[] = [
-    {
-        id: "flight-ad-1",
-        imageUrl: "/ads/flight-ad-sample.png",
-        altText: "Discover Ethiopia",
-        linkUrl: "/flights",
-        targetBlank: false,
-    },
-];
-
 function fmtDate(iso: unknown): string {
-    if (!iso || typeof iso !== "string") return "—";
+    if (!iso || typeof iso !== "string") return " ";
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
 }
@@ -99,8 +82,8 @@ export default function AdminConferencesPage() {
                                         const name = String(row.name ?? "");
                                         const venue = String(row.venue ?? "");
                                         const start = fmtDate(row.start_at);
-                                        const cap = row.capacity != null ? Number(row.capacity) : "—";
-                                        const status = String(row.status ?? "—");
+                                        const cap = row.capacity != null ? Number(row.capacity) : " ";
+                                        const status = String(row.status ?? " ");
                                         const banner = getStrapiSingleMediaUrl(row.banner);
                                         return (
                                             <tr key={id} className="hover:bg-gray-50 transition-colors group">

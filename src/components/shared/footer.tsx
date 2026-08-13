@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Facebook, Instagram, Linkedin, Mail, Phone, MessageCircle } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { BOOKADDIS_ETHIOPIA_PHONE, BOOKADDIS_INTERNATIONAL_LINES } from "@/lib/contact-phones";
 import { useTranslations } from "@/components/providers/locale-provider";
+import { toast } from "sonner";
 
 function TikTokIcon({ className }: { className?: string }) {
     return (
@@ -18,6 +19,43 @@ function TikTokIcon({ className }: { className?: string }) {
 export const Footer: React.FC = () => {
     const { t } = useTranslations();
     const year = new Date().getFullYear();
+    const [email, setEmail] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    const subscribe = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const value = email.trim();
+        if (!value.includes("@") || value.length < 5) {
+            toast.error(t("footer.newsletterInvalid"));
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const res = await fetch("/api/newsletter", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: value }),
+            });
+            const data = (await res.json().catch(() => ({}))) as {
+                already?: boolean;
+                message?: string;
+            };
+            if (!res.ok) {
+                toast.error(data.message || t("footer.newsletterError"));
+                return;
+            }
+            toast.success(
+                data.already
+                    ? t("footer.newsletterAlready")
+                    : t("footer.newsletterSuccess"),
+            );
+            setEmail("");
+        } catch {
+            toast.error(t("footer.newsletterError"));
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <footer className="bg-brand-dark text-white pt-20 pb-10">
@@ -169,19 +207,24 @@ export const Footer: React.FC = () => {
                             </a>
                         </div>
                         <p className="text-gray-400 text-sm mb-4">{t("footer.newsletterHint")}</p>
-                        <div className="flex gap-2">
+                        <form onSubmit={subscribe} className="flex gap-2">
                             <input
                                 type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 placeholder={t("common.email")}
+                                required
+                                autoComplete="email"
                                 className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary w-full transition-colors"
                             />
                             <button
-                                type="button"
-                                className="bg-teal-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 text-white transition-colors shrink-0"
+                                type="submit"
+                                disabled={submitting}
+                                className="bg-teal-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-700 text-white transition-colors shrink-0 disabled:opacity-60"
                             >
-                                {t("common.subscribe")}
+                                {submitting ? t("common.loading") : t("common.subscribe")}
                             </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
 

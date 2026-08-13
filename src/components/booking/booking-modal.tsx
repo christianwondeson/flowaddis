@@ -19,11 +19,9 @@ import { Popover } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-    saveHotelBookingDraftForAuthRedirect,
-    consumeMatchedHotelDraft,
-} from '@/lib/booking-draft-storage';
+import { consumeMatchedHotelDraft } from '@/lib/booking-draft-storage';
 import { useTranslations } from '@/components/providers/locale-provider';
+import type { PaymentSuccessResult } from '@/lib/payment-success';
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -41,6 +39,21 @@ interface BookingModalProps {
     roomBookQuantity?: number;
     /** Guest count forwarded to Nest for room-list verification */
     hotelAdults?: number;
+    /** Phase 3 inventory tag  bookaddis_direct | pms_synced | rapidapi */
+    inventorySource?: 'bookaddis_direct' | 'pms_synced' | 'rapidapi' | string;
+    /** Direct inventory  required for allotment hold */
+    roomTypeId?: string;
+    ratePlanId?: string;
+    /** Prefill from Siyago-style reserve summary */
+    initialGuestName?: string;
+    initialGuestEmail?: string;
+    initialGuestPhone?: string;
+    /** Skip guest form and open on payment when summary already collected details */
+    startAtPayment?: boolean;
+    /** From Siyago reserve summary  industry payment timing */
+    preferredPaymentTiming?: 'pay_now' | 'pay_at_property' | 'mobile_money';
+    /** Hotel-owned shuttle / conference product id (media row). */
+    productId?: string;
 }
 
 const normalizePhone = (v: string) => v.replace(/[^+\d]/g, '');
@@ -78,14 +91,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     type = 'hotel',
     initialCheckIn = '',
     initialCheckOut = '',
-    isLocal = false,
+    isLocal: isLocalProp,
     externalItemId = 'N/A',
     roomBlockId,
     roomBookQuantity = 1,
     hotelAdults,
+    inventorySource = 'rapidapi',
+    roomTypeId,
+    ratePlanId,
+    initialGuestName,
+    initialGuestEmail,
+    initialGuestPhone,
+    startAtPayment = false,
+    preferredPaymentTiming,
+    productId,
 }) => {
     const { t, locale } = useTranslations();
     const pathname = usePathname();
+    const isDirectProduct =
+        type === 'shuttle' ||
+        type === 'conference' ||
+        (type === 'hotel' &&
+            (inventorySource === 'bookaddis_direct' ||
+                inventorySource === 'pms_synced'));
+    /** Direct / ETB inventory always offers CBE Birr + local rails. */
+    const isLocal = isLocalProp ?? isDirectProduct;
 
     const bookingSchema = useMemo(
         () =>
@@ -104,6 +134,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     (data) => {
                         const ci = new Date(data.checkIn);
                         const co = new Date(data.checkOut);
+                        // Same-day allowed for shuttle / conference hire.
+                        if (type === 'shuttle' || type === 'conference') {
+                            return co.getTime() >= ci.getTime();
+                        }
                         return co.getTime() > ci.getTime();
                     },
                     {
@@ -111,12 +145,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         path: ['checkOut'],
                     },
                 ),
-        [t],
+        [t, type],
     );
 
     const { addToTrip, checkoutTrip, currentTrip } = useTripStore();
-    const { user, requireAuth } = useAuth();
-    const [step, setStep] = useState<'form' | 'payment' | 'receipt'>('form');
+    const { user } = useAuth();
+    const [step, setStep] = useState<'form' | 'payment' | 'receipt'>(
+        startAtPayment ? 'payment' : 'form',
+    );
     const [bookingData, setBookingData] = useState<any>(null);
 
     // Create a snapshot for the service identification
@@ -127,6 +163,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             checkOut: initialCheckOut,
             type,
             timestamp: new Date().toISOString(),
+            inventory_source:
+                type === 'shuttle' || type === 'conference'
+                    ? 'bookaddis_direct'
+                    : inventorySource,
+            hotel_id: externalItemId,
+            ...(productId
+                ? {
+                      product_id: productId,
+                      productId,
+                      product_kind: type === 'shuttle' ? 'shuttle' : type === 'conference' ? 'conference' : undefined,
+                  }
+                : {}),
+            ...(roomTypeId
+                ? {
+                      room_type_id: roomTypeId,
+                      roomTypeId,
+                  }
+                : {}),
+            ...(ratePlanId
+                ? {
+                      rate_plan_id: ratePlanId,
+                      ratePlanId,
+                  }
+                : {}),
             ...(roomBlockId
                 ? {
                       roomBlockId,
@@ -134,12 +194,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   }
                 : {}),
             ...(typeof hotelAdults === 'number' && hotelAdults > 0 ? { adults: hotelAdults } : {}),
+            ...(roomTypeId
+                ? { roomBookQuantity: Math.max(1, Math.floor(roomBookQuantity || 1)), quantity: Math.max(1, Math.floor(roomBookQuantity || 1)) }
+                : {}),
         }),
         [
             serviceName,
             initialCheckIn,
             initialCheckOut,
             type,
+            inventorySource,
+            externalItemId,
+            productId,
+            roomTypeId,
+            ratePlanId,
             roomBlockId,
             roomBookQuantity,
             hotelAdults,
@@ -147,14 +215,68 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     );
 
     const checkoutExternalSnapshot = useMemo(() => {
-        if (!bookingData) return externalSnapshot;
+        let industry: Record<string, unknown> = {};
+        try {
+            const raw =
+                typeof window !== 'undefined'
+                    ? sessionStorage.getItem('bookaddis_reserve_extras')
+                    : null;
+            if (raw) {
+                const extras = JSON.parse(raw) as Record<string, unknown>;
+                industry = {
+                    meal_plan: extras.meal_plan || extras.mealPlan || 'EP',
+                    meal_plan_label: extras.meal_plan_label || null,
+                    stay_codes: extras.stay_codes || ['OVN'],
+                    rate_segment: extras.rate_segment || 'RACK',
+                    flexibility: extras.flexibility || 'FLEX',
+                    booking_type: extras.booking_type || extras.bookingType || null,
+                    special_requests:
+                        extras.special_requests || extras.specialRequests || null,
+                    early_check_in: Boolean(extras.early_check_in),
+                    late_check_out: Boolean(extras.late_check_out),
+                    day_use: Boolean(extras.day_use),
+                    payment_pref: extras.payment_pref || extras.paymentPref || null,
+                    add_ons: extras.addOns || extras.add_ons || null,
+                    room_total: extras.room_total ?? null,
+                    extras_total: extras.extras_total ?? null,
+                    extras_lines: extras.extras_lines || null,
+                    promo_code: extras.promoCode || null,
+                    promotion_id: extras.promotionId || null,
+                    promotion_percent: extras.promotionPercent || null,
+                    list_price: extras.listPrice || null,
+                    discounted_price: extras.discountedPrice || null,
+                    adults:
+                        typeof (extras as { adults?: number }).adults === 'number'
+                            ? (extras as { adults?: number }).adults
+                            : hotelAdults ?? null,
+                    children:
+                        typeof (extras as { children?: number }).children ===
+                        'number'
+                            ? (extras as { children?: number }).children
+                            : null,
+                };
+            }
+        } catch {
+            /* ignore */
+        }
+
+        if (!bookingData) {
+            return { ...externalSnapshot, ...industry };
+        }
         const bd = bookingData as BookingFormData;
         return {
             ...externalSnapshot,
+            ...industry,
             checkIn: bd.checkIn || externalSnapshot.checkIn,
             checkOut: bd.checkOut || externalSnapshot.checkOut,
+            guestName: bd.name,
+            guestEmail: bd.email,
+            guestPhone: bd.phone,
+            customerName: bd.name,
+            email: bd.email,
+            phone: bd.phone,
         };
-    }, [bookingData, externalSnapshot]);
+    }, [bookingData, externalSnapshot, hotelAdults]);
 
     const {
         register,
@@ -188,30 +310,40 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setValue('phone', e164, { shouldValidate: true });
     };
 
-    const persistDraftAndRequireAuth = (data: BookingFormData) => {
-        saveHotelBookingDraftForAuthRedirect({
-            pathname,
-            externalItemId: String(externalItemId),
-            type,
-            serviceName,
-            checkIn: data.checkIn,
-            checkOut: data.checkOut,
-            roomBlockId,
-            roomBookQuantity,
-            hotelAdults,
-        });
-        requireAuth();
-    };
-
-    // Restore draft after sign-in, or sync dates from props when opening
+    // Restore draft after sign-in, or sync dates / guest from summary when opening
     useEffect(() => {
         if (!isOpen) return;
+        type ExtrasGuest = {
+            firstName?: string;
+            lastName?: string;
+            email?: string;
+            phone?: string;
+        };
+        let extrasGuest: ExtrasGuest | null = null;
+        try {
+            const raw = sessionStorage.getItem('bookaddis_reserve_extras');
+            if (raw) {
+                extrasGuest =
+                    (JSON.parse(raw) as { guest?: ExtrasGuest }).guest || null;
+            }
+        } catch {
+            /* ignore */
+        }
+
         const draft = consumeMatchedHotelDraft(pathname, String(externalItemId), type);
+        const nameFromSummary =
+            initialGuestName ||
+            (extrasGuest
+                ? `${extrasGuest.firstName || ''} ${extrasGuest.lastName || ''}`.trim()
+                : '');
+        const emailFromSummary = initialGuestEmail || extrasGuest?.email || '';
+        const phoneFromSummary = initialGuestPhone || extrasGuest?.phone || '';
+
         if (draft) {
             reset({
-                name: '',
-                email: '',
-                phone: '',
+                name: nameFromSummary,
+                email: emailFromSummary,
+                phone: phoneFromSummary,
                 checkIn: draft.checkIn || initialCheckIn,
                 checkOut: draft.checkOut || initialCheckOut,
             });
@@ -220,9 +352,45 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             toast.success(t('bookingUi.toastDatesRestored'));
             return;
         }
-        if (initialCheckIn) setValue('checkIn', initialCheckIn, { shouldValidate: true });
-        if (initialCheckOut) setValue('checkOut', initialCheckOut, { shouldValidate: true });
-    }, [isOpen, pathname, externalItemId, type, initialCheckIn, initialCheckOut, reset, setValue]);
+        reset({
+            name: nameFromSummary,
+            email: emailFromSummary || user?.email || '',
+            phone: phoneFromSummary,
+            checkIn: initialCheckIn,
+            checkOut: initialCheckOut,
+        });
+        if (
+            startAtPayment &&
+            nameFromSummary &&
+            (emailFromSummary || user?.email) &&
+            phoneFromSummary
+        ) {
+            const data = {
+                name: nameFromSummary,
+                email: emailFromSummary || user?.email || '',
+                phone: phoneFromSummary,
+                checkIn: initialCheckIn,
+                checkOut: initialCheckOut,
+            };
+            setBookingData(data);
+            setStep('payment');
+        }
+    }, [
+        isOpen,
+        pathname,
+        externalItemId,
+        type,
+        initialCheckIn,
+        initialCheckOut,
+        reset,
+        setValue,
+        initialGuestName,
+        initialGuestEmail,
+        initialGuestPhone,
+        startAtPayment,
+        user?.email,
+        t,
+    ]);
 
     // Signed-in bookings always use the account email (confirmations + fraud prevention)
     useEffect(() => {
@@ -234,10 +402,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         user?.email?.trim() ? user.email.trim() : data.email;
 
     const handleAddToTrip = (data: BookingFormData) => {
-        if (!user) {
-            persistDraftAndRequireAuth(data);
-            return;
-        }
         const email = resolveBookingEmail(data);
         addToTrip({
             type,
@@ -257,10 +421,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const handleFormSubmit = (data: BookingFormData) => {
-        if (!user) {
-            persistDraftAndRequireAuth(data);
-            return;
-        }
         // Additional country-based length validation
         const natDigits = nationalNumber.replace(/\D/g, '');
         if (natDigits.length < selectedCountry.min || natDigits.length > selectedCountry.max) {
@@ -284,16 +444,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setStep('payment');
     };
 
-    const handlePaymentSuccess = async (paymentMethod: 'stripe' | 'mpgs' | 'telebirr' | 'cbebirr' | 'pay_on_site') => {
+    const handlePaymentSuccess = async (result: PaymentSuccessResult) => {
         if (!bookingData) return;
 
         const formData = bookingData as BookingFormData;
         const email = user?.email?.trim() ? user.email.trim() : formData.email;
+        const settledAmount =
+            typeof result.amount === 'number' && result.amount > 0
+                ? result.amount
+                : price;
+        const settledCurrency =
+            result.currency ||
+            (inventorySource === 'bookaddis_direct' ||
+            inventorySource === 'pms_synced'
+                ? 'ETB'
+                : 'USD');
 
         if (currentTrip.length === 0) {
             addToTrip({
                 type,
-                price,
+                price: settledAmount,
                 details: {
                     serviceName,
                     customerName: formData.name,
@@ -301,6 +471,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     phone: formData.phone,
                     checkIn: formData.checkIn,
                     checkOut: formData.checkOut,
+                    currency: settledCurrency,
                 },
             });
         }
@@ -309,19 +480,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const tripId = await checkoutTrip(userId);
 
         const newBooking = {
-            id: tripId,
+            id: result.bookingId || tripId,
             clientName: formData.name,
             email,
             service: serviceName,
             checkIn: formData.checkIn,
             checkOut: formData.checkOut,
-            amount: price,
+            amount: settledAmount,
+            currency: settledCurrency,
             status: 'Confirmed' as const,
-            paymentMethod,
+            paymentMethod: result.method,
+            paymentReference: result.paymentReference || null,
         };
         setBookingData(newBooking);
         setStep('receipt');
-        toast.success(paymentMethod === 'pay_on_site' ? t('bookingUi.toastReserveDone') : t('bookingUi.toastPaymentDone'));
+        const moneyLabel = formatCurrency(settledAmount, settledCurrency);
+        toast.success(
+            result.method === 'pay_on_site'
+                ? `${t('bookingUi.toastReserveDone')} · ${moneyLabel}`
+                : `${t('bookingUi.toastPaymentDone')} · ${moneyLabel}`,
+        );
     };
 
     const handleClose = () => {
@@ -335,15 +513,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md">
+            <div className="fixed inset-0 z-[10000] flex items-end justify-center overflow-hidden bg-brand-dark/60 p-0 backdrop-blur-md sm:items-center sm:p-4">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.98, y: 16 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 w-full max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide overscroll-contain z-10001"
+                    exit={{ opacity: 0, scale: 0.98, y: 16 }}
+                    className="relative z-[10001] flex max-h-[min(92dvh,920px)] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:max-w-lg sm:rounded-2xl md:max-w-xl"
                 >
-                    <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
-                        <h2 className="text-xl font-bold text-brand-dark dark:text-foreground">
+                    <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-slate-700 sm:px-6 sm:py-4">
+                        <h2 className="text-lg font-bold text-brand-dark dark:text-foreground sm:text-xl">
                             {step === 'form'
                                 ? t('bookingUi.modalTitleForm')
                                 : step === 'payment'
@@ -352,13 +530,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </h2>
                         <button
                             onClick={handleClose}
-                            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                            type="button"
+                            aria-label="Close"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <div className="p-6">
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide px-4 py-4 sm:px-6 sm:py-5">
                         {step === 'form' && (
                             <form key={locale} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
                                 <div className="bg-brand-gray p-5 rounded-2xl border border-gray-100">
@@ -500,19 +680,45 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         {step === 'payment' && (
                             <PaymentForm
                                 amount={price || 0}
-                                onSuccess={handlePaymentSuccess as any}
+                                onSuccess={handlePaymentSuccess}
                                 onCancel={() => setStep('form')}
                                 isLocal={isLocal}
                                 bookingType={type as any}
-                                source={type === 'hotel' ? 'rapidapi' : 'amadeus'}
+                                source={
+                                    type === 'shuttle' || type === 'conference'
+                                        ? 'bookaddis_direct'
+                                        : type === 'hotel'
+                                          ? inventorySource === 'bookaddis_direct' ||
+                                            inventorySource === 'pms_synced'
+                                              ? inventorySource
+                                              : 'rapidapi'
+                                          : 'amadeus'
+                                }
                                 externalItemId={externalItemId}
                                 externalSnapshot={checkoutExternalSnapshot}
+                                currencyCode={
+                                    type === 'shuttle' ||
+                                    type === 'conference' ||
+                                    inventorySource === 'bookaddis_direct' ||
+                                    inventorySource === 'pms_synced'
+                                        ? 'ETB'
+                                        : undefined
+                                }
                                 customerPhone={(bookingData as BookingFormData | null)?.phone}
+                                preferredPaymentTiming={preferredPaymentTiming}
                             />
                         )}
 
                         {step === 'receipt' && bookingData && (
-                            <Receipt booking={bookingData} onClose={handleClose} kind={bookingData.paymentMethod === 'pay_on_site' ? 'reservation' : 'paid'} />
+                            <Receipt
+                                booking={bookingData}
+                                onClose={handleClose}
+                                kind={
+                                    bookingData.paymentMethod === 'pay_on_site'
+                                        ? 'reservation'
+                                        : 'paid'
+                                }
+                            />
                         )}
                     </div>
                 </motion.div>

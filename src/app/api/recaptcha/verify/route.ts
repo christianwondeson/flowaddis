@@ -5,8 +5,8 @@ import { ALLOWED_RECAPTCHA_ACTIONS } from '@/lib/recaptcha-actions';
 export const runtime = 'nodejs';
 
 /**
- * POST body: { token: string, action: string }
- * Verifies reCAPTCHA Enterprise token via CreateAssessment (risk score + action).
+ * POST body: { token: string, action: string, accountId?: string, email?: string }
+ * Verifies reCAPTCHA Enterprise token via CreateAssessment (risk score + Account defense).
  */
 export async function POST(request: Request) {
     try {
@@ -17,20 +17,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
         }
 
-        const token =
-            body &&
-            typeof body === 'object' &&
-            'token' in body &&
-            typeof (body as { token?: unknown }).token === 'string'
-                ? (body as { token: string }).token.trim()
-                : '';
-        const action =
-            body &&
-            typeof body === 'object' &&
-            'action' in body &&
-            typeof (body as { action?: unknown }).action === 'string'
-                ? (body as { action: string }).action.trim().toLowerCase()
-                : '';
+        const obj = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+
+        const token = typeof obj.token === 'string' ? obj.token.trim() : '';
+        const action = typeof obj.action === 'string' ? obj.action.trim().toLowerCase() : '';
+        const accountId = typeof obj.accountId === 'string' ? obj.accountId.trim() : undefined;
+        const email = typeof obj.email === 'string' ? obj.email.trim() : undefined;
 
         if (!token) {
             return NextResponse.json({ error: 'token is required' }, { status: 400 });
@@ -42,13 +34,29 @@ export async function POST(request: Request) {
         const outcome = await assessRecaptchaEnterpriseToken({
             token,
             expectedAction: action,
+            accountId,
+            email,
         });
 
         if (outcome.ok) {
-            return NextResponse.json({ ok: true, score: outcome.score });
+            return NextResponse.json({
+                ok: true,
+                score: outcome.score,
+                ...(outcome.assessmentName ? { assessmentName: outcome.assessmentName } : {}),
+                ...(outcome.accountDefenderLabels?.length
+                    ? { accountDefenderLabels: outcome.accountDefenderLabels }
+                    : {}),
+            });
         }
 
-        return NextResponse.json({ ok: false, reason: outcome.reason }, { status: 403 });
+        return NextResponse.json(
+            {
+                ok: false,
+                reason: outcome.reason,
+                ...(outcome.assessmentName ? { assessmentName: outcome.assessmentName } : {}),
+            },
+            { status: 403 },
+        );
     } catch (error) {
         console.error('[recaptcha] verify route error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

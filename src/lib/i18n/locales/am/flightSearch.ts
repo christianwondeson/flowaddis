@@ -45,7 +45,7 @@ export const flightSearchAm = {
         select: 'ምረጥ',
         viewDetails: 'ዝርዝር ይመልከቱ',
         airlineFallback: 'አየር መንገድ',
-        bookingServiceName: '{airline} — {from} ወደ {to}',
+        bookingServiceName: '{airline}  {from} ወደ {to}',
         bookingDefaultName: 'የበረራ ቦክ',
         modalJourney: 'ጉዞ',
         modalSeatMap: 'ወንበር ካርታ',

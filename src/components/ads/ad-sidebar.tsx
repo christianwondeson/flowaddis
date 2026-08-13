@@ -1,87 +1,55 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { AdSidebarProps } from '@/lib/types/ads';
+import React, { useEffect, useState } from 'react';
+import type { AdSidebarProps } from '@/lib/types/ads';
+import { SponsoredUnit } from './sponsored-unit';
+import { cn } from '@/lib/utils';
 
 export function AdSidebar({ ads, position }: AdSidebarProps) {
-    const [currentAdIndex, setCurrentAdIndex] = useState(0);
+    const [index, setIndex] = useState(0);
+    const [paused, setPaused] = useState(false);
 
     useEffect(() => {
-        if (ads.length > 1) {
-            const interval = setInterval(() => {
-                setCurrentAdIndex((prev) => (prev + 1) % ads.length);
-            }, 10000); // Rotate every 10 seconds
+        if (ads.length <= 1 || paused) return;
+        const id = window.setInterval(() => {
+            setIndex((i) => (i + 1) % ads.length);
+        }, 16000);
+        return () => window.clearInterval(id);
+    }, [ads.length, paused]);
 
-            return () => clearInterval(interval);
-        }
-    }, [ads.length]);
+    if (!ads?.length) return null;
 
-    if (!ads || ads.length === 0) {
-        return null;
-    }
-
-    const currentAd = ads[currentAdIndex];
-
-    const handleAdClick = () => {
-        // Track ad click (can be extended with analytics)
-    };
-
-    const adContent = (
-        <div className="relative w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm group transition-shadow hover:shadow-md">
-            <div className="relative w-full aspect-3/4 flex items-center justify-center overflow-hidden">
-                <img
-                    src={currentAd.imageUrl}
-                    alt={currentAd.altText}
-                    className="w-full h-full object-cover"
-                />
-            </div>
-            <div className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-950/95">
-                <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="text-[10px] text-teal-100/90 uppercase tracking-[0.16em] font-semibold">Ad · Sponsored</span>
-                    <span className="text-[11px] text-slate-50 font-medium truncate">{currentAd.altText}</span>
-                </div>
-                {ads.length > 1 && (
-                    <div className="flex items-center gap-1 shrink-0">
-                            {ads.map((_, index) => (
-                                <button
-                                    key={index}
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setCurrentAdIndex(index);
-                                    }}
-                                    className={`h-1.5 rounded-full transition-all ${index === currentAdIndex
-                                        ? 'w-4 bg-teal-300'
-                                        : 'w-1.5 bg-slate-600 hover:bg-slate-400'
-                                        }`}
-                                    aria-label={`Go to ad ${index + 1}`}
-                                />
-                            ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
+    const ad = ads[Math.min(index, ads.length - 1)];
 
     return (
         <aside
-            className={`sticky top-24 z-30 shrink-0 self-start ${position === 'left' ? 'order-first' : 'order-last'}`}
+            className={cn(
+                'sticky top-[calc(5rem+env(safe-area-inset-top,0px))] z-20 self-start w-full max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-hide opacity-95 hover:opacity-100 transition-opacity',
+                position === 'left' ? 'order-first' : 'order-last',
+            )}
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            aria-label="Sponsored"
         >
-            <div className="w-full">
-                {currentAd.linkUrl ? (
-                    <a
-                        href={currentAd.linkUrl}
-                        target={currentAd.targetBlank ? '_blank' : '_self'}
-                        rel={currentAd.targetBlank ? 'noopener noreferrer' : undefined}
-                        onClick={handleAdClick}
-                        className="block"
-                    >
-                        {adContent}
-                    </a>
-                ) : (
-                    <div onClick={handleAdClick}>{adContent}</div>
-                )}
-            </div>
+            <SponsoredUnit ad={ad} />
+            {ads.length > 1 ? (
+                <div className="mt-2.5 flex items-center justify-center gap-1.5">
+                    {ads.map((item, i) => (
+                        <button
+                            key={item.id}
+                            type="button"
+                            aria-label={`Sponsored ${i + 1}`}
+                            onClick={() => setIndex(i)}
+                            className={cn(
+                                'h-1.5 rounded-full transition-all',
+                                i === index
+                                    ? 'w-4 bg-slate-400'
+                                    : 'w-1.5 bg-slate-200 hover:bg-slate-300',
+                            )}
+                        />
+                    ))}
+                </div>
+            ) : null}
         </aside>
     );
 }

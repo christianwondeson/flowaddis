@@ -18,7 +18,7 @@ interface HotelListProps {
     /** Infinite scroll sentinel + loading row */
     listFooter?: React.ReactNode;
     /**
-     * When true (e.g. `pickLocation=1` from promo links), hotel search is intentionally not run yet —
+     * When true (e.g. `pickLocation=1` from promo links), hotel search is intentionally not run yet  
      * show guidance instead of "0 hotels found".
      */
     awaitingDestinationPick?: boolean;

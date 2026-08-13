@@ -74,3 +74,7 @@ export function isFirebaseAdminConfigured(): boolean {
         return false;
     }
 }
+
+export function getAdminAuth(): admin.auth.Auth {
+    return getAdminApp().auth();
+}

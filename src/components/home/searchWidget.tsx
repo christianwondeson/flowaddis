@@ -2,20 +2,42 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plane, Hotel, Users, Bus, Search, MapPin, Calendar as CalendarIcon, Clock, User } from 'lucide-react';
+import {
+  Plane,
+  Hotel,
+  Users,
+  Bus,
+  Search,
+  MapPin,
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  ArrowLeftRight,
+  Minus,
+  Plus,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { LocationInput } from '@/components/search/location-input';
 import dynamic from 'next/dynamic';
-const GuestSelector = dynamic(() => import('@/components/search/guest-selector').then(m => m.GuestSelector), { ssr: false });
-const TravelerCabinSelector = dynamic(() => import('@/components/search/traveler-cabin-selector').then(m => m.TravelerCabinSelector), { ssr: false });
 import { CabinClass } from '@/components/search/traveler-cabin-selector';
 import { useRouter } from 'next/navigation';
 import { Popover } from '@/components/ui/popover';
-const Calendar = dynamic(() => import('@/components/ui/calendar').then(m => m.Calendar), { ssr: false });
-const FlightRouteSelect = dynamic(() => import('@/components/search/flight-route-select').then(m => m.FlightRouteSelect), { ssr: false });
+import { Calendar } from '@/components/ui/calendar';
 import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateRangeShort } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
+import { Counter } from '@/components/shared/counter';
+
+const GuestSelector = dynamic(() => import('@/components/search/guest-selector').then((m) => m.GuestSelector), {
+  ssr: false,
+});
+const TravelerCabinSelector = dynamic(
+  () => import('@/components/search/traveler-cabin-selector').then((m) => m.TravelerCabinSelector),
+  { ssr: false },
+);
+const FlightRouteSelect = dynamic(
+  () => import('@/components/search/flight-route-select').then((m) => m.FlightRouteSelect),
+  { ssr: false },
+);
 
 type TabType = 'flights' | 'hotels' | 'conferences' | 'shuttles';
 
@@ -23,8 +45,26 @@ const TABS: { id: TabType; icon: typeof Plane; label: string; available: boolean
   { id: 'flights', icon: Plane, label: 'Flights', available: true },
   { id: 'hotels', icon: Hotel, label: 'Hotels', available: true },
   { id: 'conferences', icon: Users, label: 'Conferences', available: true },
-  { id: 'shuttles', icon: Bus, label: 'Shuttles', available: false },
+  { id: 'shuttles', icon: Bus, label: 'Shuttles', available: true },
 ];
+
+const FIELD_LABEL =
+  'block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5';
+const FIELD_TRIGGER =
+  'flex items-center gap-2.5 w-full min-h-[52px] px-3.5 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 focus-within:border-brand-primary focus-within:ring-2 focus-within:ring-brand-primary/15 transition-all group';
+const FIELD_ICON =
+  'w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0 group-hover:text-brand-primary transition-colors';
+const FIELD_VALUE = 'text-gray-900 dark:text-slate-100 font-medium text-sm truncate min-w-0';
+const LOCATION_FIELD =
+  '[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:dark:text-slate-400 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5 [&_input]:h-[52px] [&_input]:rounded-xl [&_input]:bg-gray-50 [&_input]:dark:bg-slate-800/90 [&_input]:border-gray-200 [&_input]:dark:border-slate-600 [&_input]:hover:border-brand-primary/40';
+
+function formatTimeDisplay(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return time;
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
 
 export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => void }) {
   const router = useRouter();
@@ -35,7 +75,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
     const tabConfig = TABS.find((t) => t.id === tab);
     if (tabConfig?.available) {
       setActiveTab(tab);
-      if (onTabChange) onTabChange(tab);
+      onTabChange?.(tab);
     }
   };
 
@@ -45,33 +85,63 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
   const [flightFromId, setFlightFromId] = useState('ADD.AIRPORT');
   const [flightToId, setFlightToId] = useState('JFK.AIRPORT');
   const [flightDate, setFlightDate] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
-  const [flightReturnDate, setFlightReturnDate] = useState<string>(formatDateLocal(new Date(Date.now() + 172800000)));
+  const [flightReturnDate, setFlightReturnDate] = useState<string>(
+    formatDateLocal(new Date(Date.now() + 172800000)),
+  );
   const [trav, setTrav] = useState({
     adults: 1,
     children: 0,
-    cabinClass: 'ECONOMY' as CabinClass
+    cabinClass: 'ECONOMY' as CabinClass,
   });
   const [flightType, setFlightType] = useState<'ROUNDTRIP' | 'ONEWAY' | 'MULTISTOP'>('ROUNDTRIP');
   const [segments, setSegments] = useState<{ from: string; to: string; date: string }[]>([
     { from: 'ADD.AIRPORT', to: 'JFK.AIRPORT', date: formatDateLocal(new Date(Date.now() + 86400000)) },
-    { from: 'JFK.AIRPORT', to: '', date: formatDateLocal(new Date(Date.now() + 172800000)) }
+    { from: 'JFK.AIRPORT', to: '', date: formatDateLocal(new Date(Date.now() + 172800000)) },
   ]);
-  const [orderBy, setOrderBy] = useState<'BEST' | 'CHEAPEST' | 'FASTEST'>('BEST');
+  const [orderBy] = useState<'BEST' | 'CHEAPEST' | 'FASTEST'>('BEST');
+  const [flightDatesOpen, setFlightDatesOpen] = useState(false);
 
   // Hotel State
   const [hotelDestination, setHotelDestination] = useState('Addis Ababa, Ethiopia');
-  const [hotelLocation, setHotelLocation] = useState<{ dest_id?: string; dest_type?: string }>({ dest_id: '-603097', dest_type: 'city' });
+  const [hotelLocation, setHotelLocation] = useState<{ dest_id?: string; dest_type?: string }>({
+    dest_id: '-603097',
+    dest_type: 'city',
+  });
   const [hotelCheckIn, setHotelCheckIn] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
-  const [hotelCheckOut, setHotelCheckOut] = useState<string>(formatDateLocal(new Date(Date.now() + 172800000)));
+  const [hotelCheckOut, setHotelCheckOut] = useState<string>(
+    formatDateLocal(new Date(Date.now() + 172800000)),
+  );
   const [hotelGuests, setHotelGuests] = useState({ adults: 2, children: 0, rooms: 1 });
+  const [hotelDatesOpen, setHotelDatesOpen] = useState(false);
 
   // Conference State
   const [confLocation, setConfLocation] = useState('Addis Ababa');
   const [confDate, setConfDate] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
   const [confAttendees, setConfAttendees] = useState(50);
+  const [confDateOpen, setConfDateOpen] = useState(false);
+
+  // Shuttle State
+  const [shuttlePickup, setShuttlePickup] = useState('Bole International Airport');
+  const [shuttleDropoff, setShuttleDropoff] = useState('Addis Ababa');
+  const [shuttleDate, setShuttleDate] = useState<string>(formatDateLocal(new Date(Date.now() + 86400000)));
+  const [shuttleTime, setShuttleTime] = useState('09:00');
+  const [shuttleDateOpen, setShuttleDateOpen] = useState(false);
+
+  const swapFlightAirports = () => {
+    setFlightFromCode(flightToCode);
+    setFlightToCode(flightFromCode);
+    setFlightFromId(flightToId);
+    setFlightToId(flightFromId);
+  };
 
   const handleSearch = () => {
-    if (activeTab !== 'flights' && activeTab !== 'hotels' && activeTab !== 'conferences') return;
+    if (
+      activeTab !== 'flights' &&
+      activeTab !== 'hotels' &&
+      activeTab !== 'conferences' &&
+      activeTab !== 'shuttles'
+    )
+      return;
     setIsSearching(true);
     if (activeTab === 'flights') {
       const params = new URLSearchParams();
@@ -83,7 +153,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
         if (flightFromCode) params.append('fromCode', flightFromCode);
         if (flightToCode) params.append('toCode', flightToCode);
         if (flightDate) params.append('departDate', flightDate);
-        if (flightReturnDate) params.append('returnDate', flightReturnDate);
+        if (flightType === 'ROUNDTRIP' && flightReturnDate) params.append('returnDate', flightReturnDate);
       }
       params.append('flightType', flightType);
       params.append('cabinClass', trav.cabinClass);
@@ -96,9 +166,10 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       const rawQuery = hotelDestination.trim();
       const queryForApi = rawQuery === 'Addis Ababa, Ethiopia' ? 'Addis Ababa' : rawQuery;
       if (queryForApi) params.append('query', queryForApi);
-      // When user typed but didn't select from dropdown, hotelLocation is empty - use known destId so results match (Addis Ababa)
-      const destId = hotelLocation.dest_id ?? (queryForApi.toLowerCase() === 'addis ababa' ? '-603097' : undefined);
-      const destType = hotelLocation.dest_type ?? (queryForApi.toLowerCase() === 'addis ababa' ? 'city' : undefined);
+      const destId =
+        hotelLocation.dest_id ?? (queryForApi.toLowerCase() === 'addis ababa' ? '-603097' : undefined);
+      const destType =
+        hotelLocation.dest_type ?? (queryForApi.toLowerCase() === 'addis ababa' ? 'city' : undefined);
       if (destId) params.append('destId', destId);
       if (destType) params.append('destType', destType);
       if (hotelCheckIn) params.append('checkIn', hotelCheckIn);
@@ -114,392 +185,562 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
       if (confDate) params.append('date', confDate);
       params.append('attendees', confAttendees.toString());
       router.push(`/conferences?${params.toString()}`);
+    } else if (activeTab === 'shuttles') {
+      const params = new URLSearchParams();
+      if (shuttlePickup.trim()) params.append('pickup', shuttlePickup.trim());
+      if (shuttleDropoff.trim()) {
+        params.append('dropoff', shuttleDropoff.trim());
+        params.append('city', shuttleDropoff.trim());
+      } else if (shuttlePickup.trim()) {
+        params.append('city', shuttlePickup.trim());
+      }
+      if (shuttleDate) params.append('date', shuttleDate);
+      if (shuttleTime) params.append('time', shuttleTime);
+      router.push(`/shuttles?${params.toString()}`);
     }
     setTimeout(() => setIsSearching(false), 800);
   };
+
+  const searchButton = (
+    <Button
+      type="button"
+      disabled={isSearching}
+      aria-busy={isSearching}
+      className="w-full lg:w-[132px] shrink-0 h-[52px] flex items-center justify-center gap-2 text-sm font-semibold bg-brand-primary hover:bg-teal-700 text-white rounded-xl shadow-md transition-colors disabled:opacity-70"
+      onClick={handleSearch}
+    >
+      {isSearching ? (
+        <>
+          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          …
+        </>
+      ) : (
+        <>
+          <Search className="w-4 h-4 shrink-0" aria-hidden />
+          Search
+        </>
+      )}
+    </Button>
+  );
+
+  const dualDatePopover = (
+    checkIn: string,
+    checkOut: string,
+    onCheckIn: (d: Date) => void,
+    onCheckOut: (d: Date) => void,
+    open: boolean,
+    setOpen: (v: boolean) => void,
+    labels: [string, string] = ['Check-in', 'Check-out'],
+  ) => (
+    <Popover
+      align="center"
+      isOpen={open}
+      onOpenChange={setOpen}
+      trigger={
+        <div className="w-full">
+          <label className={FIELD_LABEL}>Dates</label>
+          <div className={FIELD_TRIGGER}>
+            <CalendarIcon className={FIELD_ICON} aria-hidden />
+            <span className={FIELD_VALUE}>{formatDateRangeShort(checkIn, checkOut)}</span>
+          </div>
+        </div>
+      }
+      content={
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1 sm:p-2 min-w-[280px] sm:min-w-[520px]">
+          <div>
+            <label className={cn(FIELD_LABEL, 'mb-2')}>{labels[0]}</label>
+            <Calendar
+              selected={checkIn ? parseDateLocal(checkIn) : undefined}
+              onSelect={(date) => {
+                onCheckIn(date);
+                if (checkOut && parseDateLocal(checkOut) <= date) {
+                  onCheckOut(new Date(date.getTime() + 86400000));
+                }
+              }}
+              minDate={new Date()}
+            />
+          </div>
+          <div>
+            <label className={cn(FIELD_LABEL, 'mb-2')}>{labels[1]}</label>
+            <Calendar
+              selected={checkOut ? parseDateLocal(checkOut) : undefined}
+              onSelect={onCheckOut}
+              minDate={checkIn ? parseDateLocal(checkIn) : new Date()}
+            />
+          </div>
+        </div>
+      }
+    />
+  );
+
+  const singleDatePopover = (
+    label: string,
+    value: string,
+    onSelect: (d: Date) => void,
+    open: boolean,
+    setOpen: (v: boolean) => void,
+    minDate?: Date,
+  ) => (
+    <Popover
+      align="center"
+      isOpen={open}
+      onOpenChange={setOpen}
+      trigger={
+        <div className="w-full">
+          <label className={FIELD_LABEL}>{label}</label>
+          <div className={FIELD_TRIGGER}>
+            <CalendarIcon className={FIELD_ICON} aria-hidden />
+            <span className={FIELD_VALUE}>{value ? formatDateEnglishStr(value) : 'Select date'}</span>
+          </div>
+        </div>
+      }
+      content={
+        <div className="p-1">
+          <Calendar
+            selected={value ? parseDateLocal(value) : undefined}
+            onSelect={(date) => {
+              onSelect(date);
+              setOpen(false);
+            }}
+            minDate={minDate ?? new Date()}
+          />
+        </div>
+      }
+    />
+  );
 
   const renderSearchFields = () => {
     switch (activeTab) {
       case 'flights':
         return (
-          <div className="col-span-full space-y-4">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="inline-flex rounded-xl bg-gray-100 dark:bg-slate-800 p-1" role="group" aria-label="Trip type">
-                {(['ROUNDTRIP', 'ONEWAY', 'MULTISTOP'] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setFlightType(type)}
-                    aria-pressed={flightType === type}
-                    className={cn(
-                      'px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2',
-                      flightType === type
-                        ? 'bg-white dark:bg-slate-900 text-brand-primary shadow-sm'
-                        : 'text-gray-600 dark:text-slate-300 hover:text-brand-primary',
-                    )}
-                  >
-                    {type === 'ROUNDTRIP' ? 'Round trip' : type === 'ONEWAY' ? 'One way' : 'Multi-city'}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-4 w-full">
+            <div
+              className="inline-flex rounded-xl bg-gray-100 dark:bg-slate-800 p-1"
+              role="group"
+              aria-label="Trip type"
+            >
+              {(['ROUNDTRIP', 'ONEWAY', 'MULTISTOP'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setFlightType(type)}
+                  aria-pressed={flightType === type}
+                  className={cn(
+                    'px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary',
+                    flightType === type
+                      ? 'bg-white dark:bg-slate-900 text-brand-primary shadow-sm'
+                      : 'text-gray-600 dark:text-slate-300 hover:text-brand-primary',
+                  )}
+                >
+                  {type === 'ROUNDTRIP' ? 'Round trip' : type === 'ONEWAY' ? 'One way' : 'Multi-city'}
+                </button>
+              ))}
             </div>
 
             {flightType === 'MULTISTOP' ? (
-              <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
-                <div className="grid grid-cols-1 gap-3">
-                  {segments.map((segment, index) => (
-                    <div key={index} className="flex flex-col md:flex-row items-end gap-3 p-3 bg-gray-50/50 dark:bg-slate-800/40 rounded-xl border border-gray-100 dark:border-slate-700 relative group transition-all hover:border-brand-primary/20">
-                      <div className="flex-1 w-full">
-                        <FlightRouteSelect
-                          fromCode={segment.from}
-                          toCode={segment.to}
-                          onChangeFrom={(val) => {
-                            const newSegments = [...segments];
-                            newSegments[index].from = val;
-                            setSegments(newSegments);
-                          }}
-                          onChangeTo={(val) => {
-                            const newSegments = [...segments];
-                            newSegments[index].to = val;
-                            setSegments(newSegments);
-                          }}
-                        />
-                      </div>
-                      <div className="w-full md:w-48">
-                        <Popover
-                          trigger={
-                            <div className="w-full cursor-pointer">
-                              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
-                              <div className="flex items-center gap-2 w-full px-3 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 rounded-xl hover:border-brand-primary/40 hover:bg-gray-50/50 dark:hover:bg-slate-800/80 transition-all focus-within:ring-2 focus-within:ring-brand-primary/20 focus-within:border-brand-primary">
-                                <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
-                                <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{segment.date ? formatDateEnglishStr(segment.date) : 'Select date'}</span>
-                              </div>
-                            </div>
-                          }
-                          content={
-                            <div className="w-full">
-                              <Calendar
-                                selected={segment.date ? parseDateLocal(segment.date) : undefined}
-                                onSelect={(date) => {
-                                  const newSegments = [...segments];
-                                  newSegments[index].date = formatDateLocal(date);
-                                  setSegments(newSegments);
-                                }}
-                                minDate={index > 0 && segments[index - 1].date ? parseDateLocal(segments[index - 1].date) : new Date()}
-                              />
-                            </div>
-                          }
-                        />
-                      </div>
-                      {segments.length > 2 && (
-                        <button
-                          type="button"
-                          className="h-11 w-11 flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl mb-1 transition-colors"
-                          onClick={() => setSegments(segments.filter((_, i) => i !== index))}
-                        >
-                          <span className="text-xl">×</span>
-                        </button>
-                      )}
+              <div className="space-y-3">
+                {segments.map((segment, index) => (
+                  <div
+                    key={index}
+                    className="flex flex-col md:flex-row items-stretch md:items-end gap-3 p-3 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/40 dark:bg-slate-800/30"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <FlightRouteSelect
+                        fromCode={segment.from}
+                        toCode={segment.to}
+                        onChangeFrom={(val) => {
+                          const next = [...segments];
+                          next[index].from = val;
+                          setSegments(next);
+                        }}
+                        onChangeTo={(val) => {
+                          const next = [...segments];
+                          next[index].to = val;
+                          setSegments(next);
+                        }}
+                      />
                     </div>
-                  ))}
-                </div>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                    <div className="w-full md:w-48 shrink-0">
+                      <Popover
+                        align="center"
+                        trigger={
+                          <div className="w-full">
+                            <label className={FIELD_LABEL}>Date</label>
+                            <div className={FIELD_TRIGGER}>
+                              <CalendarIcon className={FIELD_ICON} aria-hidden />
+                              <span className={FIELD_VALUE}>
+                                {segment.date ? formatDateEnglishStr(segment.date) : 'Select date'}
+                              </span>
+                            </div>
+                          </div>
+                        }
+                        content={
+                          <div className="p-1">
+                            <Calendar
+                              selected={segment.date ? parseDateLocal(segment.date) : undefined}
+                              onSelect={(date) => {
+                                const next = [...segments];
+                                next[index].date = formatDateLocal(date);
+                                setSegments(next);
+                              }}
+                              minDate={
+                                index > 0 && segments[index - 1].date
+                                  ? parseDateLocal(segments[index - 1].date)
+                                  : new Date()
+                              }
+                            />
+                          </div>
+                        }
+                      />
+                    </div>
+                    {segments.length > 2 && (
+                      <button
+                        type="button"
+                        className="h-[52px] w-11 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-colors shrink-0"
+                        onClick={() => setSegments(segments.filter((_, i) => i !== index))}
+                        aria-label="Remove flight"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3">
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={() => {
                       if (segments.length < 5) {
-                        setSegments([...segments, {
-                          from: segments[segments.length - 1].to,
-                          to: '',
-                          date: formatDateLocal(new Date(parseDateLocal(segments[segments.length - 1].date).getTime() + 86400000))
-                        }]);
+                        setSegments([
+                          ...segments,
+                          {
+                            from: segments[segments.length - 1].to,
+                            to: '',
+                            date: formatDateLocal(
+                              new Date(parseDateLocal(segments[segments.length - 1].date).getTime() + 86400000),
+                            ),
+                          },
+                        ]);
                       }
                     }}
-                    className="w-full sm:w-auto rounded-xl border-dashed border-2 hover:border-brand-primary hover:text-brand-primary h-11 px-6 text-xs"
+                    className="rounded-xl border-dashed border-2 h-[52px] px-6 text-xs"
                     disabled={segments.length >= 5}
                   >
                     + Add flight
                   </Button>
-                  <div className="w-full sm:w-72">
-                    <TravelerCabinSelector value={trav as any} onChange={setTrav as any} />
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-end flex-1 sm:justify-end">
+                    <div className="w-full sm:w-64">
+                      <label className={FIELD_LABEL}>Travelers & class</label>
+                      <TravelerCabinSelector value={trav} onChange={setTrav} />
+                    </div>
+                    {searchButton}
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end bg-white dark:bg-slate-900 rounded-xl relative z-50">
-                <div className="md:col-span-5">
-                  <FlightRouteSelect
-                    fromCode={flightFromCode}
-                    toCode={flightToCode}
-                    onChangeFrom={setFlightFromCode}
-                    onChangeTo={setFlightToCode}
-                    onSelectFrom={(loc) => setFlightFromId(loc.id || loc.code || loc.iata_code)}
-                    onSelectTo={(loc) => setFlightToId(loc.id || loc.code || loc.iata_code)}
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Popover
-                      align="center"
-                      trigger={
-                        <div className="w-full cursor-pointer">
-                          <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Departure</label>
-                          <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
-                            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
-                            <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{flightDate ? formatDateEnglishStr(flightDate) : 'Select date'}</span>
-                          </div>
-                        </div>
-                      }
-                      content={
-                        <div className="w-full">
-                          <Calendar
-                            selected={flightDate ? parseDateLocal(flightDate) : undefined}
-                            onSelect={(date) => setFlightDate(formatDateLocal(date))}
-                            minDate={new Date()}
-                          />
-                        </div>
-                      }
+              <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
+                <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-1 lg:col-span-3 relative">
+                    <LocationInput
+                      label="From"
+                      placeholder="City or airport"
+                      value={flightFromCode}
+                      onChange={setFlightFromCode}
+                      onSelectLocation={(loc) => setFlightFromId(loc.id || loc.code || loc.iata_code)}
+                      api="flights"
+                      className={LOCATION_FIELD}
                     />
-                    <Popover
-                      trigger={
-                        <div className={cn('w-full cursor-pointer', flightType === 'ONEWAY' && 'opacity-50 pointer-events-none')}>
-                          <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Return</label>
-                          <div className="flex items-center gap-2 w-full px-3 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
-                            <CalendarIcon className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
-                            <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{flightReturnDate ? formatDateEnglishStr(flightReturnDate) : 'Select date'}</span>
-                          </div>
-                        </div>
-                      }
-                      content={
-                        <div className="w-full">
-                          <Calendar
-                            selected={flightReturnDate ? parseDateLocal(flightReturnDate) : undefined}
-                            onSelect={(date) => setFlightReturnDate(formatDateLocal(date))}
-                            minDate={flightDate ? parseDateLocal(flightDate) : new Date()}
-                          />
-                        </div>
-                      }
+                    <button
+                      type="button"
+                      onClick={swapFlightAirports}
+                      className="hidden sm:flex absolute z-10 right-[-14px] top-[34px] w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-600 shadow-sm text-gray-500 hover:text-brand-primary hover:border-brand-primary/40"
+                      aria-label="Swap airports"
+                    >
+                      <ArrowLeftRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="sm:col-span-1 lg:col-span-3">
+                    <LocationInput
+                      label="To"
+                      placeholder="City or airport"
+                      value={flightToCode}
+                      onChange={setFlightToCode}
+                      onSelectLocation={(loc) => setFlightToId(loc.id || loc.code || loc.iata_code)}
+                      api="flights"
+                      dropdownAlign="right"
+                      className={LOCATION_FIELD}
                     />
                   </div>
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    {flightType === 'ROUNDTRIP'
+                      ? dualDatePopover(
+                          flightDate,
+                          flightReturnDate,
+                          (date) => setFlightDate(formatDateLocal(date)),
+                          (date) => setFlightReturnDate(formatDateLocal(date)),
+                          flightDatesOpen,
+                          setFlightDatesOpen,
+                          ['Departure', 'Return'],
+                        )
+                      : singleDatePopover(
+                          'Departure',
+                          flightDate,
+                          (date) => setFlightDate(formatDateLocal(date)),
+                          flightDatesOpen,
+                          setFlightDatesOpen,
+                        )}
+                  </div>
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <label className={FIELD_LABEL}>Travelers & class</label>
+                    <TravelerCabinSelector value={trav} onChange={setTrav} />
+                  </div>
                 </div>
-                <div className="md:col-span-4">
-                  <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Travelers & Class</label>
-                  <TravelerCabinSelector value={trav as any} onChange={setTrav as any} />
-                </div>
+                {searchButton}
               </div>
             )}
           </div>
         );
+
       case 'hotels':
         return (
-          <div className="col-span-full grid grid-cols-1 sm:grid-cols-3 md:grid-cols-9 gap-3 md:gap-4 items-end">
-            {/* Destination - pin icon, single-line per mockup */}
-            <div className="md:col-span-4">
-              <LocationInput
-                label="Destination"
-                placeholder="e.g. Addis Ababa, Ethiopia"
-                value={hotelDestination}
-                onChange={(val) => {
-                  setHotelDestination(val);
-                  setHotelLocation({});
-                }}
-                onSelectLocation={(loc) => {
-                  setHotelLocation({ dest_id: loc.dest_id, dest_type: loc.dest_type });
-                  setHotelDestination(loc.name ?? loc.label ?? hotelDestination);
-                  // Auto-navigate to hotels with correct location so results match selected city
-                  if (activeTab === 'hotels' && loc.dest_id != null && loc.dest_type != null) {
-                    const params = new URLSearchParams();
-                    params.set('query', (loc.name ?? loc.label ?? hotelDestination).trim() || 'Addis Ababa');
-                    params.set('destId', String(loc.dest_id));
-                    params.set('destType', String(loc.dest_type));
-                    params.set('checkIn', hotelCheckIn);
-                    params.set('checkOut', hotelCheckOut);
-                    params.append('adults', String(hotelGuests.adults));
-                    params.append('children', String(hotelGuests.children));
-                    params.append('rooms', String(hotelGuests.rooms));
-                    params.append('sortOrder', 'class_descending');
-                    setIsSearching(true);
-                    router.push(`/hotels?${params.toString()}`);
-                    setTimeout(() => setIsSearching(false), 800);
-                  }
-                }}
-                api="hotels"
-                icon={<MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />}
-                className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:dark:text-slate-400 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
-              />
-            </div>
-            {/* Dates - single field "Oct 25 - Nov 1" per mockup */}
-            <div className="md:col-span-3">
-              <Popover
-                align="center"
-                trigger={
-                  <div className="w-full cursor-pointer">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Dates</label>
-                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-500/40 transition-all group">
-                      <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0 group-hover:text-teal-600" aria-hidden />
-                      <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">
-                        {formatDateRangeShort(hotelCheckIn, hotelCheckOut)}
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-end w-full">
+            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-9 gap-3 items-end">
+              <div className="sm:col-span-2 lg:col-span-4">
+                <LocationInput
+                  label="Destination"
+                  placeholder="e.g. Addis Ababa, Ethiopia"
+                  value={hotelDestination}
+                  onChange={(val) => {
+                    setHotelDestination(val);
+                    setHotelLocation({});
+                  }}
+                  onSelectLocation={(loc) => {
+                    setHotelLocation({ dest_id: loc.dest_id, dest_type: loc.dest_type });
+                    setHotelDestination(loc.name ?? loc.label ?? hotelDestination);
+                    if (loc.dest_id != null && loc.dest_type != null) {
+                      const params = new URLSearchParams();
+                      params.set('query', (loc.name ?? loc.label ?? hotelDestination).trim() || 'Addis Ababa');
+                      params.set('destId', String(loc.dest_id));
+                      params.set('destType', String(loc.dest_type));
+                      params.set('checkIn', hotelCheckIn);
+                      params.set('checkOut', hotelCheckOut);
+                      params.append('adults', String(hotelGuests.adults));
+                      params.append('children', String(hotelGuests.children));
+                      params.append('rooms', String(hotelGuests.rooms));
+                      params.append('sortOrder', 'class_descending');
+                      setIsSearching(true);
+                      router.push(`/hotels?${params.toString()}`);
+                      setTimeout(() => setIsSearching(false), 800);
+                    }
+                  }}
+                  api="hotels"
+                  icon={<MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />}
+                  className={LOCATION_FIELD}
+                />
+              </div>
+              <div className="sm:col-span-1 lg:col-span-3">
+                {dualDatePopover(
+                  hotelCheckIn,
+                  hotelCheckOut,
+                  (date) => setHotelCheckIn(formatDateLocal(date)),
+                  (date) => setHotelCheckOut(formatDateLocal(date)),
+                  hotelDatesOpen,
+                  setHotelDatesOpen,
+                )}
+              </div>
+              <div className="sm:col-span-1 lg:col-span-2">
+                <label className={FIELD_LABEL}>Guests</label>
+                <Popover
+                  trigger={
+                    <div className={cn(FIELD_TRIGGER, 'cursor-pointer')}>
+                      <User className={FIELD_ICON} aria-hidden />
+                      <span className={FIELD_VALUE}>
+                        {hotelGuests.rooms} Room{hotelGuests.rooms !== 1 ? 's' : ''},{' '}
+                        {hotelGuests.adults + hotelGuests.children} Guest
+                        {hotelGuests.adults + hotelGuests.children !== 1 ? 's' : ''}
                       </span>
                     </div>
-                  </div>
-                }
-                content={
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 sm:p-4 min-w-[280px] sm:min-w-[520px]">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-2">Check-in</label>
-                      <Calendar
-                        selected={hotelCheckIn ? parseDateLocal(hotelCheckIn) : undefined}
-                        onSelect={(date) => {
-                          setHotelCheckIn(formatDateLocal(date));
-                          if (hotelCheckOut && parseDateLocal(hotelCheckOut) <= date) {
-                            setHotelCheckOut(formatDateLocal(new Date(date.getTime() + 86400000)));
-                          }
-                        }}
-                        minDate={new Date()}
+                  }
+                  content={
+                    <div className="p-2 min-w-[260px]">
+                      <GuestSelector
+                        adults={hotelGuests.adults}
+                        children={hotelGuests.children}
+                        rooms={hotelGuests.rooms}
+                        onChange={(adults, children, rooms) => setHotelGuests({ adults, children, rooms })}
+                        contentOnly
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-2">Check-out</label>
-                      <Calendar
-                        selected={hotelCheckOut ? parseDateLocal(hotelCheckOut) : undefined}
-                        onSelect={(date) => setHotelCheckOut(formatDateLocal(date))}
-                        minDate={hotelCheckIn ? parseDateLocal(hotelCheckIn) : new Date()}
-                      />
-                    </div>
-                  </div>
-                }
-              />
-            </div>
-            {/* Guests - "1 Room, 2 Guests" format per mockup */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Guests</label>
-              <Popover
-                trigger={
-                  <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-teal-500/40 transition-all cursor-pointer group">
-                    <User className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0 group-hover:text-teal-600" aria-hidden />
-                    <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">
-                      {hotelGuests.rooms} Room{hotelGuests.rooms !== 1 ? 's' : ''}, {hotelGuests.adults + hotelGuests.children} Guest{(hotelGuests.adults + hotelGuests.children) !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                }
-                content={
-                  <div className="p-2">
-                    <GuestSelector
-                      adults={hotelGuests.adults}
-                      children={hotelGuests.children}
-                      rooms={hotelGuests.rooms}
-                      onChange={(adults, children, rooms) => setHotelGuests({ adults, children, rooms })}
-                      contentOnly
-                    />
-                  </div>
-                }
-              />
-            </div>
-          </div>
-        );
-      case 'conferences':
-        return (
-          <>
-            <div className="sm:col-span-2 md:col-span-4">
-              <LocationInput
-                label="Location"
-                placeholder="City or preferred area"
-                value={confLocation}
-                onChange={setConfLocation}
-                api="hotels"
-                className="[&_label]:text-xs [&_label]:font-semibold [&_label]:text-gray-600 [&_label]:dark:text-slate-400 [&_label]:uppercase [&_label]:tracking-wider [&_label]:mb-1.5"
-              />
-            </div>
-            <div className="sm:col-span-2 md:col-span-4">
-              <Popover
-                align="center"
-                trigger={
-                  <div className="w-full cursor-pointer">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Event date</label>
-                    <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
-                      <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
-                      <span className="text-gray-900 dark:text-slate-100 font-medium text-sm truncate">{confDate ? formatDateEnglishStr(confDate) : 'Select date'}</span>
-                    </div>
-                  </div>
-                }
-                content={
-                  <div className="w-full">
-                    <Calendar
-                      selected={confDate ? parseDateLocal(confDate) : undefined}
-                      onSelect={(date) => setConfDate(formatDateLocal(date))}
-                      minDate={new Date()}
-                    />
-                  </div>
-                }
-              />
-            </div>
-            <div className="sm:col-span-2 md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Attendees</label>
-              <div className="flex items-center gap-3 w-full px-4 py-3.5 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/40 transition-all">
-                <Users className="w-5 h-5 text-gray-400 dark:text-slate-500 shrink-0" aria-hidden />
-                <input
-                  type="number"
-                  min={10}
-                  max={5000}
-                  value={confAttendees}
-                  onChange={(e) => setConfAttendees(Math.min(5000, Math.max(10, parseInt(e.target.value) || 10)))}
-                  className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  aria-label="Number of attendees"
+                  }
                 />
-                <span className="text-gray-500 dark:text-slate-400 text-sm shrink-0">guests</span>
               </div>
             </div>
-          </>
+            {searchButton}
+          </div>
         );
+
+      case 'conferences':
+        return (
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-end w-full">
+            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-2 lg:col-span-5">
+                <LocationInput
+                  label="Location"
+                  placeholder="City or venue area"
+                  value={confLocation}
+                  onChange={setConfLocation}
+                  api="hotels"
+                  icon={<MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />}
+                  className={LOCATION_FIELD}
+                />
+              </div>
+              <div className="sm:col-span-1 lg:col-span-4">
+                {singleDatePopover(
+                  'Event date',
+                  confDate,
+                  (date) => setConfDate(formatDateLocal(date)),
+                  confDateOpen,
+                  setConfDateOpen,
+                )}
+              </div>
+              <div className="sm:col-span-1 lg:col-span-3">
+                <label className={FIELD_LABEL}>Attendees</label>
+                <Popover
+                  trigger={
+                    <div className={cn(FIELD_TRIGGER, 'cursor-pointer')}>
+                      <Users className={FIELD_ICON} aria-hidden />
+                      <span className={FIELD_VALUE}>
+                        {confAttendees} guest{confAttendees !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  }
+                  content={
+                    <div className="p-3 min-w-[260px] space-y-3">
+                      <Counter
+                        label="Attendees"
+                        subLabel="Min. 10 · Max. 5,000"
+                        value={confAttendees}
+                        min={10}
+                        max={5000}
+                        onChange={setConfAttendees}
+                      />
+                      <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                        <button
+                          type="button"
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50"
+                          onClick={() => setConfAttendees((n) => Math.max(10, n - 10))}
+                          aria-label="Decrease by 10"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="flex-1 text-center text-sm font-semibold text-gray-900 tabular-nums">
+                          {confAttendees}
+                        </span>
+                        <button
+                          type="button"
+                          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50"
+                          onClick={() => setConfAttendees((n) => Math.min(5000, n + 10))}
+                          aria-label="Increase by 10"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
+            </div>
+            {searchButton}
+          </div>
+        );
+
       case 'shuttles':
         return (
-          <>
-            <div className="sm:col-span-1 md:col-span-3">
-              <Input label="Pick-up" placeholder="Location" icon={<MapPin className="w-4 h-4" />} className="bg-gray-50 dark:bg-slate-800/90 border-transparent dark:border-slate-600 focus:bg-white dark:focus:bg-slate-900" />
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-end w-full">
+            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+              <div className="lg:col-span-3">
+                <label className={FIELD_LABEL} htmlFor="shuttle-pickup">
+                  Pick-up
+                </label>
+                <div className={FIELD_TRIGGER}>
+                  <MapPin className={FIELD_ICON} aria-hidden />
+                  <input
+                    id="shuttle-pickup"
+                    type="text"
+                    value={shuttlePickup}
+                    onChange={(e) => setShuttlePickup(e.target.value)}
+                    placeholder="Airport or hotel"
+                    className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+              <div className="lg:col-span-3">
+                <label className={FIELD_LABEL} htmlFor="shuttle-dropoff">
+                  Drop-off
+                </label>
+                <div className={FIELD_TRIGGER}>
+                  <MapPin className={FIELD_ICON} aria-hidden />
+                  <input
+                    id="shuttle-dropoff"
+                    type="text"
+                    value={shuttleDropoff}
+                    onChange={(e) => setShuttleDropoff(e.target.value)}
+                    placeholder="Destination"
+                    className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
+              <div className="lg:col-span-3">
+                {singleDatePopover(
+                  'Date',
+                  shuttleDate,
+                  (date) => setShuttleDate(formatDateLocal(date)),
+                  shuttleDateOpen,
+                  setShuttleDateOpen,
+                )}
+              </div>
+              <div className="lg:col-span-3">
+                <label className={FIELD_LABEL} htmlFor="shuttle-time">
+                  Time
+                </label>
+                <div className={cn(FIELD_TRIGGER, 'relative')}>
+                  <Clock className={FIELD_ICON} aria-hidden />
+                  <span className={cn(FIELD_VALUE, 'pointer-events-none')}>
+                    {formatTimeDisplay(shuttleTime)}
+                  </span>
+                  <input
+                    id="shuttle-time"
+                    type="time"
+                    value={shuttleTime}
+                    onChange={(e) => setShuttleTime(e.target.value)}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-label="Pick-up time"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="sm:col-span-1 md:col-span-3">
-              <Input label="Drop-off" placeholder="Destination" icon={<MapPin className="w-4 h-4" />} className="bg-gray-50 dark:bg-slate-800/90 border-transparent dark:border-slate-600 focus:bg-white dark:focus:bg-slate-900" />
-            </div>
-            <div className="sm:col-span-1 md:col-span-2">
-              <Popover
-                trigger={
-                  <div className="w-full cursor-pointer">
-                    <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Date</label>
-                    <div className="flex items-center gap-3 w-full px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:border-brand-primary/50 transition-all group">
-                      <CalendarIcon className="w-5 h-5 text-gray-400 dark:text-slate-500 group-hover:text-brand-primary transition-colors" />
-                      <span className="text-gray-900 dark:text-slate-100 font-medium">Select Date</span>
-                    </div>
-                  </div>
-                }
-                content={<Calendar selected={undefined} onSelect={() => { }} minDate={new Date()} />}
-              />
-            </div>
-            <div className="sm:col-span-1 md:col-span-2">
-              <Input label="Time" type="time" icon={<Clock className="w-4 h-4" />} className="bg-gray-50 dark:bg-slate-800/90 border-transparent dark:border-slate-600 focus:bg-white dark:focus:bg-slate-900" />
-            </div>
-          </>
+            {searchButton}
+          </div>
         );
+
       default:
         return null;
     }
   };
 
-  const canSearch = activeTab === 'flights' || activeTab === 'hotels' || activeTab === 'conferences';
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6 }}
-      className="w-full max-w-4xl mx-auto relative z-50 mb-8 md:mb-12 px-3 sm:px-4"
+      transition={{ delay: 0.35, duration: 0.4 }}
+      className="w-full max-w-5xl mx-auto relative z-50 mb-8 md:mb-12 px-3 sm:px-4"
     >
       <div
         role="search"
-        aria-label="Search for flights and hotels"
-        className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-gray-100/80 dark:border-slate-700 overflow-hidden"
+        aria-label="Search flights, hotels, conferences, and shuttles"
+        className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] border border-gray-100/80 dark:border-slate-700 overflow-visible"
       >
-        {/* Tabs */}
-        <div className="flex items-center gap-1 md:gap-2 px-4 md:px-6 pt-4 md:pt-5 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-slate-700">
+        <div className="flex items-center gap-1 md:gap-2 px-4 md:px-6 pt-4 md:pt-5 overflow-x-auto no-scrollbar border-b border-gray-100 dark:border-slate-700 rounded-t-2xl md:rounded-t-3xl">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -509,25 +750,29 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
               aria-pressed={activeTab === tab.id}
               aria-disabled={!tab.available}
               className={cn(
-                'flex items-center gap-2 px-3 py-2.5 md:px-4 md:py-3 text-xs md:text-sm font-semibold transition-all duration-200 relative whitespace-nowrap rounded-t-lg -mb-px',
+                'flex items-center gap-2 px-3 py-2.5 md:px-4 md:py-3 text-xs md:text-sm font-semibold transition-colors duration-200 relative whitespace-nowrap rounded-t-lg -mb-px',
                 activeTab === tab.id
-                  ? 'text-white bg-teal-600'
+                  ? 'text-white bg-brand-primary'
                   : tab.available
                     ? 'text-gray-600 dark:text-slate-300 hover:text-brand-primary hover:bg-gray-50/80 dark:hover:bg-slate-800'
                     : 'text-gray-400 dark:text-slate-500 cursor-not-allowed',
               )}
             >
-              <tab.icon className={cn('w-4 h-4 shrink-0', activeTab === tab.id ? 'text-white' : tab.available ? 'text-gray-500 dark:text-slate-400' : 'text-gray-400 dark:text-slate-500')} />
+              <tab.icon
+                className={cn(
+                  'w-4 h-4 shrink-0',
+                  activeTab === tab.id
+                    ? 'text-white'
+                    : tab.available
+                      ? 'text-gray-500 dark:text-slate-400'
+                      : 'text-gray-400 dark:text-slate-500',
+                )}
+              />
               <span>{tab.label}</span>
-              {!tab.available && (
-                <span className="hidden sm:inline text-[10px] font-medium text-gray-400 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                  Soon
-                </span>
-              )}
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-600 rounded-t-full"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-t-full"
                   initial={false}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
@@ -536,35 +781,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
           ))}
         </div>
 
-        {/* Search Form Content */}
-        <div className="flex flex-col md:grid md:grid-cols-12 gap-4 md:gap-5 items-stretch md:items-end p-4 sm:p-5 md:p-6">
-          <div className="flex-1 md:col-span-10 min-w-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-10 gap-3 md:gap-4 items-end">
-              {renderSearchFields()}
-            </div>
-          </div>
-          <div className="md:col-span-2 mt-2 md:mt-0 w-full">
-            <Button
-              type="button"
-              disabled={!canSearch || isSearching}
-              aria-busy={isSearching}
-              className="w-full h-12 md:h-[52px] flex items-center justify-center gap-2 text-sm md:text-base font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-              onClick={handleSearch}
-            >
-              {isSearching ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Searching…
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4 shrink-0" aria-hidden />
-                  Search
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
+        <div className="p-4 sm:p-5 md:p-6">{renderSearchFields()}</div>
       </div>
     </motion.div>
   );

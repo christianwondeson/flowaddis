@@ -9,6 +9,7 @@ import { flightSearchAm } from './flightSearch';
 import { conferencesAm } from './conferences';
 import { shuttlesAm } from './shuttles';
 import { bookingUiAm } from './bookingUi';
+import { reserveAm } from './reserve';
 
 export const am = {
     ...shellAm,
@@ -21,4 +22,5 @@ export const am = {
     ...conferencesAm,
     ...shuttlesAm,
     ...bookingUiAm,
+    ...reserveAm,
 } as const satisfies Messages;

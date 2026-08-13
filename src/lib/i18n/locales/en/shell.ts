@@ -1,4 +1,4 @@
-/** Shell UI: nav, footer, settings, header — shared across most routes. */
+/** Shell UI: nav, footer, settings, header  shared across most routes. */
 export const shellEn = {
     common: {
         signIn: 'Sign In',
@@ -44,6 +44,10 @@ export const shellEn = {
         destinations: 'Destinations',
         followUs: 'Follow Us',
         newsletterHint: 'Subscribe to our newsletter',
+        newsletterSuccess: 'Thanks  you are subscribed.',
+        newsletterAlready: 'You are already subscribed.',
+        newsletterInvalid: 'Enter a valid email address.',
+        newsletterError: 'Could not subscribe. Please try again.',
         copyright: '© {year} BookAddis. All rights reserved.',
         whatsApp: 'WhatsApp',
     },

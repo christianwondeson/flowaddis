@@ -97,6 +97,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     </DropdownMenuItem>
                 )}
 
+                {(user?.role === 'hotel_admin' || user?.role === 'hotel_staff') && (
+                    <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
+                        <Link href="/admin/hotel" className="flex items-center w-full gap-2">
+                            <LayoutDashboard className="h-4 w-4 shrink-0" />
+                            <span>Hotel Portal</span>
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+
                 <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/trips" className="flex items-center w-full gap-2">
                         <Briefcase className="h-4 w-4 shrink-0" />

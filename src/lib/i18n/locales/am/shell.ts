@@ -1,4 +1,4 @@
-/** Amharic shell strings — keep keys aligned with `locales/en/shell.ts`. */
+/** Amharic shell strings  keep keys aligned with `locales/en/shell.ts`. */
 export const shellAm = {
     common: {
         signIn: 'ግባ',
@@ -44,6 +44,10 @@ export const shellAm = {
         destinations: 'መዳረሻዎች',
         followUs: 'ይከተሉን',
         newsletterHint: 'ወደ ዜና መጽሔታችን ይመዝገቡ',
+        newsletterSuccess: 'አመሰግናለን  ተመዝግበዋል።',
+        newsletterAlready: 'አስቀድመው ተመዝግበዋል።',
+        newsletterInvalid: 'ትክክለኛ ኢሜይል ያስገቡ።',
+        newsletterError: 'መመዝገብ አልተሳካም። እንደገና ይሞክሩ።',
         copyright: '© {year} ቡክአዲስ። ሁሉም መብቶች የተጠበቁ ናቸው።',
         whatsApp: 'ዋትስአፕ',
     },

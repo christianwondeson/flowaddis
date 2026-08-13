@@ -7,7 +7,10 @@ export const APP_CONSTANTS = {
         SIGNIN_PATH: '/signin',
     },
     ROLES: {
+        /** Platform Super Admin */
         ADMIN: 'admin' as const,
+        HOTEL_ADMIN: 'hotel_admin' as const,
+        HOTEL_STAFF: 'hotel_staff' as const,
         USER: 'user' as const,
     },
     API: {
