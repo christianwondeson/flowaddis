@@ -170,9 +170,7 @@ export function AssignHotelAdminModal({
                 firebaseUid: user.id,
                 role: membershipRole,
                 setFirestoreRole: true,
-                preferredPlanCode:
-                    user.hotelPartnerRequest?.preferredPlanCode || 'starter',
-                startTrial: true,
+                startTrial: false,
             }),
         });
         const data = await res.json().catch(() => ({}));

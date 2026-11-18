@@ -23,6 +23,7 @@ import { AdminLoader } from '@/components/ui/admin-loader';
 import { auth } from '@/lib/firebase';
 import { AdminRequests } from '@/components/admin/admin-requests';
 import { HotelPartnerRequests } from '@/components/admin/hotel-partner-requests';
+import { adminInventoryFetch } from '@/lib/admin-inventory-api';
 
 type RangeKey = '7days' | '30days' | '90days' | 'year';
 
@@ -136,6 +137,12 @@ export default function AdminDashboard() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [commissionAlert, setCommissionAlert] = useState<{
+        outstanding_total: number;
+        unpaid_invoice_count: number;
+        hotels_with_unpaid: number;
+        currency: string;
+    } | null>(null);
 
     const load = useCallback(async (range: RangeKey) => {
         setLoading(true);
@@ -171,6 +178,19 @@ export default function AdminDashboard() {
     useEffect(() => {
         void load(timeRange);
     }, [timeRange, load]);
+
+    useEffect(() => {
+        void adminInventoryFetch<{
+            outstanding_total: number;
+            unpaid_invoice_count: number;
+            hotels_with_unpaid: number;
+            currency: string;
+        }>('billing/commission/overview')
+            .then((ov) => {
+                if (ov.unpaid_invoice_count > 0) setCommissionAlert(ov);
+            })
+            .catch(() => setCommissionAlert(null));
+    }, []);
 
     const cards = data?.cards;
     const monthlyData = data?.monthly_trend ?? [];
@@ -269,6 +289,31 @@ export default function AdminDashboard() {
                     <option value="year">This Year</option>
                 </select>
             </div>
+
+            {commissionAlert ? (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-700" />
+                    <div className="flex-1">
+                        <p className="font-semibold">
+                            Unpaid commission invoices across{' '}
+                            {commissionAlert.hotels_with_unpaid} hotel
+                            {commissionAlert.hotels_with_unpaid === 1 ? '' : 's'}
+                        </p>
+                        <p className="text-amber-900/90 mt-0.5">
+                            {commissionAlert.currency}{' '}
+                            {Number(commissionAlert.outstanding_total).toLocaleString()}{' '}
+                            · {commissionAlert.unpaid_invoice_count} invoice
+                            {commissionAlert.unpaid_invoice_count === 1 ? '' : 's'}
+                        </p>
+                    </div>
+                    <Link
+                        href="/admin/finance"
+                        className="font-semibold text-teal-800 hover:underline shrink-0"
+                    >
+                        Open Finance →
+                    </Link>
+                </div>
+            ) : null}
 
             <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>

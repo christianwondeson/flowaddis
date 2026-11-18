@@ -60,6 +60,16 @@ function HotelDetailPageInner() {
     const [children, setChildren] = useState<number>(0);
     const [rooms, setRoomsCount] = useState<number>(1);
 
+    const rawId = Array.isArray(id) ? id[0] : id;
+    const hotelId = String(hotel.id || rawId || '');
+    const isUuid =
+        typeof hotelId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hotelId);
+    const isDirect =
+        hotel.inventory_source === 'bookaddis_direct' ||
+        hotel.inventory_source === 'pms_synced' ||
+        isUuid;
+
     // In a real app, we would fetch by ID. 
     // For now, we'll find it from the search results or use mock data.
     const listSeedQuery =
@@ -466,6 +476,7 @@ function HotelDetailPageInner() {
 
     const handleReserveRoom = (selection: {
         price?: number;
+        currency?: string;
         serviceName?: string;
         roomBlockId?: string;
         roomQuantity?: number;
@@ -473,6 +484,7 @@ function HotelDetailPageInner() {
         ratePlanId?: string;
     }) => {
         const price = selection.price || hotel.price || 0;
+        const currency = selection.currency || hotel.currency || (isDirect ? 'ETB' : 'ETB');
         const roomName = selection.serviceName || hotel.name || 'Room';
         const qty =
             typeof selection.roomQuantity === 'number' && selection.roomQuantity > 0
@@ -481,20 +493,25 @@ function HotelDetailPageInner() {
         const hotelId = String(
             hotel.id || (Array.isArray(id) ? id[0] : id) || '',
         );
+        const resolvedInventorySource =
+            hotel.inventory_source === 'bookaddis_direct' ||
+            hotel.inventory_source === 'pms_synced'
+                ? hotel.inventory_source
+                : isDirect
+                  ? 'bookaddis_direct'
+                  : sp.get('inventory_source') || 'rapidapi';
         const draft = {
             hotelId,
             hotelName: hotel.name || 'Hotel',
             roomName,
             roomQuantity: qty,
             price,
+            currency,
             checkIn: checkInDate,
             checkOut: checkOutDate,
             adults,
             children,
-            inventorySource:
-                hotel.inventory_source ||
-                sp.get('inventory_source') ||
-                'rapidapi',
+            inventorySource: resolvedInventorySource,
             roomBlockId: selection.roomBlockId
                 ? String(selection.roomBlockId)
                 : undefined,
@@ -513,6 +530,7 @@ function HotelDetailPageInner() {
         q.set('name', draft.hotelName);
         q.set('room', roomName);
         q.set('price', String(price));
+        q.set('currency', currency);
         q.set('checkIn', checkInDate);
         q.set('checkOut', checkOutDate);
         q.set('rooms', String(qty));
@@ -721,6 +739,7 @@ function HotelDetailPageInner() {
                 }}
                 serviceName={selectedServiceName || hotel.name}
                 price={selectedPrice || hotel.price}
+                currencyCode={hotel.currency || (isDirect ? 'ETB' : 'ETB')}
                 externalItemId={String(hotel.id || (Array.isArray(id) ? id[0] : id) || '')}
                 type="hotel"
                 initialCheckIn={checkInDate}
@@ -729,7 +748,14 @@ function HotelDetailPageInner() {
                 roomBlockId={selectedRoomBlockId}
                 roomBookQuantity={selectedRoomQty}
                 hotelAdults={adults}
-                inventorySource={hotel.inventory_source || 'rapidapi'}
+                inventorySource={
+                    hotel.inventory_source === 'bookaddis_direct' ||
+                    hotel.inventory_source === 'pms_synced'
+                        ? hotel.inventory_source
+                        : isDirect
+                          ? 'bookaddis_direct'
+                          : 'rapidapi'
+                }
                 roomTypeId={selectedRoomTypeId}
                 ratePlanId={selectedRatePlanId}
             />

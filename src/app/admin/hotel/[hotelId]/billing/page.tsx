@@ -1,61 +1,46 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { hotelAdminFetch } from '@/lib/hotel-admin-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AdminLoader } from '@/components/ui/admin-loader';
+import {
+    AdminDataTable,
+    ADMIN_PAGE_SIZE,
+    type AdminColumn,
+} from '@/components/ui/admin-data-table';
 import { toast } from 'sonner';
-import { CheckCircle2, CreditCard, Loader2, Shield } from 'lucide-react';
-import { ET_MOBILE_PATTERN, etMsisdnToLocalDisplay } from '@/lib/local-payment-checkout';
-import { formatAdminDateTime } from '@/lib/admin-date-format';
+import { Copy, FileText, Loader2 } from 'lucide-react';
+import { formatAdminDate } from '@/lib/admin-date-format';
 import { cn } from '@/lib/utils';
+import {
+    AdminFinanceFilters,
+    type FinanceStatusFilter,
+} from '@/components/admin/admin-finance-filters';
+import { monthBounds } from '@/lib/admin-period-utils';
 
-type Plan = {
+type CommissionInvoice = {
     id: string;
-    code: string;
-    name: string;
-    description?: string | null;
-    price_amount: string;
-    currency: string;
-    period_days: number;
-    trial_days: number;
-};
-
-type Subscription = {
-    id: string;
+    kind: string;
     status: string;
-    current_period_end?: string | null;
-    trial_ends_at?: string | null;
-    plan?: Plan | null;
-};
-
-type Invoice = {
-    id: string;
-    status: string;
-    amount: string;
+    amount: number;
     currency: string;
     payment_reference: string;
-    provider_transaction_id?: string | null;
+    period_start?: string | null;
+    period_end?: string | null;
     paid_at?: string | null;
     created_at: string;
-    failure_reason?: string | null;
-    plan?: Plan | null;
+    due_by?: string | null;
+    booking_count?: number | null;
 };
 
-type Access = {
-    allowed: boolean;
-    reason: string;
-    status: string;
-};
-
-type Overview = {
-    plans: Plan[];
-    subscription: Subscription;
-    invoices: Invoice[];
-    access: Access;
+type CommissionOutstanding = {
+    has_unpaid: boolean;
+    invoice: CommissionInvoice | null;
 };
 
 type PayoutProfile = {
@@ -64,18 +49,57 @@ type PayoutProfile = {
     account_name?: string | null;
     cbe_account?: string | null;
     preferred_rail?: string;
+    commission_percent?: string | null;
 } | null;
+
+type Overview = {
+    commission: CommissionOutstanding;
+    payout_profile: PayoutProfile;
+};
+
+function formatPeriod(start?: string | null, end?: string | null) {
+    if (!start || !end) return '—';
+    return `${formatAdminDate(start)} – ${formatAdminDate(end)}`;
+}
+
+function statementHref(
+    hotelId: string,
+    periodStart?: string | null,
+    periodEnd?: string | null,
+) {
+    const qs = new URLSearchParams();
+    if (periodStart) qs.set('from', periodStart.slice(0, 10));
+    if (periodEnd) qs.set('to', periodEnd.slice(0, 10));
+    const q = qs.toString();
+    return `/admin/hotel/${hotelId}/statement${q ? `?${q}` : ''}`;
+}
+
+function copyRef(ref: string) {
+    void navigator.clipboard.writeText(ref).then(
+        () => toast.success('Invoice number copied'),
+        () => toast.error('Could not copy'),
+    );
+}
 
 export default function HotelBillingPage() {
     const params = useParams();
     const hotelId = String(params.hotelId || '');
     const [overview, setOverview] = useState<Overview | null>(null);
-    const [payout, setPayout] = useState<PayoutProfile>(null);
+    const [invoices, setInvoices] = useState<CommissionInvoice[]>([]);
+    const [pendingInvoices, setPendingInvoices] = useState<CommissionInvoice[]>(
+        [],
+    );
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [status, setStatus] = useState<FinanceStatusFilter>('all');
+    const [year, setYear] = useState<number | 'all'>(new Date().getFullYear());
+    const [from, setFrom] = useState('');
+    const [to, setTo] = useState('');
     const [loading, setLoading] = useState(true);
-    const [planCode, setPlanCode] = useState('starter');
-    const [msisdn, setMsisdn] = useState('');
+    const [page, setPage] = useState(1);
+    const [generating, setGenerating] = useState(false);
     const [paying, setPaying] = useState(false);
-    const [pendingRef, setPendingRef] = useState<string | null>(null);
+    const [payMsisdn, setPayMsisdn] = useState('');
+    const [pendingPayRef, setPendingPayRef] = useState<string | null>(null);
     const [savingPayout, setSavingPayout] = useState(false);
     const [payoutForm, setPayoutForm] = useState({
         account_name: '',
@@ -84,21 +108,38 @@ export default function HotelBillingPage() {
         account_number: '',
     });
 
+    const lastMonth = useMemo(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        return monthBounds(d);
+    }, []);
+
     const load = useCallback(async () => {
         if (!hotelId) return;
         setLoading(true);
         try {
-            const [ov, profile] = await Promise.all([
+            const qs = new URLSearchParams({ limit: '100' });
+            if (status !== 'all') qs.set('status', status);
+            if (year !== 'all') qs.set('year', String(year));
+            if (from) qs.set('from', new Date(`${from}T00:00:00`).toISOString());
+            if (to) qs.set('to', new Date(`${to}T23:59:59`).toISOString());
+
+            const [ov, inv, pending] = await Promise.all([
                 hotelAdminFetch<Overview>(`hotels/${hotelId}/billing`),
-                hotelAdminFetch<PayoutProfile>(
-                    `hotels/${hotelId}/billing/payout-profile`,
-                ).catch(() => null),
+                hotelAdminFetch<{ items: CommissionInvoice[] }>(
+                    `hotels/${hotelId}/billing/commission/invoices?${qs.toString()}`,
+                ),
+                hotelAdminFetch<{ items: CommissionInvoice[] }>(
+                    `hotels/${hotelId}/billing/commission/invoices?status=pending&limit=50`,
+                ),
             ]);
             setOverview(ov);
-            if (ov.plans?.length && !ov.plans.some((p) => p.code === planCode)) {
-                setPlanCode(ov.plans[0].code);
-            }
-            setPayout(profile);
+            setInvoices(inv.items || []);
+            setPendingInvoices(pending.items || []);
+            setPage(1);
+            const pendingIds = (pending.items || []).map((i) => i.id);
+            setSelectedIds(new Set(pendingIds));
+            const profile = ov.payout_profile;
             if (profile) {
                 setPayoutForm({
                     account_name: profile.account_name || '',
@@ -112,72 +153,11 @@ export default function HotelBillingPage() {
         } finally {
             setLoading(false);
         }
-    }, [hotelId, planCode]);
+    }, [hotelId, status, year, from, to]);
 
     useEffect(() => {
         void load();
-    }, [hotelId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
-        if (!pendingRef || !hotelId) return;
-        let cancelled = false;
-        const id = window.setInterval(async () => {
-            try {
-                const st = await hotelAdminFetch<{
-                    status: string;
-                    providerTransactionId?: string | null;
-                }>(
-                    `hotels/${hotelId}/billing/invoices/status?paymentReference=${encodeURIComponent(pendingRef)}`,
-                );
-                if (cancelled) return;
-                if (st.status === 'paid') {
-                    window.clearInterval(id);
-                    setPendingRef(null);
-                    setPaying(false);
-                    toast.success('Subscription payment confirmed. Plan is active.');
-                    void load();
-                } else if (st.status === 'failed') {
-                    window.clearInterval(id);
-                    setPendingRef(null);
-                    setPaying(false);
-                    toast.error('Payment failed. You can try again.');
-                    void load();
-                }
-            } catch {
-                /* keep polling */
-            }
-        }, 4000);
-        return () => {
-            cancelled = true;
-            window.clearInterval(id);
-        };
-    }, [pendingRef, hotelId, load]);
-
-    const startPay = async () => {
-        const local = etMsisdnToLocalDisplay(msisdn) || msisdn.trim();
-        if (!ET_MOBILE_PATTERN.test(local)) {
-            toast.error('Enter a valid Ethiopian mobile (09xxxxxxxx or 07xxxxxxxx).');
-            return;
-        }
-        setPaying(true);
-        try {
-            const res = await hotelAdminFetch<{
-                paymentReference: string;
-                message?: string;
-            }>(`hotels/${hotelId}/billing/subscribe/cbe-birr`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    planCode,
-                    customerMsisdn: local,
-                }),
-            });
-            setPendingRef(res.paymentReference);
-            toast.message(res.message || 'Approve the CBE Birr prompt on your phone.');
-        } catch (e) {
-            setPaying(false);
-            toast.error((e as Error).message);
-        }
-    };
+    }, [load]);
 
     const savePayout = async () => {
         setSavingPayout(true);
@@ -198,155 +178,417 @@ export default function HotelBillingPage() {
         }
     };
 
-    if (loading || !overview) {
+    const generateLastMonth = async () => {
+        setGenerating(true);
+        try {
+            const fromIso = lastMonth.start.toISOString();
+            const toIso = new Date(
+                lastMonth.end.getFullYear(),
+                lastMonth.end.getMonth(),
+                lastMonth.end.getDate(),
+                23,
+                59,
+                59,
+            ).toISOString();
+            await hotelAdminFetch(
+                `hotels/${hotelId}/billing/commission/generate?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`,
+                { method: 'POST' },
+            );
+            toast.success('Commission invoice generated.');
+            void load();
+        } catch (e) {
+            toast.error((e as Error).message);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const paySelected = async () => {
+        const selected = pendingInvoices.filter((i) => selectedIds.has(i.id));
+        const invoice = selected[0] || overview?.commission?.invoice;
+        if (!invoice?.id) {
+            toast.error('Select an outstanding invoice to pay.');
+            return;
+        }
+        const msisdn = payMsisdn.trim();
+        if (!msisdn) {
+            toast.error('Enter CBE Birr mobile number.');
+            return;
+        }
+        setPaying(true);
+        try {
+            const res = await hotelAdminFetch<{ paymentReference: string }>(
+                `hotels/${hotelId}/billing/commission/pay/cbe-birr`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        invoiceId: invoice.id,
+                        customerMsisdn: msisdn,
+                    }),
+                },
+            );
+            setPendingPayRef(res.paymentReference);
+            toast.message('Approve the CBE Birr prompt on your phone.');
+        } catch (e) {
+            toast.error((e as Error).message);
+        } finally {
+            setPaying(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!pendingPayRef || !hotelId) return;
+        let cancelled = false;
+        const id = window.setInterval(async () => {
+            try {
+                const st = await hotelAdminFetch<{ status: string }>(
+                    `hotels/${hotelId}/billing/invoices/status?paymentReference=${encodeURIComponent(pendingPayRef)}`,
+                );
+                if (cancelled) return;
+                if (st.status === 'paid') {
+                    window.clearInterval(id);
+                    setPendingPayRef(null);
+                    toast.success('Commission invoice paid.');
+                    void load();
+                }
+            } catch {
+                /* poll */
+            }
+        }, 4000);
+        return () => {
+            cancelled = true;
+            window.clearInterval(id);
+        };
+    }, [pendingPayRef, hotelId, load]);
+
+    if (!overview && loading) {
         return (
             <div className="p-6 sm:p-8">
-                <AdminLoader label="Loading billing…" />
+                <AdminLoader label="Loading finance…" />
             </div>
         );
     }
 
-    const selected = overview.plans.find((p) => p.code === planCode);
-    const sub = overview.subscription;
-    const access = overview.access;
+    if (!overview) {
+        return null;
+    }
+
+    const amountDue = pendingInvoices
+        .filter((i) => selectedIds.has(i.id))
+        .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    const currency =
+        pendingInvoices[0]?.currency ||
+        invoices[0]?.currency ||
+        'ETB';
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const historyColumns: AdminColumn<CommissionInvoice>[] = [
+        {
+            id: 'doc',
+            header: 'Document',
+            cell: () => (
+                <span className="font-semibold text-slate-800">Commission</span>
+            ),
+        },
+        {
+            id: 'number',
+            header: 'Number',
+            cell: (r) => (
+                <button
+                    type="button"
+                    onClick={() => copyRef(r.payment_reference)}
+                    className="inline-flex items-center gap-1 text-xs font-mono text-slate-600 hover:text-teal-800"
+                    title="Copy invoice number"
+                >
+                    {r.payment_reference}
+                    <Copy className="w-3 h-3 shrink-0" />
+                </button>
+            ),
+        },
+        {
+            id: 'date',
+            header: 'Date',
+            cell: (r) => formatAdminDate(r.created_at),
+        },
+        {
+            id: 'period',
+            header: 'Period',
+            cell: (r) => formatPeriod(r.period_start, r.period_end),
+        },
+        {
+            id: 'paid',
+            header: 'Payment date',
+            cell: (r) =>
+                r.paid_at ? formatAdminDate(r.paid_at) : '—',
+        },
+        {
+            id: 'actions',
+            header: 'Actions',
+            cell: (r) => (
+                <Link
+                    href={statementHref(hotelId, r.period_start, r.period_end)}
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:underline"
+                >
+                    <FileText className="w-3.5 h-3.5" />
+                    View statement
+                </Link>
+            ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            cell: (r) => (
+                <span
+                    className={cn(
+                        'font-semibold',
+                        r.status === 'paid' ? 'text-teal-700' : 'text-amber-700',
+                    )}
+                >
+                    {r.status === 'paid'
+                        ? 'Paid'
+                        : r.due_by
+                          ? `Due by ${formatAdminDate(r.due_by)}`
+                          : r.status}
+                </span>
+            ),
+        },
+        {
+            id: 'amount',
+            header: 'Amount',
+            align: 'right',
+            cell: (r) => (
+                <span className="font-extrabold text-brand-dark">
+                    {r.currency} {Number(r.amount).toLocaleString()}
+                </span>
+            ),
+        },
+    ];
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 sm:space-y-8">
+        <div className="p-4 sm:p-6 lg:p-8 w-full mx-auto space-y-6 sm:space-y-8">
             <div>
                 <h1 className="text-xl sm:text-2xl font-extrabold text-brand-dark tracking-tight">
-                    Billing & subscription
+                    Invoices
                 </h1>
                 <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-                    Pay BookAddis for the hotel management system with CBE Birr.
-                    Access activates only after payment is validated (PayNar + bank
-                    transaction).
+                    Your property&apos;s commission bills only. Pay outstanding
+                    invoices here — Super Admin monitors the portfolio separately.
                 </p>
-            </div>
-
-            <div
-                className={cn(
-                    'rounded-2xl border px-4 py-3 sm:px-5 sm:py-4 flex gap-3 items-start',
-                    access.allowed
-                        ? 'bg-teal-50/80 border-teal-100'
-                        : 'bg-amber-50 border-amber-100',
-                )}
-            >
-                {access.allowed ? (
-                    <CheckCircle2 className="w-5 h-5 text-teal-700 shrink-0 mt-0.5" />
-                ) : (
-                    <Shield className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-                )}
-                <div className="min-w-0 text-sm">
-                    <p className="font-semibold text-slate-900 capitalize">
-                        Status: {sub.status.replace('_', ' ')}
-                        {sub.plan?.name ? ` · ${sub.plan.name}` : ''}
-                    </p>
-                    <p className="text-slate-600 mt-0.5">{access.reason}</p>
-                    {sub.current_period_end ? (
-                        <p className="text-xs text-slate-500 mt-1">
-                            Period ends {formatAdminDateTime(sub.current_period_end)}
-                        </p>
-                    ) : null}
-                </div>
             </div>
 
             <section className="space-y-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                    Choose a plan
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    {overview.plans.map((plan) => {
-                        const active = plan.code === planCode;
-                        return (
-                            <button
-                                key={plan.id}
-                                type="button"
-                                onClick={() => setPlanCode(plan.code)}
-                                className={cn(
-                                    'text-left rounded-2xl border p-4 sm:p-5 transition-all',
-                                    active
-                                        ? 'border-teal-500 bg-white ring-2 ring-teal-500/20'
-                                        : 'border-slate-200 bg-white hover:border-slate-300',
-                                )}
-                            >
-                                <div className="flex items-baseline justify-between gap-2">
-                                    <p className="font-bold text-brand-dark">{plan.name}</p>
-                                    <p className="text-lg font-extrabold text-teal-700">
-                                        {Number(plan.price_amount).toLocaleString()}{' '}
-                                        <span className="text-xs font-semibold text-slate-500">
-                                            {plan.currency}/mo
-                                        </span>
-                                    </p>
-                                </div>
-                                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-                                    {plan.description}
-                                </p>
-                                {plan.trial_days > 0 ? (
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        {plan.trial_days}-day trial available via Super Admin
-                                    </p>
-                                ) : null}
-                            </button>
-                        );
-                    })}
-                </div>
-            </section>
-
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-teal-700" />
-                    <h2 className="font-bold text-brand-dark">Pay with CBE Birr</h2>
-                </div>
-                <p className="text-sm text-slate-500">
-                    Selected:{' '}
-                    <span className="font-semibold text-slate-800">
-                        {selected?.name || planCode}
-                    </span>{' '}
-                     {selected ? Number(selected.price_amount).toLocaleString() : ' '}{' '}
-                    ETB. You will get a USSD prompt; we activate the plan after the bank
-                    confirms.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="cbe-msisdn">Mobile number (CBE Birr)</Label>
-                        <Input
-                            id="cbe-msisdn"
-                            inputMode="tel"
-                            placeholder="0912345678"
-                            value={msisdn}
-                            onChange={(e) => setMsisdn(e.target.value)}
-                            className="h-11 rounded-xl"
-                            disabled={paying || Boolean(pendingRef)}
-                        />
-                    </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 className="text-base font-bold text-amber-800">
+                        Outstanding balances
+                    </h2>
                     <Button
                         type="button"
-                        onClick={() => void startPay()}
-                        disabled={paying || Boolean(pendingRef)}
-                        className="h-11 rounded-xl px-6 w-full sm:w-auto"
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl"
+                        disabled={generating}
+                        onClick={() => void generateLastMonth()}
                     >
-                        {paying || pendingRef ? (
+                        {generating ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Waiting for payment…
+                                Generating…
                             </>
                         ) : (
-                            'Subscribe & pay'
+                            'Generate last month invoice'
                         )}
                     </Button>
                 </div>
-                {pendingRef ? (
-                    <p className="text-xs text-slate-500 font-mono break-all">
-                        Reference: {pendingRef}
-                    </p>
+
+                <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+                    {pendingInvoices.length === 0 ? (
+                        <p className="p-4 text-sm text-slate-500">
+                            No outstanding commission invoices.
+                        </p>
+                    ) : (
+                        <table className="w-full text-sm min-w-[720px]">
+                            <thead>
+                                <tr className="border-b border-slate-100 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    <th className="p-3 w-10" />
+                                    <th className="p-3">Document</th>
+                                    <th className="p-3">Number</th>
+                                    <th className="p-3">Date</th>
+                                    <th className="p-3">Period</th>
+                                    <th className="p-3">Actions</th>
+                                    <th className="p-3">Status</th>
+                                    <th className="p-3 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {pendingInvoices.map((inv) => (
+                                    <tr key={inv.id} className="align-middle">
+                                        <td className="p-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.has(inv.id)}
+                                                onChange={() =>
+                                                    toggleSelect(inv.id)
+                                                }
+                                                className="rounded border-slate-300"
+                                                aria-label={`Select ${inv.payment_reference}`}
+                                            />
+                                        </td>
+                                        <td className="p-3 font-semibold text-slate-800">
+                                            Commission
+                                        </td>
+                                        <td className="p-3">
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    copyRef(inv.payment_reference)
+                                                }
+                                                className="inline-flex items-center gap-1 text-xs font-mono text-slate-600 hover:text-teal-800"
+                                            >
+                                                {inv.payment_reference}
+                                                <Copy className="w-3 h-3" />
+                                            </button>
+                                        </td>
+                                        <td className="p-3 text-slate-700">
+                                            {formatAdminDate(inv.created_at)}
+                                        </td>
+                                        <td className="p-3 text-slate-700">
+                                            {formatPeriod(
+                                                inv.period_start,
+                                                inv.period_end,
+                                            )}
+                                        </td>
+                                        <td className="p-3">
+                                            <Link
+                                                href={statementHref(
+                                                    hotelId,
+                                                    inv.period_start,
+                                                    inv.period_end,
+                                                )}
+                                                className="inline-flex items-center gap-1 font-semibold text-teal-700 hover:underline"
+                                            >
+                                                <FileText className="w-3.5 h-3.5" />
+                                                View statement
+                                            </Link>
+                                        </td>
+                                        <td className="p-3 font-semibold text-amber-700">
+                                            {inv.due_by
+                                                ? `Due by ${formatAdminDate(inv.due_by)}`
+                                                : 'Pending'}
+                                        </td>
+                                        <td className="p-3 text-right font-extrabold text-brand-dark">
+                                            {inv.currency}{' '}
+                                            {Number(inv.amount).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                {pendingInvoices.length > 0 ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+                        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end flex-1">
+                            <div className="min-w-[200px]">
+                                <Label htmlFor="commission-msisdn">
+                                    CBE Birr number
+                                </Label>
+                                <Input
+                                    id="commission-msisdn"
+                                    placeholder="0912345678"
+                                    value={payMsisdn}
+                                    onChange={(e) => setPayMsisdn(e.target.value)}
+                                    className="mt-1 h-10 rounded-xl"
+                                    disabled={paying || Boolean(pendingPayRef)}
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                className="rounded-xl h-10"
+                                disabled={
+                                    paying ||
+                                    Boolean(pendingPayRef) ||
+                                    selectedIds.size === 0
+                                }
+                                onClick={() => void paySelected()}
+                            >
+                                {paying || pendingPayRef
+                                    ? 'Waiting for payment…'
+                                    : 'Proceed to pay'}
+                            </Button>
+                        </div>
+                        <div className="text-sm lg:text-right shrink-0 space-y-1">
+                            <p className="text-slate-600">
+                                Total amount due:{' '}
+                                <strong className="text-brand-dark">
+                                    {currency}{' '}
+                                    {pendingInvoices
+                                        .reduce(
+                                            (s, i) => s + Number(i.amount || 0),
+                                            0,
+                                        )
+                                        .toLocaleString()}
+                                </strong>
+                            </p>
+                            <p className="text-slate-600">
+                                Amount to be paid:{' '}
+                                <strong className="text-brand-dark">
+                                    {currency} {amountDue.toLocaleString()}
+                                </strong>
+                            </p>
+                        </div>
+                    </div>
                 ) : null}
+            </section>
+
+            <section className="space-y-3">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+                    Invoice history
+                </h2>
+                <AdminFinanceFilters
+                    status={status}
+                    onStatusChange={setStatus}
+                    year={year}
+                    onYearChange={setYear}
+                    from={from}
+                    to={to}
+                    onPeriodChange={(nextFrom, nextTo) => {
+                        setFrom(nextFrom);
+                        setTo(nextTo);
+                    }}
+                />
+                <AdminDataTable
+                    columns={historyColumns}
+                    rows={invoices}
+                    rowKey={(r) => r.id}
+                    loading={loading}
+                    emptyLabel="No invoices match your filters."
+                    page={page}
+                    pageSize={ADMIN_PAGE_SIZE}
+                    total={invoices.length}
+                    onPageChange={setPage}
+                    columnPrefsKey={`hotel-invoices-${hotelId}`}
+                    minTableWidth={1000}
+                />
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 space-y-4">
                 <h2 className="font-bold text-brand-dark">Payout profile</h2>
                 <p className="text-sm text-slate-500">
-                    Where BookAddis will send your cut for prepaid guest bookings
-                    (later). Separate from subscription fees you pay us.
+                    Bank details for prepaid net transfers. Commission rate:{' '}
+                    <strong>
+                        {overview.payout_profile?.commission_percent
+                            ? `${Number(overview.payout_profile.commission_percent)}%`
+                            : '15% (default)'}
+                    </strong>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5 sm:col-span-2">
@@ -388,19 +630,6 @@ export default function HotelBillingPage() {
                             className="h-11 rounded-xl"
                         />
                     </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                        <Label>Other account number (optional)</Label>
-                        <Input
-                            value={payoutForm.account_number}
-                            onChange={(e) =>
-                                setPayoutForm((f) => ({
-                                    ...f,
-                                    account_number: e.target.value,
-                                }))
-                            }
-                            className="h-11 rounded-xl"
-                        />
-                    </div>
                 </div>
                 <Button
                     type="button"
@@ -411,53 +640,6 @@ export default function HotelBillingPage() {
                 >
                     {savingPayout ? 'Saving…' : 'Save payout profile'}
                 </Button>
-                {payout ? (
-                    <p className="text-xs text-slate-400">Profile on file for this hotel.</p>
-                ) : null}
-            </section>
-
-            <section className="space-y-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-                    Invoices
-                </h2>
-                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-                    {overview.invoices.length === 0 ? (
-                        <p className="p-4 text-sm text-slate-500">No invoices yet.</p>
-                    ) : (
-                        <ul className="divide-y divide-slate-100">
-                            {overview.invoices.map((inv) => (
-                                <li
-                                    key={inv.id}
-                                    className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm"
-                                >
-                                    <div className="min-w-0">
-                                        <p className="font-semibold text-slate-900">
-                                            {inv.plan?.name || 'Subscription'} ·{' '}
-                                            {Number(inv.amount).toLocaleString()}{' '}
-                                            {inv.currency}
-                                        </p>
-                                        <p className="text-xs text-slate-500 font-mono truncate">
-                                            {inv.payment_reference}
-                                            {inv.provider_transaction_id
-                                                ? ` · txn ${inv.provider_transaction_id}`
-                                                : ''}
-                                        </p>
-                                    </div>
-                                    <div className="text-left sm:text-right shrink-0">
-                                        <p className="font-semibold capitalize text-slate-800">
-                                            {inv.status}
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            {formatAdminDateTime(
-                                                inv.paid_at || inv.created_at,
-                                            )}
-                                        </p>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
             </section>
         </div>
     );

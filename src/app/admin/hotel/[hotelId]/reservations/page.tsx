@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { hotelAdminFetch } from '@/lib/hotel-admin-api';
 import {
     AdminDataTable,
@@ -9,150 +9,225 @@ import {
     type AdminColumn,
 } from '@/components/ui/admin-data-table';
 import { EmptyValue } from '@/components/ui/admin-loader';
-import { formatAdminDate } from '@/lib/admin-date-format';
 import {
     HotelReservationDetailSheet,
     type HotelReservationDetail,
 } from '@/components/admin/hotel-reservation-detail-sheet';
-import { normalizeMealPlan } from '@/lib/hotel-industry-codes';
+import {
+    commissionCell,
+    dateCell,
+    occupancyLine,
+    paymentTypeLabel,
+    priceCell,
+    reservationExpandPanel,
+    reservationStatusBadge,
+} from '@/components/admin/booking-com-reservation-cols';
+import { AdminPeriodRangeFilter } from '@/components/admin/admin-period-range-filter';
+import { presetToRange } from '@/lib/admin-period-utils';
 
 type BookingRow = HotelReservationDetail;
 
 export default function HotelReservationsPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
+    const router = useRouter();
     const hotelId = String(params.hotelId || '');
+    const defaultPeriod = useMemo(() => presetToRange('last_3_months'), []);
     const [items, setItems] = useState<BookingRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [selected, setSelected] = useState<BookingRow | null>(null);
+    const [from, setFrom] = useState(defaultPeriod.from);
+    const [to, setTo] = useState(defaultPeriod.to);
+
+    const openDetail = useCallback(
+        (row: BookingRow) => {
+            setSelected(row);
+            const qs = new URLSearchParams(searchParams.toString());
+            qs.set('bookingId', row.id);
+            router.replace(
+                `/admin/hotel/${hotelId}/reservations?${qs.toString()}`,
+                { scroll: false },
+            );
+        },
+        [hotelId, router, searchParams],
+    );
+
+    const closeDetail = useCallback(() => {
+        setSelected(null);
+        const qs = new URLSearchParams(searchParams.toString());
+        qs.delete('bookingId');
+        const q = qs.toString();
+        router.replace(
+            `/admin/hotel/${hotelId}/reservations${q ? `?${q}` : ''}`,
+            { scroll: false },
+        );
+    }, [hotelId, router, searchParams]);
+
+    const load = useCallback(async () => {
+        if (!hotelId) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await hotelAdminFetch<{ items: BookingRow[] }>(
+                `hotels/${hotelId}/bookings?limit=200`,
+                undefined,
+                'Loading reservations…',
+            );
+            let rows = data.items || [];
+            if (from) {
+                const fromMs = new Date(`${from}T00:00:00`).getTime();
+                rows = rows.filter((b) => {
+                    const t = b.created_at
+                        ? new Date(b.created_at).getTime()
+                        : 0;
+                    return t >= fromMs;
+                });
+            }
+            if (to) {
+                const toMs = new Date(`${to}T23:59:59`).getTime();
+                rows = rows.filter((b) => {
+                    const t = b.created_at
+                        ? new Date(b.created_at).getTime()
+                        : 0;
+                    return t <= toMs;
+                });
+            }
+            setItems(rows);
+            setPage(1);
+        } catch (e) {
+            setError((e as Error).message);
+        } finally {
+            setLoading(false);
+        }
+    }, [hotelId, from, to]);
 
     useEffect(() => {
-        if (!hotelId) return;
-        let cancelled = false;
-        (async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const data = await hotelAdminFetch<{ items: BookingRow[] }>(
-                    `hotels/${hotelId}/bookings?limit=200`,
-                    undefined,
-                    'Loading reservations…',
-                );
-                if (!cancelled) {
-                    setItems(data.items || []);
-                    setPage(1);
-                }
-            } catch (e) {
-                if (!cancelled) setError((e as Error).message);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [hotelId]);
+        void load();
+    }, [load]);
+
+    useEffect(() => {
+        const bookingId = searchParams.get('bookingId');
+        if (!bookingId || items.length === 0) return;
+        const match = items.find((b) => b.id === bookingId);
+        if (match) setSelected(match);
+    }, [searchParams, items]);
 
     const columns: AdminColumn<BookingRow>[] = [
         {
             id: 'guest',
             header: 'Guest',
+            alwaysVisible: true,
             cell: (b) => (
                 <div>
                     <div className="font-semibold text-brand-dark">
                         {b.guest_name || 'Guest'}
                     </div>
                     <div className="text-xs text-slate-500">
-                        {b.guest_email || <EmptyValue />}
+                        {occupancyLine(b) || <EmptyValue />}
                     </div>
                 </div>
             ),
         },
         {
             id: 'stay',
-            header: 'Stay',
-            cell: (b) =>
-                b.check_in && b.check_out ? (
-                    <span className="whitespace-nowrap text-sm">
-                        {formatAdminDate(b.check_in)} → {formatAdminDate(b.check_out)}
-                    </span>
-                ) : (
-                    <EmptyValue />
-                ),
+            header: 'Check-in',
+            cell: (b) => dateCell(b.check_in),
         },
         {
-            id: 'codes',
-            header: 'Type / plan',
-            cell: (b) => {
-                const kind = String(
-                    b.booking_type || b.product_kind || 'hotel',
-                ).toLowerCase();
-                if (kind === 'shuttle' || kind === 'conference' || kind === 'car' || kind === 'event') {
-                    return (
-                        <div className="text-xs space-y-0.5">
-                            <span className="inline-flex rounded-md bg-sky-50 px-1.5 py-0.5 font-bold text-sky-800 capitalize">
-                                {kind === 'car' ? 'shuttle' : kind === 'event' ? 'conference' : kind}
-                            </span>
-                            <div className="text-slate-500 truncate max-w-[140px]">
-                                {b.room_name || ' '}
-                            </div>
-                        </div>
-                    );
-                }
-                return (
-                    <div className="text-xs space-y-0.5">
-                        <span className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700">
-                            {normalizeMealPlan(b.meal_plan)}
-                        </span>
-                        <div className="text-slate-500">
-                            {b.rate_segment || 'RACK'} · {b.flexibility || 'FLEX'}
-                        </div>
-                    </div>
-                );
-            },
+            id: 'checkout',
+            header: 'Check-out',
+            cell: (b) => dateCell(b.check_out),
+        },
+        {
+            id: 'room',
+            header: 'Room type',
+            defaultHidden: true,
+            cell: (b) => (
+                <span className="text-sm truncate max-w-[180px] block">
+                    {b.room_name || <EmptyValue />}
+                </span>
+            ),
+        },
+        {
+            id: 'booked',
+            header: 'Booked on',
+            cell: (b) => dateCell(b.created_at),
+        },
+        {
+            id: 'payment',
+            header: 'Payment',
+            defaultHidden: true,
+            cell: (b) => (
+                <span className="text-xs font-semibold text-slate-700">
+                    {paymentTypeLabel(b)}
+                </span>
+            ),
         },
         {
             id: 'status',
             header: 'Status',
-            cell: (b) => (
-                <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-                    {b.status}
-                </span>
-            ),
+            cell: (b) => reservationStatusBadge(b.reservation_status),
         },
         {
             id: 'amount',
-            header: 'Amount',
+            header: 'Price',
             align: 'right',
-            cell: (b) => (
-                <span className="font-semibold text-brand-dark">
-                    {b.currency} {Number(b.amount).toLocaleString()}
-                </span>
-            ),
+            cell: (b) => priceCell(b),
+        },
+        {
+            id: 'commission',
+            header: 'Commission',
+            align: 'right',
+            cell: (b) => commissionCell(b),
         },
         {
             id: 'ref',
-            header: 'Ref',
+            header: 'Reservation',
+            alwaysVisible: true,
             cell: (b) => (
-                <span className="text-xs font-mono text-slate-500">
+                <button
+                    type="button"
+                    className="text-xs font-mono text-teal-700 font-bold hover:underline"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        openDetail(b);
+                    }}
+                >
                     {b.payment_reference || b.id.slice(0, 8)}
-                </span>
+                </button>
             ),
         },
     ];
 
+    const commissionTotal = items.reduce(
+        (sum, b) => sum + Number(b.commission_amount ?? 0),
+        0,
+    );
+
     return (
-        <div className="space-y-6 max-w-6xl">
+        <div className="space-y-6 w-full">
             <div>
                 <h1 className="text-2xl font-extrabold text-brand-dark">
                     Reservations
                 </h1>
                 <p className="text-sm text-slate-600 mt-1">
-                    Click a row for meal plan, stay codes, rate segment, and
-                    flexibility details.
+                    Use the chevron to expand a row, Columns to show/hide fields,
+                    or Open detail to confirm stayed and link to billing.
                 </p>
             </div>
+
+            <AdminPeriodRangeFilter
+                from={from}
+                to={to}
+                onChange={(nextFrom, nextTo) => {
+                    setFrom(nextFrom);
+                    setTo(nextTo);
+                }}
+                onApply={() => void load()}
+                applyLabel="Apply dates"
+            />
 
             {error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -171,15 +246,41 @@ export default function HotelReservationsPage() {
                 pageSize={ADMIN_PAGE_SIZE}
                 total={items.length}
                 onPageChange={setPage}
-                onRowClick={(row) => setSelected(row)}
+                columnPrefsKey={`hotel-reservations-${hotelId}`}
+                minTableWidth={1100}
+                renderExpanded={(row) =>
+                    reservationExpandPanel(row, {
+                        onOpenDetail: () => openDetail(row),
+                        statementHref: `/admin/hotel/${hotelId}/statement`,
+                        invoicesHref: `/admin/hotel/${hotelId}/billing`,
+                    })
+                }
             />
+
+            {items.length > 0 ? (
+                <p className="text-sm text-right font-extrabold text-brand-dark">
+                    Commission: {items[0]?.currency || 'ETB'}{' '}
+                    {commissionTotal.toLocaleString()}
+                </p>
+            ) : null}
 
             <HotelReservationDetailSheet
                 open={Boolean(selected)}
                 onOpenChange={(open) => {
-                    if (!open) setSelected(null);
+                    if (!open) closeDetail();
                 }}
+                hotelId={hotelId}
                 booking={selected}
+                onUpdated={(updated) => {
+                    setItems((prev) =>
+                        prev.map((b) =>
+                            b.id === updated.id ? { ...b, ...updated } : b,
+                        ),
+                    );
+                    setSelected((cur) =>
+                        cur?.id === updated.id ? { ...cur, ...updated } : cur,
+                    );
+                }}
             />
         </div>
     );

@@ -95,8 +95,8 @@ export default function UsersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editUser, setEditUser] = useState<User | null>(null);
 
-    const fetchUsers = async () => {
-        try {
+        const fetchUsers = async () => {
+            try {
             await withRequestLoading(async () => {
                 if (!db) return;
                 const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
@@ -115,12 +115,12 @@ export default function UsersPage() {
                 setUsers(fetchedUsers);
                 setPage(1);
             }, 'Loading users…');
-        } catch (error) {
+            } catch (error) {
             console.error('Error fetching users:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+            } finally {
+                setLoading(false);
+            }
+        };
 
     useEffect(() => {
         void fetchUsers();

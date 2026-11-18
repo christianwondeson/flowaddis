@@ -11,6 +11,8 @@ import { Popover } from '@/components/ui/popover';
 import { SectionHeading } from '@/components/home/section-heading';
 import { formatHotelPrice } from '@/lib/currency';
 import { useEtbUsdRate } from '@/hooks/use-etb-usd-rate';
+import { publicizeCmsMediaUrl } from '@/lib/cms-media-url';
+import { optimizeHotelImageUrl } from '@/lib/optimize-image-url';
 
 export function FeaturedHotels() {
   const router = useRouter();
@@ -20,8 +22,9 @@ export function FeaturedHotels() {
 
   const { data, isLoading } = useHotels({
     query: 'Addis Ababa',
-    filters: { sortOrder: 'popularity' },
-  });
+    filters: { sortOrder: 'popularity', inventory_source: 'bookaddis_direct' },
+    pageSize: 4,
+  }, { staleTime: 5 * 60_000 });
 
   const featuredHotels = data?.hotels.slice(0, 4) || [];
 
@@ -48,7 +51,7 @@ export function FeaturedHotels() {
       addToTrip({
         type: 'hotel',
         details: hotel,
-        price: hotel.price,
+        price: hotel.price ?? 0,
       });
       setSavedHotelId(hotel.id);
       setTimeout(() => setSavedHotelId(null), 3000);
@@ -91,9 +94,14 @@ export function FeaturedHotels() {
             etbPerUsd,
           );
           const imgSrc =
-            typeof hotel.image === 'string' && hotel.image.trim()
-              ? hotel.image
-              : '/assets/images/addis-view.jpg';
+            optimizeHotelImageUrl(
+              publicizeCmsMediaUrl(
+                typeof hotel.image === 'string' && hotel.image.trim()
+                  ? hotel.image
+                  : '',
+              ),
+              'card',
+            ) || '/assets/images/addis-view.webp';
 
           return (
             <div
@@ -109,11 +117,8 @@ export function FeaturedHotels() {
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   quality={70}
                   priority={index === 0}
+                  loading={index === 0 ? 'eager' : 'lazy'}
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  unoptimized={
-                    imgSrc.startsWith('http://127.0.0.1') ||
-                    imgSrc.startsWith('http://localhost')
-                  }
                 />
                 <div className="absolute top-3 right-3">
                   <Popover

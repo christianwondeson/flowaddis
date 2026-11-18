@@ -1,7 +1,7 @@
 'use client'
 
 import type { MultiFactorResolver } from 'firebase/auth'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Preloader } from '@/components/ui/preloader'
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
@@ -32,13 +32,7 @@ import { getPostLoginPath } from '@/lib/auth/post-login-path'
 import { isMfaSignInRequiredError } from '@/lib/mfa-sign-in-error'
 import { MfaSignInPanel } from '@/components/auth/mfa-sign-in-panel'
 import { SignupStepRail } from '@/components/auth/signup-step-rail'
-import { BillingPlanPicker } from '@/components/auth/billing-plan-picker'
 import { KycDocUploader } from '@/components/account/kyc-doc-uploader'
-import {
-    getBillingPlan,
-    isBillingPlanCode,
-    type BillingPlanCode,
-} from '@/lib/billing-plans'
 import {
     omitUndefinedDeep,
     validateHotelPayoutFields,
@@ -53,7 +47,6 @@ import { queryKeys } from '@/lib/react-query'
 const GUEST_STEPS = ['Account type', 'Your details', 'Create'] as const
 const HOTEL_STEPS = [
     'Account type',
-    'Choose plan',
     'Login details',
     'Property & legal',
     'KYC documents',
@@ -64,16 +57,10 @@ const HOTEL_STEPS = [
 function SignUpContent() {
     const searchParams = useSearchParams()
     const initialType = searchParams.get('type')
-    const initialPlan = searchParams.get('plan')
 
     const [step, setStep] = useState(0)
     const [accountType, setAccountType] = useState<RegisterAccountType>(() =>
         initialType === 'hotel_partner' ? 'hotel_partner' : 'guest',
-    )
-    const [planCode, setPlanCode] = useState<BillingPlanCode>(() =>
-        isBillingPlanCode(String(initialPlan || ''))
-            ? (String(initialPlan) as BillingPlanCode)
-            : 'starter',
     )
 
     const [name, setName] = useState('')
@@ -100,7 +87,7 @@ function SignUpContent() {
     const [cbeAccount, setCbeAccount] = useState('')
     const [bankName, setBankName] = useState('')
     const [accountNumber, setAccountNumber] = useState('')
-    const [ackBilling, setAckBilling] = useState(false)
+    const [ackCommission, setAckCommission] = useState(false)
 
     const [accountReady, setAccountReady] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -121,7 +108,6 @@ function SignUpContent() {
     const queryClient = useQueryClient()
 
     const steps = accountType === 'hotel_partner' ? HOTEL_STEPS : GUEST_STEPS
-    const selectedPlan = useMemo(() => getBillingPlan(planCode), [planCode])
 
     /** Resume hotel KYC if user already has a draft account. */
     useEffect(() => {
@@ -129,11 +115,7 @@ function SignUpContent() {
         if (user.hotelPartnerStatus === 'draft') {
             setAccountType('hotel_partner')
             setAccountReady(true)
-            if (user.hotelPartnerRequest?.preferredPlanCode &&
-                isBillingPlanCode(user.hotelPartnerRequest.preferredPlanCode)) {
-                setPlanCode(user.hotelPartnerRequest.preferredPlanCode)
-            }
-            setStep(3)
+            setStep(2)
             if (user.name) setName(user.name)
             if (user.email) setEmail(user.email)
             if (user.hotelPartnerRequest?.hotelName &&
@@ -149,7 +131,8 @@ function SignUpContent() {
 
     useEffect(() => {
         if (accountType === 'hotel_partner' && accountReady) return
-        if (step !== (accountType === 'guest' ? 2 : 2)) return
+        const credentialsStep = accountType === 'guest' ? 2 : 1
+        if (step !== credentialsStep) return
         let cancelled = false
         setRecaptchaSolved(false)
         void renderRecaptcha('recaptcha-container', 'normal', () => {
@@ -315,7 +298,6 @@ function SignUpContent() {
                 accountType: 'hotel_partner',
                 hotelPartner: {
                     asDraft: true,
-                    preferredPlanCode: planCode,
                     hotelName: 'Draft application',
                 },
             })
@@ -327,8 +309,8 @@ function SignUpContent() {
             })
             await establishSession()
             setAccountReady(true)
-            setStep(3)
-            toast.success('Account created  continue with property & KYC documents.')
+            setStep(2)
+            toast.success('Account created — continue with property & KYC documents.')
         } catch (error: unknown) {
             toast.error(
                 error instanceof Error
@@ -348,23 +330,23 @@ function SignUpContent() {
             )
             return
         }
-        if (!ackBilling) {
-            toast.error('Please acknowledge the SaaS subscription terms')
-                return
-            }
+        if (!ackCommission) {
+            toast.error('Please acknowledge the commission billing terms')
+            return
+        }
         const property = validatePropertyStep()
         if (!property) {
-            setStep(3)
-                return
-            }
+            setStep(2)
+            return
+        }
         if (!logoUrl || !licenseUrl || !taxUrl || !ownerIdUrl) {
             toast.error('Upload all required KYC documents')
-            setStep(4)
-                return
-            }
+            setStep(3)
+            return
+        }
         const payout = validatePayoutStep()
         if (!payout) {
-            setStep(5)
+            setStep(4)
             return
         }
 
@@ -394,7 +376,7 @@ function SignUpContent() {
                     bankName: bankName.trim(),
                     accountNumber: payout.accountNumber,
                 }),
-                acknowledgedSaaSBilling: true,
+                acknowledgedCommissionBilling: true,
             })
             await updateDoc(
                 doc(db, 'users', uid),
@@ -406,7 +388,6 @@ function SignUpContent() {
                         city: city.trim() || null,
                         phone: property.phone || null,
                         message: message.trim() || null,
-                        preferredPlanCode: planCode,
                         kyc,
                         submittedAt: serverTimestamp(),
                     },
@@ -451,47 +432,43 @@ function SignUpContent() {
             return
         }
 
-        // hotel
+        // hotel: account type → login → property → KYC → payout → review
         if (step === 0) {
             setStep(1)
             return
         }
         if (step === 1) {
-            setStep(2)
-            return
-        }
-        if (step === 2) {
             if (accountReady) {
-                setStep(3)
+                setStep(2)
                 return
             }
             void createHotelDraftAccount()
             return
         }
-        if (step === 3) {
+        if (step === 2) {
             if (!validatePropertyStep()) return
-            setStep(4)
+            setStep(3)
             return
         }
-        if (step === 4) {
+        if (step === 3) {
             if (!logoUrl || !licenseUrl || !taxUrl || !ownerIdUrl) {
                 toast.error('Upload logo, license, tax certificate, and owner ID')
                 return
             }
-            setStep(5)
+            setStep(4)
             return
         }
-        if (step === 5) {
+        if (step === 4) {
             if (!validatePayoutStep()) return
-            setStep(6)
+            setStep(5)
             return
         }
         void submitHotelApplication()
     }
 
     const goBack = () => {
-        if (accountType === 'hotel_partner' && accountReady && step === 3) {
-            toast.message('Account already created  finish KYC to submit.')
+        if (accountType === 'hotel_partner' && accountReady && step === 2) {
+            toast.message('Account already created — finish KYC to submit.')
             return
         }
         setStep((s) => Math.max(0, s - 1))
@@ -503,7 +480,7 @@ function SignUpContent() {
             const role = await loginWithGoogle()
             if (accountType === 'hotel_partner') {
                 toast.success(
-                    'Signed in with Google  choose a plan and finish hotel KYC on Profile.',
+                    'Signed in with Google — finish hotel KYC on Profile.',
                 )
                 router.replace('/profile')
                 return
@@ -551,8 +528,8 @@ function SignUpContent() {
         if (accountType === 'guest') {
             return step < 2 ? 'Continue' : 'Create guest account'
         }
-        if (step === 2 && !accountReady) return 'Create account & continue'
-        if (step === 6) return 'Submit for approval'
+        if (step === 1 && !accountReady) return 'Create account & continue'
+        if (step === 5) return 'Submit for approval'
         return 'Continue'
     })()
 
@@ -562,7 +539,7 @@ function SignUpContent() {
             title="Create Account"
             subtitle={
                 accountType === 'hotel_partner'
-                    ? 'Stepped partner signup: plan → account → KYC → payout → review'
+                    ? 'Partner signup: account → KYC → payout → review'
                     : 'Book stays as a guest in a few short steps'
             }
             footerLink={{
@@ -657,25 +634,12 @@ function SignUpContent() {
                     </div>
                 )}
 
-                {accountType === 'hotel_partner' && step === 1 && (
-                    <div className="space-y-3">
-                        <p className="text-sm text-slate-600">
-                            Pick the management plan you intend to subscribe to after approval
-                            (paid with CBE Birr in Hotel Portal → Billing).
-                        </p>
-                        <BillingPlanPicker value={planCode} onChange={setPlanCode} />
-                    </div>
-                )}
-
-                {accountType === 'hotel_partner' && step === 2 && !accountReady && (
+                {accountType === 'hotel_partner' && step === 1 && !accountReady && (
                     <div className="space-y-4">
                         <p className="text-xs rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2 text-teal-900">
-                            Selected:{' '}
-                            <strong>
-                                {selectedPlan?.name} ·{' '}
-                                {selectedPlan?.priceEtb.toLocaleString()} ETB/mo
-                            </strong>
-                            . Next steps collect property details and KYC documents.
+                            After approval you list on BookAddis and settle{' '}
+                            <strong>monthly commission</strong> on stayed bookings
+                            (Hotel Portal → Invoices). No SaaS subscription fee.
                         </p>
                         <CredentialsFields
                             name={name}
@@ -701,7 +665,7 @@ function SignUpContent() {
                     </div>
                 )}
 
-                {accountType === 'hotel_partner' && step === 3 && (
+                {accountType === 'hotel_partner' && step === 2 && (
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2 sm:col-span-2">
                             <Label>Legal business name</Label>
@@ -787,7 +751,7 @@ function SignUpContent() {
                     </div>
                 )}
 
-                {accountType === 'hotel_partner' && step === 4 && (
+                {accountType === 'hotel_partner' && step === 3 && (
                     <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                         <p className="text-sm font-semibold text-brand-dark">
                             Required documents (KYC)
@@ -826,11 +790,11 @@ function SignUpContent() {
                     </div>
                 )}
 
-                {accountType === 'hotel_partner' && step === 5 && (
+                {accountType === 'hotel_partner' && step === 4 && (
                     <div className="space-y-4">
                         <p className="text-sm text-slate-600">
-                            Where BookAddis will send your cut for prepaid guest bookings
-                            (later). Separate from the SaaS subscription you pay us.
+                            Where BookAddis will send your cut for prepaid guest bookings.
+                            Separate from monthly commission invoices you pay BookAddis.
                         </p>
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-2 sm:col-span-2">
@@ -870,23 +834,22 @@ function SignUpContent() {
                     </div>
                 )}
 
-                {accountType === 'hotel_partner' && step === 6 && (
+                {accountType === 'hotel_partner' && step === 5 && (
                     <div className="space-y-4">
                         <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-sm space-y-2">
                             <p className="font-semibold text-brand-dark">Review</p>
                             <p>
                                 <strong>{hotelName}</strong>
-                                {city ? ` · ${city}` : ''} · Plan{' '}
-                                <strong>{selectedPlan?.name}</strong> (
-                                {selectedPlan?.priceEtb.toLocaleString()} ETB/mo)
+                                {city ? ` · ${city}` : ''}
                             </p>
                             <ul className="list-disc pl-5 text-slate-600 space-y-1">
                                 <li>
-                                    You → BookAddis: SaaS subscription (CBE Birr) after approval
+                                    You → BookAddis: monthly commission on stayed
+                                    BookAddis reservations (pay via Invoices)
                                 </li>
                                 <li>
-                                    Guests → BookAddis → you: prepaid settlements to your payout
-                                    account
+                                    Guests → BookAddis → you: prepaid settlements to your
+                                    payout account
                                 </li>
                             </ul>
                         </div>
@@ -894,13 +857,13 @@ function SignUpContent() {
                     <input
                         type="checkbox"
                                 className="mt-1"
-                                checked={ackBilling}
-                                onChange={(e) => setAckBilling(e.target.checked)}
+                                checked={ackCommission}
+                                onChange={(e) => setAckCommission(e.target.checked)}
                             />
                             <span>
-                                I understand access activates only after a validated
-                                subscription payment (or Super Admin trial), and guest payouts
-                                are separate from SaaS fees.
+                                I understand BookAddis charges commission on stayed
+                                reservations (not a monthly SaaS fee), and guest payouts
+                                are separate from commission invoices.
                             </span>
                         </label>
                         <div className="space-y-2">
@@ -932,7 +895,7 @@ function SignUpContent() {
                             googleSubmitting ||
                             ((accountType === 'guest' && step === 2) ||
                             (accountType === 'hotel_partner' &&
-                                step === 2 &&
+                                step === 1 &&
                                 !accountReady)
                                 ? !recaptchaSolved
                                 : false)

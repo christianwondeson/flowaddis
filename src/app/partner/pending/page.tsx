@@ -65,8 +65,9 @@ export default function PartnerPendingPage() {
                     <Mail className="w-4 h-4 shrink-0 mt-0.5 text-teal-700" />
                     <span>
                         We will email <strong>{user?.email || 'you'}</strong> when a
-                        decision is made. After approval, sign in again to access the
-                        portal and complete Billing.
+                        decision is made. After approval, sign in again to open the
+                        hotel portal, finish property content, and go live when Super
+                        Admin publishes your hotel.
                     </span>
                 </div>
 

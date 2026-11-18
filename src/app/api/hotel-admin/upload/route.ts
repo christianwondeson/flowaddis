@@ -142,9 +142,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: e.message }, { status: e.status });
         }
         const msg = e instanceof Error ? e.message : String(e);
-        console.error('[hotel-admin upload] failed:', msg, {
-            strapi: getStrapiOriginForLogs(),
-        });
+        const strapi = getStrapiOriginForLogs();
+        console.error('[hotel-admin upload] failed:', msg, { strapi });
         if (msg.includes('STRAPI')) {
             return NextResponse.json(
                 {
@@ -154,6 +153,17 @@ export async function POST(req: Request) {
                 { status: 503 },
             );
         }
-        return NextResponse.json({ error: 'Upload failed', detail: msg }, { status: 500 });
+        const unreachable =
+            /fetch failed|econnrefused|enotfound|network|abort/i.test(msg);
+        return NextResponse.json(
+            {
+                error: unreachable
+                    ? `Cannot reach Strapi at ${strapi}. Production must use https://cms.bookaddis.com (not localhost).`
+                    : 'Upload failed',
+                detail: msg,
+                strapi,
+            },
+            { status: 500 },
+        );
     }
 }

@@ -24,12 +24,12 @@ const STEPS = [
     'Property & legal',
     'KYC documents',
     'Payout (guest cuts)',
-    'Billing & submit',
+    'Commission & submit',
 ] as const;
 
 /**
- * Multi-step hotel partner KYC  property → docs → payout draft → SaaS billing ack.
- * Activation / subscription payment happens after Super Admin approval in Hotel Portal Billing.
+ * Multi-step hotel partner KYC: property → docs → payout draft → commission ack.
+ * After Super Admin approval, hotels settle monthly commission on stayed bookings.
  */
 export function HotelPartnerRequestForm() {
     const { user } = useAuth();
@@ -52,7 +52,7 @@ export function HotelPartnerRequestForm() {
     const [cbeAccount, setCbeAccount] = useState('');
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
-    const [ackBilling, setAckBilling] = useState(false);
+    const [ackCommission, setAckCommission] = useState(false);
     const [saving, setSaving] = useState(false);
 
     if (!user) return null;
@@ -158,8 +158,8 @@ export function HotelPartnerRequestForm() {
             return true;
         }
         if (s === 3) {
-            if (!ackBilling) {
-                toast.error('Please acknowledge the SaaS subscription terms');
+            if (!ackCommission) {
+                toast.error('Please acknowledge the commission billing terms');
                 return false;
             }
             return true;
@@ -214,7 +214,7 @@ export function HotelPartnerRequestForm() {
                     bankName: bankName.trim(),
                     accountNumber: payout.accountNumber,
                 }),
-                acknowledgedSaaSBilling: true,
+                acknowledgedCommissionBilling: true,
             });
             await updateDoc(
                 doc(db, 'users', user.id),
@@ -226,8 +226,6 @@ export function HotelPartnerRequestForm() {
                         city: city.trim() || null,
                         phone: property.phone || null,
                         message: message.trim() || null,
-                        preferredPlanCode:
-                            user.hotelPartnerRequest?.preferredPlanCode || null,
                         kyc,
                         submittedAt: serverTimestamp(),
                     },
@@ -260,8 +258,8 @@ export function HotelPartnerRequestForm() {
                 <div>
                     <h3 className="font-bold text-foreground">List your hotel on BookAddis</h3>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                        Property → KYC → payout for guest settlements → acknowledge SaaS
-                        billing → Super Admin review → subscribe in Billing → go live.
+                        Property → KYC → payout for guest settlements → acknowledge
+                        commission → Super Admin review → publish & go live.
                     </p>
                 </div>
             </div>
@@ -383,8 +381,8 @@ export function HotelPartnerRequestForm() {
             {step === 2 && (
                 <div className="space-y-4">
                     <p className="text-sm text-slate-600">
-                        Where BookAddis will send your cut for prepaid guest bookings
-                        (later). This is separate from the SaaS subscription you pay us.
+                        Where BookAddis will send your cut for prepaid guest bookings.
+                        Separate from monthly commission invoices you pay BookAddis.
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-2 sm:col-span-2">
@@ -425,13 +423,13 @@ export function HotelPartnerRequestForm() {
                         <p className="font-semibold text-brand-dark">Two money flows</p>
                         <ul className="list-disc pl-5 space-y-1 text-slate-600">
                             <li>
-                                <strong>You → BookAddis:</strong> monthly SaaS subscription
-                                (CBE Birr) for the hotel management system  paid in Billing
-                                after approval.
+                                <strong>You → BookAddis:</strong> monthly commission on
+                                stayed BookAddis reservations — pay via Hotel Portal →
+                                Invoices (CBE Birr).
                             </li>
                             <li>
                                 <strong>Guests → BookAddis → you:</strong> prepaid booking
-                                settlements to the payout account you provided (later).
+                                settlements to the payout account you provided.
                             </li>
                         </ul>
                     </div>
@@ -439,13 +437,13 @@ export function HotelPartnerRequestForm() {
                         <input
                             type="checkbox"
                             className="mt-1"
-                            checked={ackBilling}
-                            onChange={(e) => setAckBilling(e.target.checked)}
+                            checked={ackCommission}
+                            onChange={(e) => setAckCommission(e.target.checked)}
                         />
                         <span>
-                            I understand access activates only after a validated
-                            subscription payment (or a Super Admin trial), and guest payouts
-                            are separate from SaaS fees.
+                            I understand BookAddis charges commission on stayed
+                            reservations (not a monthly SaaS fee), and guest payouts are
+                            separate from commission invoices.
                         </span>
                     </label>
                     <div className="space-y-2">

@@ -52,6 +52,43 @@ function messagesCol(hotelId: string, threadId: string) {
     return collection(db, 'hotelChats', hotelId, 'threads', threadId, 'messages');
 }
 
+function mapThread(
+    hotelId: string,
+    id: string,
+    data: Record<string, unknown>,
+): ChatThread {
+    return {
+        id,
+        hotelId,
+        hotelName: String(data.hotelName || ''),
+        type: parseThreadType(data.type),
+        title: String(data.title || id),
+        participantUids: Array.isArray(data.participantUids)
+            ? data.participantUids.map(String)
+            : [],
+        guestUid: data.guestUid ? String(data.guestUid) : null,
+        lastMessageAt: data.lastMessageAt,
+        lastMessagePreview: data.lastMessagePreview
+            ? String(data.lastMessagePreview)
+            : undefined,
+    };
+}
+
+function firestoreChatError(err: unknown, fallback: string): Error {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/permission|insufficient/i.test(msg)) {
+        return new Error(
+            `${fallback} Your Firestore users/{uid}.role must be admin, hotel_admin, or hotel_staff, and firestore.rules must be deployed to the flowaddis-db database.`,
+        );
+    }
+    if (/blocked|ERR_BLOCKED|Failed to fetch|unavailable|network/i.test(msg)) {
+        return new Error(
+            'Chat could not reach Firestore (network or browser extension). Try another browser profile or allow *.googleapis.com / *.firebaseio.com.',
+        );
+    }
+    return err instanceof Error ? err : new Error(msg || fallback);
+}
+
 /** Ensure an ops thread exists for Super Admin ↔ hotel desk. */
 export async function ensureOpsThread(params: {
     hotelId: string;
@@ -78,13 +115,10 @@ export async function ensureOpsThread(params: {
             { merge: true },
         );
     } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (/permission|insufficient/i.test(msg)) {
-            throw new Error(
-                'Cannot open ops chat. Your Firestore users/{uid}.role must be hotel_admin or hotel_staff (set when Super Admin assigns hotel membership). Also deploy the latest firestore.rules.',
-            );
-        }
-        throw e;
+        throw firestoreChatError(
+            e,
+            'Cannot open ops chat.',
+        );
     }
     return threadId;
 }
@@ -99,25 +133,29 @@ export async function ensureGuestThread(params: {
 }): Promise<string> {
     const threadId = `guest_${params.guestUid}`;
     const ref = doc(threadsCol(params.hotelId), threadId);
-    await setDoc(
-        ref,
-        {
-            hotelId: params.hotelId,
-            hotelName: params.hotelName,
-            type: 'guest' as ChatThreadType,
-            title: `${params.guestName} · ${params.hotelName}`,
-            guestUid: params.guestUid,
-            participantUids: Array.from(
-                new Set([params.guestUid, ...(params.hotelStaffUids || [])]),
-            ),
-            updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-    );
+    try {
+        await setDoc(
+            ref,
+            {
+                hotelId: params.hotelId,
+                hotelName: params.hotelName,
+                type: 'guest' as ChatThreadType,
+                title: `${params.guestName} · ${params.hotelName}`,
+                guestUid: params.guestUid,
+                participantUids: Array.from(
+                    new Set([params.guestUid, ...(params.hotelStaffUids || [])]),
+                ),
+                updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+        );
+    } catch (e) {
+        throw firestoreChatError(e, 'Cannot open guest chat.');
+    }
     return threadId;
 }
 
-/** Guest ↔ BookAddis Super Admin support (same hotel context for reservation help). */
+/** Guest ↔ BookAddis Super Admin support. */
 export async function ensureSupportThread(params: {
     hotelId: string;
     hotelName: string;
@@ -126,72 +164,90 @@ export async function ensureSupportThread(params: {
 }): Promise<string> {
     const threadId = `support_${params.guestUid}`;
     const ref = doc(threadsCol(params.hotelId), threadId);
-    await setDoc(
-        ref,
-        {
-            hotelId: params.hotelId,
-            hotelName: params.hotelName,
-            type: 'support' as ChatThreadType,
-            title: `${params.guestName} · BookAddis support`,
-            guestUid: params.guestUid,
-            participantUids: [params.guestUid],
-            updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-    );
+    try {
+        await setDoc(
+            ref,
+            {
+                hotelId: params.hotelId,
+                hotelName: params.hotelName,
+                type: 'support' as ChatThreadType,
+                title: `${params.guestName} · BookAddis support`,
+                guestUid: params.guestUid,
+                participantUids: [params.guestUid],
+                updatedAt: serverTimestamp(),
+            },
+            { merge: true },
+        );
+    } catch (e) {
+        throw firestoreChatError(e, 'Cannot open support chat.');
+    }
     return threadId;
 }
 
-export function listenThreads(
+/**
+ * Listen to a single known thread doc (avoids collection-list permission failures).
+ */
+export function listenThreadDoc(
     hotelId: string,
+    threadId: string,
+    onData: (thread: ChatThread | null) => void,
+    onError?: (e: Error) => void,
+): Unsubscribe {
+    const ref = doc(threadsCol(hotelId), threadId);
+    return onSnapshot(
+        ref,
+        (snap) => {
+            if (!snap.exists()) {
+                onData(null);
+                return;
+            }
+            onData(mapThread(hotelId, snap.id, snap.data() as Record<string, unknown>));
+        },
+        (err) => onError?.(firestoreChatError(err, 'Cannot load conversation.')),
+    );
+}
+
+/** Desk / SA: list threads of one type (query matches firestore.rules). */
+export function listenThreadsByType(
+    hotelId: string,
+    type: ChatThreadType,
     onData: (threads: ChatThread[]) => void,
     onError?: (e: Error) => void,
 ): Unsubscribe {
-    // No orderBy  avoids composite-index + permission failures when updatedAt
-    // is missing; sort client-side instead.
-    const q = query(threadsCol(hotelId), limit(50));
+    const q = query(threadsCol(hotelId), where('type', '==', type), limit(50));
     return onSnapshot(
         q,
         (snap) => {
             const rows: ChatThread[] = [];
             snap.forEach((d) => {
-                const data = d.data();
-                rows.push({
-                    id: d.id,
-                    hotelId,
-                    hotelName: String(data.hotelName || ''),
-                    type: parseThreadType(data.type),
-                    title: String(data.title || d.id),
-                    participantUids: Array.isArray(data.participantUids)
-                        ? data.participantUids.map(String)
-                        : [],
-                    guestUid: data.guestUid ? String(data.guestUid) : null,
-                    lastMessageAt: data.lastMessageAt,
-                    lastMessagePreview: data.lastMessagePreview
-                        ? String(data.lastMessagePreview)
-                        : undefined,
-                });
+                rows.push(mapThread(hotelId, d.id, d.data() as Record<string, unknown>));
             });
             rows.sort((a, b) => {
-                const ta = (a.lastMessageAt as { seconds?: number } | undefined)?.seconds || 0;
-                const tb = (b.lastMessageAt as { seconds?: number } | undefined)?.seconds || 0;
+                const ta =
+                    (a.lastMessageAt as { seconds?: number } | undefined)?.seconds || 0;
+                const tb =
+                    (b.lastMessageAt as { seconds?: number } | undefined)?.seconds || 0;
                 return tb - ta;
             });
             onData(rows);
         },
-        (err) => {
-            const msg = (err as Error).message || String(err);
-            if (/permission|insufficient/i.test(msg)) {
-                onError?.(
-                    new Error(
-                        'Chat permissions denied. Deploy firestore.rules, ensure users/{uid}.role is hotel_admin or hotel_staff (assigned with hotel membership), and disable ad blockers on localhost.',
-                    ),
-                );
-                return;
-            }
-            onError?.(err as Error);
-        },
+        (err) =>
+            onError?.(
+                firestoreChatError(
+                    err,
+                    'Chat list denied.',
+                ),
+            ),
     );
+}
+
+/** @deprecated Prefer listenThreadsByType or listenThreadDoc — unfiltered lists fail for guests. */
+export function listenThreads(
+    hotelId: string,
+    onData: (threads: ChatThread[]) => void,
+    onError?: (e: Error) => void,
+): Unsubscribe {
+    return listenThreadsByType(hotelId, 'ops', onData, onError);
 }
 
 export function listenMessages(
@@ -200,7 +256,11 @@ export function listenMessages(
     onData: (messages: ChatMessage[]) => void,
     onError?: (e: Error) => void,
 ): Unsubscribe {
-    const q = query(messagesCol(hotelId, threadId), orderBy('createdAt', 'asc'), limit(200));
+    const q = query(
+        messagesCol(hotelId, threadId),
+        orderBy('createdAt', 'asc'),
+        limit(200),
+    );
     return onSnapshot(
         q,
         (snap) => {
@@ -218,7 +278,8 @@ export function listenMessages(
             });
             onData(rows);
         },
-        (err) => onError?.(err as Error),
+        (err) =>
+            onError?.(firestoreChatError(err, 'Cannot load messages.')),
     );
 }
 
@@ -246,17 +307,11 @@ export async function sendChatMessage(params: {
             updatedAt: serverTimestamp(),
         });
     } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (/blocked|network|Failed to fetch|unavailable/i.test(msg)) {
-            throw new Error(
-                'Chat blocked by the browser or network. Disable ad blockers for localhost, then retry.',
-            );
-        }
-        throw e;
+        throw firestoreChatError(e, 'Message could not be sent.');
     }
 }
 
-/** Threads where the user participates (guest inbox). Requires composite index if filtered  keep simple. */
+/** Guest inbox: threads for this guest only (matches firestore.rules). */
 export function listenGuestThreadsForUser(
     hotelId: string,
     guestUid: string,
@@ -273,24 +328,11 @@ export function listenGuestThreadsForUser(
         (snap) => {
             const rows: ChatThread[] = [];
             snap.forEach((d) => {
-                const data = d.data();
-                rows.push({
-                    id: d.id,
-                    hotelId,
-                    hotelName: String(data.hotelName || ''),
-                    type: 'guest',
-                    title: String(data.title || d.id),
-                    participantUids: Array.isArray(data.participantUids)
-                        ? data.participantUids.map(String)
-                        : [],
-                    guestUid,
-                    lastMessagePreview: data.lastMessagePreview
-                        ? String(data.lastMessagePreview)
-                        : undefined,
-                });
+                rows.push(mapThread(hotelId, d.id, d.data() as Record<string, unknown>));
             });
             onData(rows);
         },
-        (err) => onError?.(err as Error),
+        (err) =>
+            onError?.(firestoreChatError(err, 'Cannot load your chats.')),
     );
 }

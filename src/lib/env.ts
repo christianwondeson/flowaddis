@@ -8,17 +8,21 @@ export interface ServerEnv {
     RAPIDAPI_KEY: string;
 }
 
-let cached: ServerEnv | null = null;
-
 /** Next sets this while running `next build` (including Firebase App Hosting / Cloud Build). */
 function isNextProductionBuild(): boolean {
     return process.env.NEXT_PHASE === 'phase-production-build';
 }
 
-function loadRapidApiKey(): string {
-    const key =
+export function readRapidApiKey(): string {
+    return (
         process.env.RAPIDAPI_KEY?.trim() ||
-        process.env.NEXT_PUBLIC_RAPIDAPI_KEY?.trim();
+        process.env.NEXT_PUBLIC_RAPIDAPI_KEY?.trim() ||
+        ''
+    );
+}
+
+function loadRapidApiKey(): string {
+    const key = readRapidApiKey();
     if (!key) {
         // Allow the bundle to build without secrets; real requests still need the key at runtime.
         if (isNextProductionBuild()) {
@@ -27,22 +31,19 @@ function loadRapidApiKey(): string {
         throw new Error(
             `Missing required environment variables:\n` +
                 `  - RAPIDAPI_KEY (recommended, server-only) or NEXT_PUBLIC_RAPIDAPI_KEY is required but not set\n\n` +
-                `Set RAPIDAPI_KEY (or NEXT_PUBLIC_RAPIDAPI_KEY) in Firebase App Hosting env / Cloud Run / GitHub Actions for deploy.\n` +
-                `Locally use .env.local. See .env.example.`
+                `Set RAPIDAPI_KEY on Firebase Hosting SSR (firebase.json frameworksBackend) or Cloud Run.\n` +
+                `Locally use .env.local. See .env.example.`,
         );
     }
     return key;
 }
 
-/** Validates once per process when first needed (not at module load). */
+/** Do not cache an empty key from `next build` into the Cloud Run process. */
 export function getServerEnv(): ServerEnv {
-    if (!cached) {
-        cached = { RAPIDAPI_KEY: loadRapidApiKey() };
-    }
-    return cached;
+    return { RAPIDAPI_KEY: loadRapidApiKey() };
 }
 
 /** Use from server code paths that call RapidAPI (e.g. api-config getters). */
 export function requireRapidApiKey(): string {
-    return getServerEnv().RAPIDAPI_KEY;
+    return loadRapidApiKey();
 }

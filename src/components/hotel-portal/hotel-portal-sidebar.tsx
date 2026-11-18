@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -16,6 +16,7 @@ import {
     LogOut,
     ArrowLeftRight,
     Hotel,
+    FileText,
     Star,
     Percent,
     ConciergeBell,
@@ -25,7 +26,6 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/components/providers/auth-provider';
-import { canAccessSuperAdmin } from '@/lib/auth/admin-utils';
 import { Logo } from '@/components/shared/logo';
 
 /** Same chrome as Super Admin sidebar  Sign Out + brand-dark. */
@@ -43,7 +43,8 @@ const PROPERTY_NAV = [
     { name: 'Photos', segment: 'photos', icon: Images },
     { name: 'Messages', segment: 'messages', icon: MessageSquare },
     { name: 'Transactions', segment: 'transactions', icon: CreditCard },
-    { name: 'Billing', segment: 'billing', icon: Wallet },
+    { name: 'Invoices', segment: 'billing', icon: Wallet },
+    { name: 'Statement', segment: 'statement', icon: FileText },
     { name: 'Property', segment: 'property', icon: Building2 },
 ] as const;
 
@@ -62,8 +63,20 @@ export function HotelPortalSidebar({
     onNavigate,
 }: Props) {
     const pathname = usePathname();
-    const { logout, user } = useAuth();
+    const { logout } = useAuth();
+    const [signingOut, setSigningOut] = useState(false);
     const base = hotelId ? `/admin/hotel/${hotelId}` : '/admin/hotel';
+
+    const onSignOut = async () => {
+        if (signingOut) return;
+        setSigningOut(true);
+        try {
+            await logout();
+        } catch (e) {
+            console.error(e);
+            setSigningOut(false);
+        }
+    };
 
     const isActive = (segment: string) => {
         if (!hotelId) {
@@ -143,23 +156,14 @@ export function HotelPortalSidebar({
                         Switch property
                     </Link>
                 ) : null}
-                {canAccessSuperAdmin(user) && (
-                    <Link
-                        href="/admin"
-                        onClick={onNavigate}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white w-full transition-colors font-medium"
-                    >
-                        <LayoutDashboard className="w-5 h-5" />
-                        Super Admin
-                    </Link>
-                )}
                 <button
                     type="button"
-                    onClick={logout}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-500 w-full transition-colors font-medium"
+                    disabled={signingOut}
+                    onClick={() => void onSignOut()}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-500 w-full transition-colors font-medium disabled:opacity-60"
                 >
                     <LogOut className="w-5 h-5" />
-                    Sign Out
+                    {signingOut ? 'Signing out…' : 'Sign Out'}
                 </button>
             </div>
         </aside>

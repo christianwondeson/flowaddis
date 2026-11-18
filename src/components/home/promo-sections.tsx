@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { Popover } from '@/components/ui/popover';
 import { DEFAULT_HOTEL_DESTINATION_QUERY } from '@/lib/hotel-search-location';
 import { hotelsDestinationPickUrl } from '@/lib/hotel-promo-links';
 import { buildSignInHref } from '@/lib/auth/post-login-path';
+import { optimizeHotelImageUrl } from '@/lib/optimize-image-url';
 
 export function SignInPromo() {
     const pathname = usePathname();
@@ -98,10 +100,13 @@ export function OffersSection() {
                                 </Link>
                             </div>
                             <div className="w-full sm:w-2/5 h-48 sm:h-auto relative overflow-hidden">
-                                <img
+                                <Image
                                     src={offer.image}
                                     alt={offer.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, 40vw"
+                                    loading="lazy"
+                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                             </div>
                         </div>
@@ -116,7 +121,7 @@ const destinations = [
     { name: 'Nairobi', country: 'Kenya', flag: '🇰🇪', image: 'https://images.unsplash.com/photo-1585464231875-d9ef1f5ad396?auto=format&fit=crop&q=80&w=800', price: 420 },
     { name: 'Dubai', country: 'UAE', flag: '🇦🇪', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=800', price: 380 },
     { name: 'Johannesburg', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1549944850-84e00be4203b?auto=format&fit=crop&q=80&w=800', price: 295 },
-    { name: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹', image: '/assets/images/addis-ababa-night.jpg', price: 185 },
+    { name: 'Addis Ababa', country: 'Ethiopia', flag: '🇪🇹', image: '/assets/images/addis-ababa-night.webp', price: 185 },
     { name: 'Cape Town', country: 'South Africa', flag: '🇿🇦', image: 'https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?auto=format&fit=crop&q=80&w=800', price: 340 },
 ];
 
@@ -138,13 +143,13 @@ export function TrendingDestinations() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {destinations.slice(0, 2).map((dest, idx) => (
                     <Link href={hotelsDestinationPickUrl(dest.name, defaultParams)} key={idx} className="group relative h-64 rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
-                        <img
+                        <Image
                             src={dest.image}
                             alt={dest.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/images/addis-view.jpg';
-                            }}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            loading="lazy"
+                            className="object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                         <div className="absolute top-4 left-4 text-white">
@@ -161,13 +166,13 @@ export function TrendingDestinations() {
                 <div className="grid grid-cols-1 gap-4">
                     {destinations.slice(2).map((dest, idx) => (
                         <Link href={hotelsDestinationPickUrl(dest.name, defaultParams)} key={idx} className="group relative h-[120px] rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
-                            <img
+                            <Image
                                 src={dest.image}
                                 alt={dest.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/assets/images/addis-view.jpg';
-                                }}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 33vw"
+                                loading="lazy"
+                                className="object-cover group-hover:scale-110 transition-transform duration-500"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                             <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
@@ -224,13 +229,13 @@ export function ExploreEthiopia() {
                         className="group block"
                     >
                         <div className="aspect-square rounded-2xl overflow-hidden relative bg-gray-100 border border-gray-100 shadow-sm group-hover:shadow-md transition-all duration-300">
-                            <img
+                            <Image
                                 src={city.image}
                                 alt={city.displayLabel}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=600&q=80';
-                                }}
+                                fill
+                                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                loading="lazy"
+                                className="object-cover group-hover:scale-105 transition-transform duration-500"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                             <div className="absolute bottom-0 left-0 right-0 p-3">
@@ -270,14 +275,14 @@ export function PropertyTypeSection() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {types.map((type, idx) => (
                     <Link href={hotelsDestinationPickUrl('Addis Ababa', defaultParams, { type: type.name })} key={idx} className="group">
-                        <div className="aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-gray-100">
-                            <img
+                        <div className="aspect-[4/3] rounded-xl overflow-hidden mb-2 bg-gray-100 relative">
+                            <Image
                                 src={type.image}
                                 alt={type.name}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400';
-                                }}
+                                fill
+                                sizes="(max-width: 768px) 50vw, 25vw"
+                                loading="lazy"
+                                className="object-cover group-hover:scale-110 transition-transform duration-500"
                             />
                         </div>
                         <h3 className="font-bold text-brand-dark text-sm">{type.name}</h3>
@@ -293,7 +298,14 @@ export function PropertyTypeSection() {
 export function PerfectStaySection() {
     const router = useRouter();
     const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
-    const { data, isLoading } = useHotels({ query: 'Addis Ababa', filters: { sortOrder: 'popularity' } });
+    const { data, isLoading } = useHotels(
+        {
+            query: 'Addis Ababa',
+            filters: { sortOrder: 'popularity', inventory_source: 'bookaddis_direct' },
+            pageSize: 4,
+        },
+        { staleTime: 5 * 60_000 },
+    );
     const hotels = data?.hotels.slice(0, 4) || [];
     const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
 
@@ -342,13 +354,13 @@ export function PerfectStaySection() {
                     return (
                         <div key={hotel.id} className="group cursor-pointer flex flex-col h-full bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden" onClick={() => handleBook(hotel.id)}>
                             <div className="relative aspect-square overflow-hidden bg-gray-100">
-                                <img
-                                    src={hotel.image}
+                                <Image
+                                    src={optimizeHotelImageUrl(hotel.image, 'card') || '/assets/images/addis-view.webp'}
                                     alt={hotel.name}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400';
-                                    }}
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                    loading="lazy"
+                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                                 <div className="absolute top-3 right-3">
                                     <Popover
@@ -423,7 +435,14 @@ function SavedToTripPopover({ hotel, isOpen, onClose }: { hotel: any, isOpen: bo
 export function HomesGuestsLoveSection() {
     const router = useRouter();
     const { addToTrip, currentTrip, removeFromTrip } = useTripStore();
-    const { data, isLoading } = useHotels({ query: DEFAULT_HOTEL_DESTINATION_QUERY, filters: { sortOrder: 'popularity' } });
+    const { data, isLoading } = useHotels(
+        {
+            query: DEFAULT_HOTEL_DESTINATION_QUERY,
+            filters: { sortOrder: 'popularity', inventory_source: 'bookaddis_direct' },
+            pageSize: 12,
+        },
+        { staleTime: 5 * 60_000 },
+    );
     const hotels = data?.hotels.slice(4, 12) || []; // More for carousel
     const [savedHotelId, setSavedHotelId] = React.useState<string | null>(null);
     const [scrollIndex, setScrollIndex] = React.useState(0);
@@ -512,13 +531,13 @@ export function HomesGuestsLoveSection() {
                                 onClick={() => handleBook(hotel.id)}
                             >
                                 <div className="relative aspect-square overflow-hidden bg-gray-100">
-                                    <img
-                                        src={hotel.image}
+                                    <Image
+                                        src={optimizeHotelImageUrl(hotel.image, 'card') || '/assets/images/addis-view.webp'}
                                         alt={hotel.name}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400';
-                                        }}
+                                        fill
+                                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                        loading="lazy"
+                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
                                     <div className="absolute top-3 right-3">
                                         <Popover
@@ -528,7 +547,7 @@ export function HomesGuestsLoveSection() {
                                                 <button
                                                     onClick={(e) => handleHeartClick(e, hotel)}
                                                     className={`p-2 backdrop-blur-sm rounded-full transition-all ${isSaved ? 'bg-red-50 text-red-500' : 'bg-white/80 text-gray-600 hover:text-red-500'
-                                                        }`}
+                                                    }`}
                                                 >
                                                     <Heart className={`w-5 h-5 ${isSaved ? 'fill-current' : ''}`} />
                                                 </button>

@@ -6,7 +6,6 @@ import { HeroSlider } from '@/components/home/heroSlider';
 import { SearchWidget } from '@/components/home/searchWidget';
 import { FeaturedHotels } from '@/components/home/featuredHotels';
 import { SectionHeading } from '@/components/home/section-heading';
-import { PartnerPlansSection } from '@/components/home/partner-plans-section';
 import {
   TrendingDestinations,
   ExploreEthiopia,
@@ -48,11 +47,6 @@ export default function HomePage() {
         {/* Featured Hotels */}
         <section>
           <FeaturedHotels />
-        </section>
-
-        {/* Hotel partner SaaS plans */}
-        <section>
-          <PartnerPlansSection />
         </section>
 
         {/* Popular with travelers */}
@@ -179,6 +173,7 @@ function PopularDestinationsTabs() {
                   fill
                   sizes="(max-width: 640px) 50vw, 25vw"
                   quality={65}
+                  loading="lazy"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

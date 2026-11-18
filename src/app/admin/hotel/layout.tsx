@@ -9,7 +9,6 @@ import { HotelPortalProvider, useHotelPortal } from '@/components/hotel-portal/h
 import { HotelPortalSidebar } from '@/components/hotel-portal/hotel-portal-sidebar';
 import { HotelAccessGate } from '@/components/hotel-portal/hotel-access-gate';
 import { HotelBillingBanner } from '@/components/hotel-portal/hotel-billing-banner';
-import { HotelSubscriptionGate } from '@/components/hotel-portal/hotel-subscription-gate';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getHotelBrandLabel, getHotelCoverUrl } from '@/lib/hotel-brand';
 
@@ -111,16 +110,12 @@ function HotelExtranetChrome({ children }: { children: React.ReactNode }) {
                 </header>
 
                 <main className="flex-1 p-4 sm:p-8 overflow-y-auto scrollbar-hide">
-                    <div className={isPicker ? 'max-w-5xl mx-auto' : 'max-w-7xl mx-auto'}>
+                    <div className={isPicker ? 'max-w-5xl mx-auto w-full' : 'max-w-[1600px] mx-auto w-full'}>
                         <HotelAccessGate>
-                            <HotelSubscriptionGate>
-                                {!isPicker &&
-                                hotelId &&
-                                !pathname.includes('/billing') ? (
-                                    <HotelBillingBanner hotelId={hotelId} />
-                                ) : null}
-                                {children}
-                            </HotelSubscriptionGate>
+                            {!isPicker && hotelId ? (
+                                <HotelBillingBanner hotelId={hotelId} />
+                            ) : null}
+                            {children}
                         </HotelAccessGate>
                     </div>
                 </main>

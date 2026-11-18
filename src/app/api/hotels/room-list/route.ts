@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
+import { API_CONFIG, API_ENDPOINTS, getApiHeaders, rapidApiMissingResponse } from '@/lib/api-config';
 import { assertHotelDetailAccess } from '@/lib/hotel-public-api-guard';
 import axios from 'axios';
 
@@ -15,6 +15,9 @@ export async function GET(request: Request) {
     const guarded = assertHotelDetailAccess(request, searchParams.get('hotelId'));
     if (!guarded.ok) return guarded.response;
     const hotelId = guarded.hotelId;
+
+    const missing = rapidApiMissingResponse();
+    if (missing) return missing;
 
     try {
         const options = {

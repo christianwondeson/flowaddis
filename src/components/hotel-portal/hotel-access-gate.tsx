@@ -5,7 +5,7 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Building2 } from 'lucide-react';
 import { useHotelPortal } from '@/components/hotel-portal/hotel-portal-context';
-import { useAuth } from '@/components/providers/auth-provider';
+import { useHotelPortalAuth } from '@/hooks/use-hotel-portal-auth';
 import { AdminLoader } from '@/components/ui/admin-loader';
 
 /**
@@ -17,7 +17,7 @@ export function HotelAccessGate({ children }: { children: React.ReactNode }) {
     const params = useParams();
     const pathname = usePathname();
     const router = useRouter();
-    const { user } = useAuth();
+    const { partnerStatus } = useHotelPortalAuth();
     const { hotels, loading, error } = useHotelPortal();
 
     const hotelId = typeof params?.hotelId === 'string' ? params.hotelId : '';
@@ -49,7 +49,7 @@ export function HotelAccessGate({ children }: { children: React.ReactNode }) {
     }
 
     if (!allowed && !loading) {
-        const pending = user?.hotelPartnerStatus === 'pending';
+                const pending = partnerStatus === 'pending';
         return (
             <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-5 py-8 text-center max-w-lg mx-auto">
                 <Building2 className="w-8 h-8 text-amber-700 mx-auto mb-3" />

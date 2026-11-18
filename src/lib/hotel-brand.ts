@@ -1,15 +1,19 @@
+import { publicizeCmsMediaUrl } from '@/lib/cms-media-url';
+
 /** First usable photo URL from Nest hotel/room `media` JSON. */
 export function getHotelCoverUrl(media: unknown): string | null {
     if (!media || typeof media !== 'object') return null;
     const photos = (media as { photos?: unknown }).photos;
     if (!Array.isArray(photos) || photos.length === 0) return null;
     const first = photos[0];
-    if (typeof first === 'string' && first.trim()) return first.trim();
-    if (first && typeof first === 'object') {
+    let raw: string | null = null;
+    if (typeof first === 'string' && first.trim()) raw = first.trim();
+    else if (first && typeof first === 'object') {
         const url = (first as { url?: unknown }).url;
-        if (typeof url === 'string' && url.trim()) return url.trim();
+        if (typeof url === 'string' && url.trim()) raw = url.trim();
     }
-    return null;
+    if (!raw) return null;
+    return publicizeCmsMediaUrl(raw) || raw;
 }
 
 /** Optional brand / chain label stored on hotel amenities or media. */

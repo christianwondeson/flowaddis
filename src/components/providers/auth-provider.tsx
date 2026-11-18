@@ -38,7 +38,7 @@ import { toast } from 'sonner';
 
 import { APP_CONSTANTS } from '@/lib/constants';
 import { validatePasswordStrength } from '@/lib/password-policy';
-import { parseUserRole } from '@/lib/auth/admin-utils';
+import { parseUserRole } from '@/lib/auth-helpers';
 // import { setAuthCookie, clearAuthCookie, deleteAuthCookie } from '@/lib/utils/cookies'; // Deprecated in favor of HttpOnly cookies
 import { useUserProfile } from '@/hooks/use-user-profile';
 import {
@@ -55,7 +55,7 @@ import {
     getFirebaseAuthUserMessage,
     logFirebaseAuthError,
 } from '@/lib/firebase-auth-user-message';
-import { clearAuthRelatedSessionStorage } from '@/lib/auth-client-storage-cleanup';
+import { clearAuthRelatedSessionStorage } from '@/lib/auth-helpers';
 
 async function postSessionCookie(token: string): Promise<Response> {
     return fetch('/api/auth/session', {
@@ -115,8 +115,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
                 setFirebaseUser(user);
             } else {
-                // clearAuthCookie();
-                await fetch('/api/auth/session', { method: 'DELETE' });
+                try {
+                    await fetch('/api/auth/session', {
+                        method: 'DELETE',
+                        credentials: 'include',
+                    });
+                } catch {
+                    /* ignore */
+                }
                 setFirebaseUser(null);
                 queryClient.removeQueries({ queryKey: queryKeys.user.all });
             }
@@ -633,11 +639,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!auth) throw new Error('Auth not initialized');
         clearRecaptcha();
         clearAuthRelatedSessionStorage();
-        await signOut(auth);
-        await fetch('/api/auth/session', { method: 'DELETE' });
+
+        // Clear HttpOnly session first so middleware won't bounce back into /admin.
+        try {
+            await fetch('/api/auth/session', {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+        } catch (e) {
+            console.warn('[auth] Session cookie clear failed', e);
+        }
+
+        try {
+            await signOut(auth);
+        } catch (e) {
+            console.warn('[auth] Firebase signOut failed', e);
+        }
+
         setFirebaseUser(null);
         queryClient.removeQueries({ queryKey: queryKeys.user.all });
+        queryClient.clear();
+
         router.replace('/');
+        router.refresh();
     }, [auth, clearRecaptcha, queryClient, router]);
 
     const renderRecaptcha = useCallback(async (containerId: string = 'recaptcha-container', size: 'invisible' | 'normal' = 'invisible', onSolved?: () => void) => {

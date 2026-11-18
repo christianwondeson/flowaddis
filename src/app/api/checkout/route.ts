@@ -47,7 +47,7 @@ export async function POST(req: Request) {
                 {
                     error: 'Payment service unreachable',
                     message:
-                        'Next could not reach the Nest API. Set BACKEND_URL to https://api.bookaddis.com (GitHub secret for deploy + Firebase env) and ensure the API is up with TLS.',
+                        'Next could not reach the Nest API. Set BACKEND_URL to https://api-prod.bookaddis.com (GitHub secret for deploy + Firebase env) and ensure the API is up with TLS.',
                 },
                 { status: 502 }
             );

@@ -635,6 +635,9 @@ function HotelsPageContent() {
                     onClose={() => setIsBookingOpen(false)}
                     serviceName={selectedHotel ? selectedHotel.name : 'Hotel Booking'}
                     price={selectedHotel?.price || 0}
+                    currencyCode={selectedHotel?.currency || 'ETB'}
+                    inventorySource={selectedHotel?.inventory_source || 'bookaddis_direct'}
+                    externalItemId={selectedHotel?.id}
                     type="hotel"
                     isLocal={true}
                 />

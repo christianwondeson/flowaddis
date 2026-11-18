@@ -41,6 +41,8 @@ interface BookingModalProps {
     hotelAdults?: number;
     /** Phase 3 inventory tag  bookaddis_direct | pms_synced | rapidapi */
     inventorySource?: 'bookaddis_direct' | 'pms_synced' | 'rapidapi' | string;
+    /** Listing / checkout currency (defaults to ETB for direct hotels/shuttles) */
+    currencyCode?: string;
     /** Direct inventory  required for allotment hold */
     roomTypeId?: string;
     ratePlanId?: string;
@@ -97,6 +99,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     roomBookQuantity = 1,
     hotelAdults,
     inventorySource = 'rapidapi',
+    currencyCode: propCurrencyCode,
     roomTypeId,
     ratePlanId,
     initialGuestName,
@@ -108,14 +111,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 }) => {
     const { t, locale } = useTranslations();
     const pathname = usePathname();
+    const isDirectUuid =
+        typeof externalItemId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            externalItemId,
+        );
     const isDirectProduct =
         type === 'shuttle' ||
         type === 'conference' ||
         (type === 'hotel' &&
             (inventorySource === 'bookaddis_direct' ||
-                inventorySource === 'pms_synced'));
+                inventorySource === 'pms_synced' ||
+                isDirectUuid));
     /** Direct / ETB inventory always offers CBE Birr + local rails. */
     const isLocal = isLocalProp ?? isDirectProduct;
+    const currencyCode =
+        propCurrencyCode ||
+        (isDirectProduct || propCurrencyCode === 'ETB' ? 'ETB' : undefined);
 
     const bookingSchema = useMemo(
         () =>
@@ -689,21 +701,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         ? 'bookaddis_direct'
                                         : type === 'hotel'
                                           ? inventorySource === 'bookaddis_direct' ||
-                                            inventorySource === 'pms_synced'
-                                              ? inventorySource
+                                            inventorySource === 'pms_synced' ||
+                                            isDirectUuid
+                                              ? 'bookaddis_direct'
                                               : 'rapidapi'
                                           : 'amadeus'
                                 }
                                 externalItemId={externalItemId}
                                 externalSnapshot={checkoutExternalSnapshot}
-                                currencyCode={
-                                    type === 'shuttle' ||
-                                    type === 'conference' ||
-                                    inventorySource === 'bookaddis_direct' ||
-                                    inventorySource === 'pms_synced'
-                                        ? 'ETB'
-                                        : undefined
-                                }
+                                currencyCode={currencyCode}
                                 customerPhone={(bookingData as BookingFormData | null)?.phone}
                                 preferredPaymentTiming={preferredPaymentTiming}
                             />

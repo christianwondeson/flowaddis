@@ -1,6 +1,7 @@
 import { auth } from '@/lib/firebase';
 import type { AdminCmsErrorCode } from '@/lib/admin-cms-error-codes';
 import { compressImagesForUpload } from '@/lib/compress-image';
+import { getPublicCmsBase, publicizeCmsMediaUrl } from '@/lib/cms-media-url';
 
 export class AdminCmsFetchError extends Error {
     constructor(
@@ -119,18 +120,15 @@ export function flattenStrapiList(json: unknown): Record<string, unknown>[] {
     });
 }
 
-/** Public Strapi origin for building image URLs in the browser (e.g. http://localhost:1337). */
+/** Public Strapi origin for building image URLs in the browser. */
 export function strapiPublicBase(): string {
-    if (typeof window === 'undefined') return '';
-    return (process.env.NEXT_PUBLIC_STRAPI_URL || '').replace(/\/$/, '');
+    return getPublicCmsBase();
 }
 
 export function resolveStrapiFileUrl(path?: string | null): string | null {
     if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const base = strapiPublicBase();
-    if (!base) return path.startsWith('/') ? path : `/${path}`;
-    return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+    const resolved = publicizeCmsMediaUrl(path);
+    return resolved || null;
 }
 
 /** Resolve first media URL from Strapi populate (single relation). */

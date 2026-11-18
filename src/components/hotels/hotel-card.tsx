@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/currency';
 import { Hotel } from '@/types';
 import { HotelInventoryBadge, isBookaddisBookableHotel } from '@/components/hotels/hotel-inventory-badge';
+import { optimizeHotelImageUrl } from '@/lib/optimize-image-url';
 
 interface HotelCardProps {
     hotel: Hotel;
@@ -23,9 +24,10 @@ interface HotelCardProps {
 export const HotelCard: React.FC<HotelCardProps> = ({ hotel, onBook, onHoverStart, onHoverEnd, variant = 'horizontal', staySummary, featured }) => {
     const [showFullDescription, setShowFullDescription] = React.useState(false);
     const [imgError, setImgError] = React.useState(false);
+    const optimized = optimizeHotelImageUrl(hotel.image, 'card');
     const imgSrc = imgError
         ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'
-        : hotel.image;
+        : optimized || hotel.image;
     const bookable = isBookaddisBookableHotel(hotel);
     const ctaLabel = bookable ? 'Book' : 'Check availability';
 

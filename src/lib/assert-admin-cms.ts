@@ -59,7 +59,7 @@ async function assertAdminViaNest(authHeader: string): Promise<'ok' | 'forbidden
 
 /**
  * Verifies Firebase ID token, then confirms admin via Nest (preferred) or Firestore Admin on Next (fallback).
- * Fallback fixes CMS when api.bookaddis.com cannot read Firestore (e.g. wrong FIRESTORE_DATABASE_ID on VPS).
+ * Fallback fixes CMS when api-prod.bookaddis.com cannot read Firestore (e.g. wrong FIRESTORE_DATABASE_ID on VPS).
  */
 export async function assertFirebaseAndNestAdmin(req: Request): Promise<void> {
     const authHeader = req.headers.get('Authorization');
@@ -104,7 +104,7 @@ export async function assertFirebaseAndNestAdmin(req: Request): Promise<void> {
     if (firestore.ok) {
         if (nest === 'forbidden') {
             console.warn(
-                `[CMS] Nest denied admin for ${uid} but Firestore confirms admin  check api.bookaddis.com FIRESTORE_DATABASE_ID=flowaddis-db and restart Nest.`,
+                `[CMS] Nest denied admin for ${uid} but Firestore confirms admin  check api-prod.bookaddis.com FIRESTORE_DATABASE_ID=flowaddis-db and restart Nest.`,
             );
         }
         return;

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { adminInventoryFetch } from '@/lib/admin-inventory-api';
-import { HotelSubscriptionAdminCard } from '@/components/admin/hotel-subscription-admin-card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { BedDouble, CalendarDays, Globe2 } from 'lucide-react';
@@ -135,8 +134,6 @@ export default function InventoryHotelOverviewPage() {
                     )}
                 </div>
             </div>
-
-            <HotelSubscriptionAdminCard hotelId={hotelId} />
 
             <div className="flex flex-wrap gap-2">
                 <Button asChild>

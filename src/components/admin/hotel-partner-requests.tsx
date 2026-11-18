@@ -162,9 +162,6 @@ export function HotelPartnerRequests() {
                                         {u.hotelPartnerRequest?.city
                                             ? ` · ${u.hotelPartnerRequest.city}`
                                             : ''}
-                                        {u.hotelPartnerRequest?.preferredPlanCode
-                                            ? ` · ${u.hotelPartnerRequest.preferredPlanCode}`
-                                            : ''}
                                     </div>
                                     <p
                                         className={

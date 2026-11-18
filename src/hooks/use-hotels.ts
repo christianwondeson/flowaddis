@@ -4,6 +4,7 @@ import { queryKeys } from '@/lib/react-query';
 import { apiClient } from '@/lib/api-client';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { mergeHotelSearchLocation } from '@/lib/hotel-search-location';
+import { optimizeHotelImageUrl } from '@/lib/optimize-image-url';
 
 interface UseHotelsParams {
     query: string;
@@ -82,9 +83,13 @@ export function useHotels(
 
             try {
                 const data = await apiClient.get<any>(APP_CONSTANTS.API.HOTELS, cleanParams);
+                const hotels = (data.hotels || []).map((h: Hotel) => ({
+                    ...h,
+                    image: optimizeHotelImageUrl(h.image, 'card') || h.image,
+                }));
 
                 return {
-                    hotels: data.hotels || [],
+                    hotels,
                     hasNextPage: data.hasNextPage || false,
                     totalCount: data.total || 0,
                     destId: data.destId

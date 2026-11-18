@@ -15,6 +15,8 @@ function ReserveInner() {
     const sp = useSearchParams();
     const { t } = useTranslations();
     const hotelId = String(params.id || '');
+    const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hotelId);
 
     const draft = useMemo((): HotelReserveDraft | null => {
         try {
@@ -22,7 +24,12 @@ function ReserveInner() {
             if (raw) {
                 const parsed = JSON.parse(raw) as HotelReserveDraft;
                 if (parsed?.hotelId && String(parsed.hotelId) === hotelId) {
-                    return parsed;
+                    return {
+                        ...parsed,
+                        currency: parsed.currency || (isUuid ? 'ETB' : 'ETB'),
+                        inventorySource:
+                            parsed.inventorySource || (isUuid ? 'bookaddis_direct' : undefined),
+                    };
                 }
             }
         } catch {
@@ -32,6 +39,7 @@ function ReserveInner() {
         const hotelName = sp.get('name') || 'Hotel';
         const roomName = sp.get('room') || 'Room';
         const price = Number(sp.get('price') || 0);
+        const currency = sp.get('currency') || (isUuid ? 'ETB' : 'ETB');
         const checkIn = sp.get('checkIn') || sp.get('checkInDate') || '';
         const checkOut = sp.get('checkOut') || sp.get('checkOutDate') || '';
         if (!checkIn || !checkOut || !price) return null;
@@ -42,16 +50,18 @@ function ReserveInner() {
             roomName,
             roomQuantity: Math.max(1, Number(sp.get('rooms') || 1)),
             price,
+            currency,
             checkIn,
             checkOut,
             adults: Number(sp.get('adults') || 2),
             children: Number(sp.get('children') || 0),
-            inventorySource: sp.get('inventory_source') || undefined,
+            inventorySource:
+                sp.get('inventory_source') || (isUuid ? 'bookaddis_direct' : undefined),
             roomBlockId: sp.get('roomBlockId') || undefined,
             roomTypeId: sp.get('roomTypeId') || undefined,
             ratePlanId: sp.get('ratePlanId') || undefined,
         };
-    }, [hotelId, sp]);
+    }, [hotelId, sp, isUuid]);
 
     if (!draft) {
         return (

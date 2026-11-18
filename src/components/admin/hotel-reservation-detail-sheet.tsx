@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {
     Sheet,
     SheetContent,
@@ -21,10 +22,46 @@ import {
     type StayCode,
 } from '@/lib/hotel-industry-codes';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { hotelAdminFetch } from '@/lib/hotel-admin-api';
+import { toast } from 'sonner';
+import { FileText, Loader2, Wallet } from 'lucide-react';
+import Link from 'next/link';
+import { formatDateLocal } from '@/lib/date-utils';
+import { monthBounds } from '@/lib/admin-period-utils';
+
 export type HotelReservationDetail = {
     id: string;
     status: string;
+    reservation_status?: string | null;
+    settlement_model?: 'pay_at_property' | 'prepaid' | null;
+    payment_timing?: string | null;
+    commission_status?: string | null;
+    remittance_payout?: {
+        status?: string;
+        amount?: number;
+        currency?: string;
+        cbe_reference?: string | null;
+        beneficiary_name?: string | null;
+    } | null;
+    card_guarantee?: {
+        brand?: string | null;
+        last4?: string | null;
+        expiry?: string | null;
+        funding?: string | null;
+        storage_mode?: string;
+        provider?: string | null;
+    } | null;
+    stay_outcome?: string | null;
+    stay_outcome_at?: string | null;
     amount: number;
+    confirmed_gross_amount?: number | null;
+    commission_amount?: number | null;
+    commission_percent?: number | null;
+    commission_estimated?: boolean;
+    gross_for_commission?: number | null;
     currency: string;
     payment_reference?: string | null;
     payment_channel?: string | null;
@@ -92,7 +129,16 @@ export type HotelReservationDetail = {
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    hotelId?: string;
+    /** Hide POS stay actions (Super Admin portfolio view). */
+    readOnly?: boolean;
+    /**
+     * Keep Statement / Finance links inside Super Admin routes
+     * (never jump into Hotel Admin).
+     */
+    adminPortfolio?: boolean;
     booking: HotelReservationDetail | null;
+    onUpdated?: (booking: HotelReservationDetail) => void;
 };
 
 function CodeChip({
@@ -138,9 +184,87 @@ function Section({
 export function HotelReservationDetailSheet({
     open,
     onOpenChange,
+    hotelId,
+    readOnly = false,
+    adminPortfolio = false,
     booking,
+    onUpdated,
 }: Props) {
+    const [acting, setActing] = React.useState<
+        'stayed' | 'no_show' | 'cancelled' | null
+    >(null);
+    const [confirmedAmount, setConfirmedAmount] = React.useState('');
+
+    React.useEffect(() => {
+        if (booking) {
+            setConfirmedAmount(String(booking.amount ?? ''));
+        }
+    }, [booking?.id, booking?.amount]);
+
     if (!booking) return null;
+
+    const statusNorm = String(booking.status || '').toLowerCase();
+    const canSetOutcome =
+        Boolean(hotelId) &&
+        !readOnly &&
+        !adminPortfolio &&
+        (!booking.stay_outcome || booking.stay_outcome === 'pending') &&
+        (statusNorm === 'confirmed' || statusNorm === 'paid');
+
+    const runAction = async (
+        action: 'stayed' | 'no_show' | 'cancelled',
+    ) => {
+        if (!hotelId) return;
+        setActing(action);
+        try {
+            const path =
+                action === 'stayed'
+                    ? `hotels/${hotelId}/bookings/${booking.id}/stayed`
+                    : action === 'no_show'
+                      ? `hotels/${hotelId}/bookings/${booking.id}/no-show`
+                      : `hotels/${hotelId}/bookings/${booking.id}/cancelled`;
+            const body =
+                action === 'stayed' && confirmedAmount
+                    ? JSON.stringify({
+                          confirmed_amount: Number(confirmedAmount),
+                      })
+                    : undefined;
+            const res = await hotelAdminFetch<{
+                stay_outcome: string;
+                gross_amount: number;
+                commission_amount: number;
+                commission_percent: number;
+            }>(path, { method: 'POST', body });
+            const updated: HotelReservationDetail = {
+                ...booking,
+                stay_outcome: res.stay_outcome,
+                stay_outcome_at: new Date().toISOString(),
+                confirmed_gross_amount: res.gross_amount,
+                commission_amount: res.commission_amount,
+                commission_percent: res.commission_percent,
+                reservation_status:
+                    res.stay_outcome === 'stayed'
+                        ? 'OK'
+                        : res.stay_outcome === 'no_show'
+                          ? 'No show'
+                          : res.stay_outcome === 'cancelled'
+                            ? 'Cancelled'
+                            : booking.reservation_status,
+            };
+            onUpdated?.(updated);
+            toast.success(
+                action === 'stayed'
+                    ? 'Stay confirmed — commission recorded.'
+                    : action === 'no_show'
+                      ? 'No-show recorded.'
+                      : 'Cancellation recorded.',
+            );
+        } catch (e) {
+            toast.error((e as Error).message);
+        } finally {
+            setActing(null);
+        }
+    };
 
     const meal = normalizeMealPlan(booking.meal_plan);
     const mealOpt = MEAL_PLAN_OPTIONS.find((o) => o.code === meal);
@@ -151,6 +275,60 @@ export function HotelReservationDetailSheet({
           : ['OVN']) as StayCode[];
     const rateSeg = (booking.rate_segment || 'RACK') as RateSegmentCode;
     const flex = (booking.flexibility || 'FLEX') as FlexibilityCode;
+
+    const bookNumber =
+        booking.payment_reference || booking.id.slice(0, 8).toUpperCase();
+
+    const billingPeriod = (() => {
+        const raw =
+            booking.stay_outcome_at ||
+            booking.check_out ||
+            booking.check_in ||
+            booking.created_at;
+        if (!raw) return null;
+        const { start, end } = monthBounds(new Date(raw));
+        return {
+            from: formatDateLocal(start),
+            to: formatDateLocal(end),
+        };
+    })();
+
+    const statementHref = adminPortfolio
+        ? (() => {
+              const qs = new URLSearchParams();
+              if (hotelId) qs.set('hotelId', hotelId);
+              if (billingPeriod) {
+                  qs.set('from', billingPeriod.from);
+                  qs.set('to', billingPeriod.to);
+              }
+              const q = qs.toString();
+              return `/admin/statement${q ? `?${q}` : ''}`;
+          })()
+        : hotelId
+          ? billingPeriod
+              ? `/admin/hotel/${hotelId}/statement?from=${billingPeriod.from}&to=${billingPeriod.to}`
+              : `/admin/hotel/${hotelId}/statement`
+          : '/admin/statement';
+
+    const invoicesHref = adminPortfolio
+        ? hotelId
+            ? `/admin/finance?hotelId=${hotelId}`
+            : '/admin/finance'
+        : hotelId
+          ? `/admin/hotel/${hotelId}/billing`
+          : '/admin/finance';
+
+    const commissionStatusLabel = (() => {
+        const s = (booking.commission_status || '').toLowerCase();
+        if (s === 'invoiced' || s === 'paid') return 'On invoice';
+        if (s === 'pending' || booking.stay_outcome === 'stayed') {
+            return 'Recorded — awaiting monthly invoice';
+        }
+        if (booking.stay_outcome === 'cancelled' || booking.stay_outcome === 'no_show') {
+            return 'No commission';
+        }
+        return 'Not yet settled';
+    })();
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -163,9 +341,222 @@ export function HotelReservationDetailSheet({
                         {booking.guest_name || 'Guest reservation'}
                     </SheetTitle>
                     <SheetDescription>
-                        {booking.room_name || 'Room'} · {booking.status}
+                        <span className="font-mono text-teal-800 font-semibold">
+                            {bookNumber}
+                        </span>
+                        {' · '}
+                        {booking.room_name || 'Room'} ·{' '}
+                        {booking.reservation_status || booking.status}
                     </SheetDescription>
                 </SheetHeader>
+
+                <Section title="Commission & billing">
+                    <div className="rounded-xl border border-slate-200 p-3 text-sm space-y-3">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <div>
+                                <p className="text-[11px] font-bold uppercase text-slate-500">
+                                    Commission
+                                </p>
+                                <p className="font-extrabold text-brand-dark mt-0.5">
+                                    {booking.currency}{' '}
+                                    {Number(
+                                        booking.commission_amount ?? 0,
+                                    ).toLocaleString()}
+                                    {booking.commission_percent != null
+                                        ? ` (${booking.commission_percent}%)`
+                                        : ''}
+                                    {booking.commission_estimated
+                                        ? ' · est.'
+                                        : ''}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    {commissionStatusLabel}
+                                </p>
+                            </div>
+                            <div className="text-right text-xs text-slate-500">
+                                {booking.settlement_model === 'prepaid'
+                                    ? 'Prepaid'
+                                    : booking.settlement_model ===
+                                        'pay_at_property'
+                                      ? 'Pay at hotel'
+                                      : null}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+                            <Button
+                                asChild
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl"
+                            >
+                                <Link href={statementHref}>
+                                    <FileText className="w-3.5 h-3.5 mr-1.5" />
+                                    View statement
+                                </Link>
+                            </Button>
+                            <Button
+                                asChild
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl"
+                            >
+                                <Link href={invoicesHref}>
+                                    <Wallet className="w-3.5 h-3.5 mr-1.5" />
+                                    {hotelId && !adminPortfolio
+                                        ? 'Open invoices'
+                                        : 'Open finance'}
+                                </Link>
+                            </Button>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-snug">
+                            Same as Booking.com: confirm the stay here, then the
+                            commission line appears on your reservations
+                            statement and monthly invoice.
+                        </p>
+                    </div>
+                </Section>
+
+                {canSetOutcome ? (
+                    <Section title="After guest arrives (POS)">
+                        <p className="text-sm text-slate-600">
+                            {booking.settlement_model === 'prepaid'
+                                ? 'Guest already prepaid BookAddis. Confirm stay for your records — commission was taken when we transferred your net payout.'
+                                : 'Real flow: guest shows up → you collect payment on the POS → Confirm stayed. BookAddis then records commission (price × your %).'}
+                        </p>
+                        {booking.settlement_model !== 'prepaid' &&
+                        confirmedAmount ? (
+                            <p className="text-xs text-slate-500 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
+                                Preview:{' '}
+                                <strong>
+                                    {booking.currency}{' '}
+                                    {Number(confirmedAmount).toLocaleString()}
+                                </strong>
+                                {booking.commission_percent != null
+                                    ? ` × ${booking.commission_percent}% = ${booking.currency} ${(
+                                          (Number(confirmedAmount) *
+                                              Number(booking.commission_percent)) /
+                                          100
+                                      ).toLocaleString(undefined, {
+                                          maximumFractionDigits: 2,
+                                      })}`
+                                    : ' × hotel commission %'}
+                            </p>
+                        ) : null}
+                        {acting === 'stayed' || canSetOutcome ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="confirmed-amount">
+                                    Amount collected on POS ({booking.currency})
+                                </Label>
+                                <Input
+                                    id="confirmed-amount"
+                                    type="number"
+                                    min={0}
+                                    value={confirmedAmount}
+                                    onChange={(e) =>
+                                        setConfirmedAmount(e.target.value)
+                                    }
+                                    className="h-10 rounded-xl"
+                                    disabled={Boolean(acting)}
+                                />
+                            </div>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="rounded-xl"
+                                disabled={Boolean(acting)}
+                                onClick={() => void runAction('stayed')}
+                            >
+                                {acting === 'stayed' ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    'Paid on POS — Confirm stayed'
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl"
+                                disabled={Boolean(acting)}
+                                onClick={() => void runAction('no_show')}
+                            >
+                                {acting === 'no_show' ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    'Report no-show'
+                                )}
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="rounded-xl"
+                                disabled={Boolean(acting)}
+                                onClick={() => void runAction('cancelled')}
+                            >
+                                {acting === 'cancelled' ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    'Mark cancelled'
+                                )}
+                            </Button>
+                        </div>
+                    </Section>
+                ) : booking.stay_outcome && booking.stay_outcome !== 'pending' ? (
+                    <Section title="Stay outcome">
+                        <div className="rounded-xl border border-slate-200 p-3 text-sm space-y-1">
+                            <p className="font-semibold capitalize">
+                                {booking.reservation_status ||
+                                    booking.stay_outcome.replace('_', ' ')}
+                            </p>
+                            {booking.stay_outcome_at ? (
+                                <p className="text-xs text-slate-500">
+                                    Recorded{' '}
+                                    {formatAdminDateTime(booking.stay_outcome_at)}
+                                </p>
+                            ) : null}
+                            {booking.commission_amount != null ? (
+                                <p className="text-brand-dark font-bold">
+                                    Commission: {booking.currency}{' '}
+                                    {Number(booking.commission_amount).toLocaleString()}
+                                    {booking.commission_percent != null
+                                        ? ` (${booking.commission_percent}%)`
+                                        : ''}
+                                    {booking.commission_estimated
+                                        ? ' · estimated'
+                                        : ''}
+                                </p>
+                            ) : null}
+                        </div>
+                    </Section>
+                ) : null}
+
+                {booking.settlement_model === 'prepaid' &&
+                booking.remittance_payout ? (
+                    <Section title="Prepaid transfer">
+                        <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-3 text-sm space-y-1">
+                            <p className="font-semibold text-teal-900">
+                                Net transfer · {booking.remittance_payout.status}
+                            </p>
+                            <p>
+                                {booking.remittance_payout.currency}{' '}
+                                {Number(
+                                    booking.remittance_payout.amount,
+                                ).toLocaleString()}{' '}
+                                → {booking.remittance_payout.beneficiary_name}
+                            </p>
+                            {booking.remittance_payout.cbe_reference ? (
+                                <p className="text-xs font-mono text-slate-500">
+                                    Ref {booking.remittance_payout.cbe_reference}
+                                </p>
+                            ) : null}
+                        </div>
+                    </Section>
+                ) : null}
 
                 <div className="mt-6 space-y-6">
                     <Section title="Stay">
@@ -322,31 +713,39 @@ export function HotelReservationDetailSheet({
                                 </p>
                             ) : null}
                             {booking.payment?.card?.last4 ||
-                            booking.payment?.card?.brand ? (
+                            booking.payment?.card?.brand ||
+                            booking.card_guarantee?.last4 ? (
                                 <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2 space-y-0.5">
                                     <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                                        Card on file
+                                        Card guarantee (PCI-safe)
                                     </p>
                                     <p className="font-semibold text-brand-dark">
                                         {[
-                                            booking.payment.card.brand,
-                                            booking.payment.card.last4
-                                                ? `•••• ${booking.payment.card.last4}`
+                                            booking.card_guarantee?.brand ||
+                                                booking.payment?.card?.brand,
+                                            booking.card_guarantee?.last4 ||
+                                            booking.payment?.card?.last4
+                                                ? `•••• ${booking.card_guarantee?.last4 || booking.payment?.card?.last4}`
                                                 : null,
                                         ]
                                             .filter(Boolean)
                                             .join(' · ') || 'Card'}
                                     </p>
-                                    {booking.payment.card.expiry ? (
+                                    {(booking.card_guarantee?.expiry ||
+                                        booking.payment?.card?.expiry) && (
                                         <p className="text-xs text-slate-500">
-                                            Exp {booking.payment.card.expiry}
+                                            Exp{' '}
+                                            {booking.card_guarantee?.expiry ||
+                                                booking.payment?.card?.expiry}
                                         </p>
-                                    ) : null}
-                                    {booking.payment.card.funding ? (
-                                        <p className="text-xs text-slate-500 capitalize">
-                                            {booking.payment.card.funding}
-                                        </p>
-                                    ) : null}
+                                    )}
+                                    <p className="text-[10px] text-slate-400">
+                                        Masked only — full PAN never stored on
+                                        BookAddis (
+                                        {booking.card_guarantee?.storage_mode ||
+                                            'hosted checkout'}
+                                        )
+                                    </p>
                                 </div>
                             ) : null}
                             {booking.payment?.payer_phone ? (

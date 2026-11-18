@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "deploy:hosting": "env FIREBASE_CLI_EXPERIMENTS=webframeworks firebase deploy --only hosting"
+    "deploy:hosting": "node scripts/deploy-hosting.mjs"
   },
   "dependencies": {
     "@google-cloud/recaptcha-enterprise": "^6.4.1",

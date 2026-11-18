@@ -937,6 +937,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                 onClose={() => setPayOpen(false)}
                 serviceName={`${draft.hotelName} · ${draft.roomName}`}
                 price={total}
+                currencyCode={currency}
                 type="hotel"
                 initialCheckIn={checkIn}
                 initialCheckOut={checkOut}
@@ -944,7 +945,15 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                 roomBlockId={draft.roomBlockId}
                 roomBookQuantity={draft.roomQuantity}
                 hotelAdults={draft.adults}
-                inventorySource={draft.inventorySource}
+                inventorySource={
+                    draft.inventorySource ||
+                    (draft.hotelId &&
+                    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                        draft.hotelId,
+                    )
+                        ? 'bookaddis_direct'
+                        : 'rapidapi')
+                }
                 roomTypeId={draft.roomTypeId}
                 ratePlanId={draft.ratePlanId}
                 initialGuestName={fullName}

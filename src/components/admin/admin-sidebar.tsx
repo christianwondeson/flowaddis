@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,6 +12,9 @@ import {
     LifeBuoy,
     Hotel,
     MessageSquare,
+    Wallet,
+    BookOpen,
+    FileText,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
 import { clsx } from 'clsx';
@@ -29,10 +32,25 @@ interface AdminSidebarProps {
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigate }) => {
     const pathname = usePathname();
     const { logout } = useAuth();
+    const [signingOut, setSigningOut] = useState(false);
+
+    const onSignOut = async () => {
+        if (signingOut) return;
+        setSigningOut(true);
+        try {
+            await logout();
+        } catch (e) {
+            console.error(e);
+            setSigningOut(false);
+        }
+    };
 
     const navItems = [
         { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
         { name: 'Hotels', path: '/admin/partners', icon: Hotel },
+        { name: 'Reservations', path: '/admin/reservations', icon: BookOpen },
+        { name: 'Finance (all hotels)', path: '/admin/finance', icon: Wallet },
+        { name: 'Statement (all hotels)', path: '/admin/statement', icon: FileText },
         { name: 'Manage Flights', path: '/admin/flights', icon: Plane },
         { name: 'Support & Disputes', path: '/admin/support', icon: LifeBuoy },
         { name: 'Hotel messages', path: '/admin/messages', icon: MessageSquare },
@@ -89,11 +107,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigat
 
             <div className="p-4 border-t border-white/10">
                 <button
-                    onClick={logout}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-500 w-full transition-colors"
+                    type="button"
+                    disabled={signingOut}
+                    onClick={() => void onSignOut()}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-red-500/10 hover:text-red-500 w-full transition-colors disabled:opacity-60"
                 >
                     <LogOut className="w-5 h-5" />
-                    Sign Out
+                    {signingOut ? 'Signing out…' : 'Sign Out'}
                 </button>
             </div>
         </aside>

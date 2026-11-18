@@ -1,4 +1,17 @@
 import { assertSafeHttpBaseUrl } from '@/lib/safe-backend-url';
+import { PRODUCTION_CMS_URL } from '@/lib/cms-media-url';
+
+const LOCAL_ORIGIN = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?/i;
+
+/** Bracket access so Next does not bake laptop `.env.local` into the Cloud Run bundle. */
+function runtimeEnv(name: string): string {
+    return String(process.env[name] ?? '').trim();
+}
+
+function isDeployedServerless(): boolean {
+    // Cloud Run / Firebase SSR only. Do not use GCLOUD_PROJECT — gcloud CLI sets it locally.
+    return Boolean(process.env.K_SERVICE || process.env.FUNCTION_TARGET);
+}
 
 export type CmsResource = 'hotels' | 'shuttles' | 'conferences' | 'flights';
 
@@ -9,8 +22,13 @@ export function isCmsResource(s: string): s is CmsResource {
 }
 
 export function getStrapiConfig(): { baseUrl: string; token: string } {
-    const raw = process.env.STRAPI_URL?.trim() || '';
-    const token = process.env.STRAPI_API_TOKEN?.trim();
+    let raw = runtimeEnv('STRAPI_URL') || runtimeEnv('NEXT_PUBLIC_STRAPI_URL');
+    const token = runtimeEnv('STRAPI_API_TOKEN');
+
+    if (isDeployedServerless() && (!raw || LOCAL_ORIGIN.test(raw))) {
+        raw = PRODUCTION_CMS_URL;
+    }
+
     if (!raw) {
         throw new Error(
             'STRAPI_URL is not set. For local Strapi use STRAPI_URL=http://127.0.0.1:1337 in flowaddis/.env.local (see env.example).',
@@ -20,7 +38,7 @@ export function getStrapiConfig(): { baseUrl: string; token: string } {
         const hint =
             raw.includes('127.0.0.1') || raw.includes('localhost')
                 ? ' Create a token at http://127.0.0.1:1337/admin → Settings → API Tokens (Full access), set STRAPI_API_TOKEN in .env.local, and restart npm run dev. Do not use STRAPI_API_TOKEN= (empty)  that blocks the token from .env.'
-                : ' Set STRAPI_API_TOKEN in .env or .env.local and restart npm run dev.';
+                : ' Set STRAPI_API_TOKEN on the Next SSR host (Firebase Cloud Run), matching the production CMS at cms.bookaddis.com.';
         throw new Error(`STRAPI_API_TOKEN is missing or empty.${hint}`);
     }
     const baseUrl = assertSafeHttpBaseUrl(raw, 'STRAPI_URL');

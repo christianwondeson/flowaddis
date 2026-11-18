@@ -36,9 +36,11 @@ async function proxy(request: Request, ctx: Ctx) {
     const url = new URL(request.url);
     const upstream = `${backendUrl}/api/v1/hotel-admin/${segments.map(encodeURIComponent).join('/')}${url.search}`;
 
-    // CBE USSD subscribe can exceed the default 20s; keep other routes snappy.
-    const isCbeSubscribe = segments.join('/').includes('subscribe/cbe-birr');
-    const timeoutMs = isCbeSubscribe ? 55_000 : 20_000;
+    // CBE USSD commission pay can exceed the default 20s; keep other routes snappy.
+    const isCbeLongPay =
+        segments.join('/').includes('subscribe/cbe-birr') ||
+        segments.join('/').includes('commission/pay/cbe-birr');
+    const timeoutMs = isCbeLongPay ? 55_000 : 20_000;
 
     const init: RequestInit = {
         method: request.method,

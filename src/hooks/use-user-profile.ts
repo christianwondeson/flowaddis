@@ -6,20 +6,7 @@ import { getUserDocSnapshotPreferServer } from '@/lib/firestore-user-doc';
 import { queryKeys } from '@/lib/react-query';
 import { HotelPartnerRequest, HotelPartnerStatus, User, UserRole } from '@/types/auth';
 import { APP_CONSTANTS } from '@/lib/constants';
-import { parseUserRole } from '@/lib/auth/admin-utils';
-
-function parseHotelPartnerStatus(raw: unknown): HotelPartnerStatus {
-    if (
-        raw === 'pending' ||
-        raw === 'approved' ||
-        raw === 'rejected' ||
-        raw === 'none' ||
-        raw === 'draft'
-    ) {
-        return raw;
-    }
-    return 'none';
-}
+import { parseUserRole, parseHotelPartnerStatus } from '@/lib/auth-helpers';
 
 export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
     const uid = firebaseUser?.uid ?? '';

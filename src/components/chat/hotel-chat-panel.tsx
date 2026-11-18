@@ -8,8 +8,10 @@ import {
     ensureGuestThread,
     ensureOpsThread,
     ensureSupportThread,
+    listenGuestThreadsForUser,
     listenMessages,
-    listenThreads,
+    listenThreadDoc,
+    listenThreadsByType,
     sendChatMessage,
     type ChatMessage,
     type ChatThread,
@@ -42,24 +44,26 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
     const senderRole = useMemo(() => {
         if (!user) return 'user';
         if (user.role === 'admin') return 'super_admin';
-        if (user.role === 'hotel_admin' || user.role === 'hotel_staff') return 'hotel_admin';
+        if (user.role === 'hotel_admin' || user.role === 'hotel_staff') {
+            return 'hotel_admin';
+        }
         return 'guest';
     }, [user]);
 
     useEffect(() => {
         if (!user?.id || !hotelId) return;
         let cancelled = false;
+        let unsub: (() => void) | undefined;
 
         (async () => {
             setError(null);
+            setLoadingThreads(true);
             try {
                 if (mode === 'ops' && !guestSelf) {
-                    // Always include the signed-in uid so rules + participants stay aligned.
                     await ensureOpsThread({
                         hotelId,
                         hotelName,
-                        hotelAdminUid:
-                            user.role === 'admin' ? user.id : user.id,
+                        hotelAdminUid: user.id,
                         superAdminUid: user.role === 'admin' ? user.id : '',
                     });
                 }
@@ -82,43 +86,72 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
             } catch (e) {
                 if (!cancelled) setError((e as Error).message);
             }
-        })();
 
-        setLoadingThreads(true);
-        const unsub = listenThreads(
-            hotelId,
-            (rows) => {
+            if (cancelled) return;
+
+            const applyThreads = (rows: ChatThread[]) => {
                 const filtered = guestSelf
-                    ? rows.filter(
-                          (t) =>
-                              t.guestUid === user.id &&
-                              (mode === 'support'
-                                  ? t.type === 'support'
-                                  : t.type === 'guest'),
+                    ? rows.filter((t) =>
+                          mode === 'support'
+                              ? t.type === 'support'
+                              : t.type === 'guest',
                       )
-                    : mode === 'ops'
-                      ? rows.filter((t) => t.type === 'ops')
-                      : mode === 'support'
-                        ? rows.filter((t) => t.type === 'support')
-                        : rows.filter((t) => t.type === 'guest');
+                    : rows;
                 setThreads(filtered);
                 setLoadingThreads(false);
                 setActiveId((prev) => {
                     if (prev && filtered.some((t) => t.id === prev)) return prev;
                     return filtered[0]?.id ?? null;
                 });
-            },
-            (err) => {
+            };
+
+            const onErr = (err: Error) => {
                 setError(err.message);
                 setLoadingThreads(false);
-            },
-        );
+            };
+
+            // Guests must query by guestUid — unfiltered list always fails rules.
+            if (guestSelf) {
+                unsub = listenGuestThreadsForUser(
+                    hotelId,
+                    user.id,
+                    applyThreads,
+                    onErr,
+                );
+                return;
+            }
+
+            // Ops: prefer single-doc listener (most reliable under rules).
+            if (mode === 'ops') {
+                unsub = listenThreadDoc(
+                    hotelId,
+                    'ops',
+                    (thread) => {
+                        applyThreads(thread ? [thread] : []);
+                    },
+                    onErr,
+                );
+                return;
+            }
+
+            // Desk/SA guest or support inboxes — type-filtered list.
+            unsub = listenThreadsByType(hotelId, mode, applyThreads, onErr);
+        })();
 
         return () => {
             cancelled = true;
-            unsub();
+            unsub?.();
         };
-    }, [hotelId, hotelName, mode, guestSelf, user?.id, user?.role, user?.name, user?.email]);
+    }, [
+        hotelId,
+        hotelName,
+        mode,
+        guestSelf,
+        user?.id,
+        user?.role,
+        user?.name,
+        user?.email,
+    ]);
 
     useEffect(() => {
         if (!hotelId || !activeId) {
@@ -177,13 +210,20 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                               ? 'Ops desk'
                               : 'Guest threads'}
                     </p>
-                    <p className="text-sm font-semibold text-brand-dark truncate">{hotelName}</p>
+                    <p className="text-sm font-semibold text-brand-dark truncate">
+                        {hotelName}
+                    </p>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {loadingThreads ? (
-                        <AdminLoader label="Loading chats…" className="min-h-[120px] py-8" />
+                        <AdminLoader
+                            label="Loading chats…"
+                            className="min-h-[120px] py-8"
+                        />
                     ) : threads.length === 0 ? (
-                        <p className="p-4 text-sm text-slate-500">No conversations yet.</p>
+                        <p className="p-4 text-sm text-slate-500">
+                            No conversations yet.
+                        </p>
                     ) : (
                         <ul className="divide-y divide-slate-100">
                             {threads.map((t) => (
@@ -193,7 +233,8 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                                         onClick={() => setActiveId(t.id)}
                                         className={cn(
                                             'w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors',
-                                            activeId === t.id && 'bg-brand-primary/5',
+                                            activeId === t.id &&
+                                                'bg-brand-primary/5',
                                         )}
                                     >
                                         <div className="flex items-center gap-2">
@@ -220,11 +261,12 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                     <div className="m-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                         {error}
                         <p className="text-xs mt-1 text-amber-800">
-                            If the console shows <code className="font-mono">ERR_BLOCKED_BY_CLIENT</code>,
-                            disable your ad blocker / privacy extension for localhost (uBlock,
-                            Brave Shields, etc.)  they block Firestore realtime channels. Also
-                            allow authenticated read/write on{' '}
-                            <code className="font-mono">hotelChats/**</code> in Firestore rules.
+                            Chat needs Firestore rules on the{' '}
+                            <code className="font-mono">flowaddis-db</code>{' '}
+                            database and a correct role on{' '}
+                            <code className="font-mono">users/{'{uid}'}.role</code>
+                            . Ad blockers only matter if the browser blocks Google
+                            APIs entirely.
                         </p>
                     </div>
                 ) : null}
@@ -238,7 +280,7 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                         <AdminLoader label="Loading messages…" />
                     ) : messages.length === 0 ? (
                         <p className="text-sm text-slate-500 text-center py-16">
-                            No messages yet  say hello.
+                            No messages yet — say hello.
                         </p>
                     ) : (
                         messages.map((m) => {
@@ -246,7 +288,10 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                             return (
                                 <div
                                     key={m.id}
-                                    className={cn('flex', mine ? 'justify-end' : 'justify-start')}
+                                    className={cn(
+                                        'flex',
+                                        mine ? 'justify-end' : 'justify-start',
+                                    )}
                                 >
                                     <div
                                         className={cn(
@@ -259,13 +304,19 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                                         <p
                                             className={cn(
                                                 'text-[10px] font-bold uppercase tracking-wide mb-0.5',
-                                                mine ? 'text-white/70' : 'text-slate-500',
+                                                mine
+                                                    ? 'text-white/70'
+                                                    : 'text-slate-500',
                                             )}
                                         >
                                             {m.senderName}
-                                            {m.senderRole ? ` · ${m.senderRole}` : ''}
+                                            {m.senderRole
+                                                ? ` · ${m.senderRole}`
+                                                : ''}
                                         </p>
-                                        <p className="whitespace-pre-wrap">{m.body}</p>
+                                        <p className="whitespace-pre-wrap">
+                                            {m.body}
+                                        </p>
                                     </div>
                                 </div>
                             );

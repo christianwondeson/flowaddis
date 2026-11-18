@@ -37,6 +37,7 @@ function safeRoomName(val: unknown): string | null {
 
 export type HotelBookSelection = {
     price?: number;
+    currency?: string;
     serviceName?: string;
     roomBlockId?: string;
     roomQuantity?: number;
@@ -500,7 +501,8 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                     onClick={() =>
                                                         onBook?.({
                                                             price: total,
-                                                            serviceName: `${offer.room_name}  ${offer.rate_plan_name}`,
+                                                            currency: offer.currency || 'ETB',
+                                                            serviceName: `${offer.room_name} · ${offer.rate_plan_name}`,
                                                             roomQuantity: qty,
                                                             roomTypeId: offer.room_type_id,
                                                             ratePlanId: offer.rate_plan_id,

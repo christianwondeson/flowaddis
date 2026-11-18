@@ -1,45 +1,11 @@
 import { NextResponse } from 'next/server';
 import { API_CONFIG, API_ENDPOINTS, getApiHeaders } from '@/lib/api-config';
 import axios from 'axios';
-import { getSafeBackendBaseUrl } from '@/lib/safe-backend-url';
-import { getPublicEtbPerUsd, usdToEtbDisplay } from '@/lib/etb-usd';
-
-async function fetchEtbPerUsd(): Promise<number> {
-    try {
-        const backend = getSafeBackendBaseUrl();
-        const res = await fetch(`${backend}/api/v1/fx/etb-usd`, {
-            next: { revalidate: 60 },
-        });
-        if (res.ok) {
-            const data = await res.json();
-            const rate = Number(data?.etbPerUsd);
-            if (Number.isFinite(rate) && rate > 0) return rate;
-        }
-    } catch {
-        /* fallback */
-    }
-    return getPublicEtbPerUsd();
-}
-
-/** RapidAPI returns USD  convert list prices to ETB with live CBE rate. */
-function convertRapidApiHotelToEtb(h: any, etbPerUsd: number) {
-    if (!h || h.inventory_source !== 'rapidapi') return h;
-    const priceUsd = Number(h.price) || 0;
-    const origUsd = Number(h.originalPrice) || 0;
-    return {
-        ...h,
-        price_usd: priceUsd,
-        original_price_usd: origUsd || undefined,
-        price: usdToEtbDisplay(priceUsd, etbPerUsd),
-        originalPrice: origUsd
-            ? usdToEtbDisplay(origUsd, etbPerUsd)
-            : undefined,
-        currency: 'ETB',
-        fx_etb_per_usd: etbPerUsd,
-        // Partner listings often mark "includes taxes"  we do not add tax ourselves.
-        priceIncludesTaxes: false,
-    };
-}
+import { pickListHotelPhoto } from '@/lib/optimize-image-url';
+import {
+  convertRapidApiHotelToEtb,
+  fetchEtbPerUsd,
+} from '@/lib/currency-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -378,15 +344,7 @@ export async function GET(request: Request) {
             const badges = item.badges?.map((badge: any) => badge.text) || [];
             if (item.is_mobile_deal || item.isMobileDeal) badges.push('Mobile-only price');
 
-            const image = item.photoMainUrl ||
-                item.max_1440_photo_url ||
-                item.max_photo_url ||
-                item.main_photo_url ||
-                (item.photo_urls && item.photo_urls.length > 0 ? item.photo_urls[0] : null) ||
-                (item.photoUrls && item.photoUrls.length > 0 ? item.photoUrls[0] : null) ||
-                item.url_1440 ||
-                item.url_square600 ||
-                'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80';
+            const image = pickListHotelPhoto(item as Record<string, unknown>);
 
             const roomType =
                 item.unit_configuration_label ||

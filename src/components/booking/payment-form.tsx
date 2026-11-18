@@ -32,10 +32,6 @@ import {
     isLocalPaymentChannel,
 } from '@/lib/payment-channels';
 import {
-    isValidMpgsSessionId,
-    resolveTrustedMpgsCheckoutScriptUrl,
-} from '@/lib/mpgs-checkout-security';
-import {
     buildLocalCheckoutMetadata,
     ET_MOBILE_PATTERN,
     fetchPaymentStatus,
@@ -45,7 +41,9 @@ import {
     getPublicEtbPerUsd,
     usdToEtbDisplay,
 } from '@/lib/etb-usd';
+import { nestCheckoutMoney } from '@/lib/currency-utils';
 import type { PaymentSuccessResult } from '@/lib/payment-success';
+import { useMpgsCheckout } from '@/hooks/use-mpgs-checkout';
 
 const USE_MPGS_CHECKOUT = process.env.NEXT_PUBLIC_MPGS_ENABLED === 'true';
 
@@ -70,29 +68,6 @@ type PaymentMethod = PaymentSuccessResult['method'];
 
 const defaultCardMethod = (): PaymentMethod =>
     USE_MPGS_CHECKOUT ? 'mpgs' : 'stripe';
-
-function nestMoney(
-    payload: Record<string, unknown>,
-    fallbackAmount: number,
-    fallbackCurrency: 'ETB' | 'USD',
-): Pick<PaymentSuccessResult, 'amount' | 'currency' | 'paymentReference' | 'bookingId'> {
-    const amountRaw = payload?.amount;
-    const amount =
-        typeof amountRaw === 'number' && Number.isFinite(amountRaw) && amountRaw > 0
-            ? amountRaw
-            : fallbackAmount;
-    const cur = String(payload?.currency || fallbackCurrency).toUpperCase();
-    const currency: 'ETB' | 'USD' = cur === 'USD' ? 'USD' : 'ETB';
-    const paymentReference =
-        typeof payload?.paymentReference === 'string'
-            ? payload.paymentReference
-            : typeof payload?.payNar === 'string'
-              ? payload.payNar
-              : null;
-    const bookingId =
-        typeof payload?.bookingId === 'string' ? payload.bookingId : null;
-    return { amount, currency, paymentReference, bookingId };
-}
 
 // Local Ethiopian rails are available by default; set NEXT_PUBLIC_LOCAL_PAYMENTS_ENABLED=false to hide globally.
 const SHOW_LOCAL_PAYMENT_METHODS =
@@ -125,12 +100,28 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     bookingType = 'flight',
     source = 'local',
     externalItemId = 'N/A',
-    currencyCode = 'USD',
+    currencyCode: rawCurrencyCode,
     externalSnapshot = {},
     customerPhone = '',
     preferredPaymentTiming,
 }) => {
+    const isDirectUuid =
+        typeof externalItemId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            externalItemId,
+        );
+    const currencyCode =
+        rawCurrencyCode ||
+        (isLocal ||
+        source === 'bookaddis_direct' ||
+        source === 'pms_synced' ||
+        bookingType === 'shuttle' ||
+        bookingType === 'conference' ||
+        isDirectUuid
+            ? 'ETB'
+            : 'USD');
     const { t, locale } = useTranslations();
+    const { startMpgsCheckout } = useMpgsCheckout();
 
     const telebirrSchema = useMemo(
         () =>
@@ -621,7 +612,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                     setPaymentReference(ref);
                 }
             toast.success(t('bookingUi.payment.toastReserveOnSite'));
-                const money = nestMoney(
+                const money = nestCheckoutMoney(
                     payload,
                     listingIsEtb ? amount : displayAmount,
                     'ETB',
@@ -648,74 +639,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 const token = await ensureCheckoutPrerequisites();
                 if (!token) return;
 
-                void resolveCheckoutReturnUrlForRequest();
-
-                const response = await fetch('/api/checkout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
+                const result = await startMpgsCheckout({
+                    token,
+                    bookingType,
+                    source,
+                    externalItemId,
+                    externalSnapshot,
+                    messages: {
+                        authFailed: t('bookingUi.payment.toastAuthFailed'),
+                        initFailed: t('bookingUi.payment.toastMpgsInit'),
                     },
-                    body: JSON.stringify({
-                        bookingType,
-                        source,
-                        externalItemId,
-                        currency: 'USD',
-                        paymentChannel: 'mpgs',
-                        external_snapshot: externalSnapshot,
-                    }),
+                    onPaymentReference: setPaymentReference,
                 });
-
-                if (response.status === 401) {
-                    toast.error(t('bookingUi.payment.toastAuthFailed'));
-                }
-
-                const payload = await response.json();
-                const {
-                    error,
-                    sessionId,
-                    paymentReference: payRef,
-                    payNar,
-                    checkoutScriptUrl,
-                } = payload || {};
-                const resolvedRef =
-                    typeof payRef === 'string'
-                        ? payRef
-                        : typeof payNar === 'string'
-                          ? payNar
-                          : null;
-
-                if (resolvedRef) {
-                    setPaymentReference(resolvedRef);
-                    try {
-                        sessionStorage.setItem('last_pay_nar', resolvedRef);
-                    } catch {
-                        /* ignore */
-                    }
-                }
-
-                if (
-                    typeof sessionId === 'string' &&
-                    isValidMpgsSessionId(sessionId)
-                ) {
-                    const trustedScriptUrl = resolveTrustedMpgsCheckoutScriptUrl(
-                        typeof checkoutScriptUrl === 'string' ? checkoutScriptUrl : undefined,
-                    );
-                    if (!trustedScriptUrl) {
-                        toast.error(t('bookingUi.payment.toastMpgsInit'));
-                        return;
-                    }
-                    const ref = resolvedRef ?? '';
-                    const params = new URLSearchParams({
-                        session: sessionId.trim(),
-                        ...(ref ? { ref } : {}),
-                    });
+                if (result.status === 'navigating') {
                     navigatingAway = true;
-                    window.location.replace(`/booking/mpgs-checkout?${params.toString()}`);
-                    return;
                 }
-
-                toast.error(error || t('bookingUi.payment.toastMpgsInit'));
             } catch (err) {
                 toast.error(t('bookingUi.payment.toastMpgsInit'));
                 console.error(err);

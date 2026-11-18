@@ -11,7 +11,9 @@
       "memory": "512MiB",
       "concurrency": 40,
       "environmentVariables": {
-        "BACKEND_URL": "https://api.bookaddis.com"
+        "BACKEND_URL": "https://api-prod.bookaddis.com",
+        "NEXT_PUBLIC_STRAPI_URL": "https://cms.bookaddis.com",
+        "STRAPI_URL": "https://cms.bookaddis.com"
       }
     }
   },

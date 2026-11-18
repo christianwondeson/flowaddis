@@ -40,11 +40,12 @@ export const Logo: React.FC<LogoProps> = ({
     return (
         <div className={clsx('flex items-center gap-2', className)}>
             <Image
-                src="/assets/images/logo.png"
+                src="/assets/images/logo-128.webp"
                 alt="BookAddis"
                 width={width}
                 height={width}
                 priority={priority}
+                sizes={`${width}px`}
                 className={clsx(
                     'shrink-0 object-contain object-center',
                     light && 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]',

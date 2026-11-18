@@ -10,7 +10,8 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/s
 import {
     canAccessHotelPortal,
     canAccessSuperAdmin,
-} from '@/lib/auth/admin-utils';
+} from '@/lib/auth-helpers';
+import { useHotelPortalAuth } from '@/hooks/use-hotel-portal-auth';
 import { toast } from 'sonner';
 import { Preloader } from '@/components/ui/preloader';
 
@@ -24,6 +25,7 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const { user, loading } = useAuth();
+    const { canAccessPortal } = useHotelPortalAuth();
     const router = useRouter();
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -72,7 +74,7 @@ export default function AdminLayout({
                 router.replace(dest);
                 return;
             }
-            if (!canAccessHotelPortal(user)) {
+            if (!canAccessPortal) {
                 setGate('blocked');
                 toast.error(
                     'You do not have permission to access the hotel portal.',
@@ -86,7 +88,7 @@ export default function AdminLayout({
 
         if (!canAccessSuperAdmin(user)) {
             setGate('blocked');
-            if (canAccessHotelPortal(user)) {
+            if (canAccessPortal || canAccessHotelPortal(user)) {
                 router.replace('/admin/hotel');
                 return;
             }
@@ -96,7 +98,7 @@ export default function AdminLayout({
         }
 
         setGate('ready');
-    }, [loading, loadingTimeout, user, hotelPath, pathname, router]);
+    }, [loading, loadingTimeout, user, hotelPath, pathname, router, canAccessPortal]);
 
     const showShell = useMemo(
         () => gate === 'ready' && !!user && !hotelPath && canAccessSuperAdmin(user),
@@ -186,7 +188,7 @@ export default function AdminLayout({
                 </header>
 
                 <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto">{children}</div>
+                    <div className="max-w-[1600px] mx-auto w-full">{children}</div>
                 </main>
             </div>
         </div>

@@ -1,7 +1,7 @@
 const MAX_URL_LEN = 2048;
 
 /** Public Nest API used when deployed without a valid BACKEND_URL (Firebase / Cloud Run). */
-export const PRODUCTION_BACKEND_URL_DEFAULT = 'https://api.bookaddis.com';
+export const PRODUCTION_BACKEND_URL_DEFAULT = 'https://api-prod.bookaddis.com';
 
 /**
  * Validates `BACKEND_URL` / Strapi-style base URLs: http(s), no embedded credentials,

@@ -103,9 +103,6 @@ export function HotelPartnerReviewModal({
                         {user.hotelPartnerRequest?.city
                             ? ` · ${user.hotelPartnerRequest.city}`
                             : ''}
-                        {user.hotelPartnerRequest?.preferredPlanCode
-                            ? ` · Plan ${user.hotelPartnerRequest.preferredPlanCode}`
-                            : ''}
                     </p>
                     <p className="text-slate-600">
                         Legal: {kyc?.legalBusinessName || ' '} · TIN:{' '}

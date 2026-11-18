@@ -65,8 +65,8 @@ function buildContentSecurityPolicy(isDev: boolean): string {
       ? "img-src 'self' data: blob: https: http://127.0.0.1:1337 http://localhost:1337"
       : "img-src 'self' data: blob: https:",
     isDev
-      ? `connect-src 'self' http://127.0.0.1:1337 http://localhost:1337 http://127.0.0.1:4000 http://localhost:4000 https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`
-      : `connect-src 'self' https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
+      ? `connect-src 'self' http://127.0.0.1:1337 http://localhost:1337 http://127.0.0.1:4000 http://localhost:4000 https://api-prod.bookaddis.com https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`
+      : `connect-src 'self' https://api-prod.bookaddis.com https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
     `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com ${firebaseFrames} ${mpgsScript}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -80,10 +80,34 @@ function buildContentSecurityPolicy(isDev: boolean): string {
   return parts.join("; ");
 }
 
+/**
+ * `next build` (Firebase hosting deploy) still loads `.env.local`, which often
+ * points Strapi at http://127.0.0.1:1337. That gets baked into NEXT_PUBLIC_* and
+ * breaks bookaddis.com (CSP https-only + Cloud Run cannot fetch localhost).
+ */
+function productionPublicEnv(): Record<string, string> {
+  const localOrigin = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/i;
+  const isProdBuild =
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NODE_ENV === 'production';
+  if (!isProdBuild) return {};
+
+  const strapi = (process.env.NEXT_PUBLIC_STRAPI_URL || process.env.STRAPI_URL || '').trim();
+  const cms =
+    !strapi || localOrigin.test(strapi)
+      ? 'https://cms.bookaddis.com'
+      : strapi.replace(/\/$/, '');
+  return {
+    NEXT_PUBLIC_STRAPI_URL: cms,
+    STRAPI_URL: cms,
+  };
+}
+
 const nextConfig: NextConfig = {
   /** gRPC + native deps used by @google-cloud/recaptcha-enterprise */
   serverExternalPackages: ['@google-cloud/recaptcha-enterprise'],
   output: 'standalone',
+  env: productionPublicEnv(),
   async headers() {
     const isDev = process.env.NODE_ENV !== 'production';
     const csp = buildContentSecurityPolicy(isDev);
@@ -112,10 +136,14 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
-    // Optimize local /assets and remote hotel photos (was unoptimized: true — slow LCP).
-    formats: ['image/avif', 'image/webp'],
+    // Local hero/logo assets are pre-compressed WebP. Remote Booking.com URLs are
+    // downsized via optimizeHotelImageUrl. Keep optimizer off by default (Firebase
+    // Hosting `/_next/image` has returned 400 for Unsplash/bstatic). Set
+    // NEXT_PUBLIC_IMAGE_UNOPTIMIZED=false on Cloud Run to enable the optimizer.
+    unoptimized: process.env.NEXT_PUBLIC_IMAGE_UNOPTIMIZED !== 'false',
+    formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [64, 96, 128, 256, 384],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       {

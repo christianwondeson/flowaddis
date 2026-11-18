@@ -155,6 +155,7 @@ export default function ConferencesPage() {
                             : 'Conference'
                     }
                     price={booking?.price || 0}
+                    currencyCode={booking?.currency || 'ETB'}
                     type="conference"
                     productId={booking?.id}
                     externalItemId={booking?.hotel_id || ''}

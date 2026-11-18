@@ -35,9 +35,9 @@ function AdminHotelsWorkspace() {
             <div>
                 <h1 className="text-3xl font-extrabold text-brand-dark tracking-tight">Hotels</h1>
                 <p className="text-gray-500 mt-1 max-w-2xl">
-                    One Super Admin workspace: approve partners, register Direct hotels with
-                    verification docs, assign staff, and publish to guest search. Hotel partners
-                    then use the Hotel Portal  you stay here.
+                    Approve partners, assign staff, and publish or unpublish hotels
+                    on BookAddis. Partners run the Hotel Portal; you stay in Super
+                    Admin.
                 </p>
             </div>
 
@@ -50,13 +50,13 @@ function AdminHotelsWorkspace() {
                     },
                     {
                         icon: Building2,
-                        title: '2. Register or link hotel',
-                        body: 'Use Register hotel wizard (docs required) or create from the partner request  KYC is stored on the property.',
+                        title: '2. Link hotel & staff',
+                        body: 'Create or link the property from the partner request, or Assign hotel access from User Management.',
                     },
                     {
                         icon: Hotel,
-                        title: '3. Rooms → publish',
-                        body: 'Partner sets rooms and daily prices. Publish only when verification is complete (API-enforced).',
+                        title: '3. Publish / unpublish',
+                        body: 'Partner sets rooms and daily prices. Publish when verification is complete; unpublish to hide from guests.',
                     },
                 ].map((s) => (
                     <li
@@ -122,7 +122,7 @@ function AdminHotelsWorkspace() {
             ) : (
                 <section className="space-y-3">
                     <h2 className="text-lg font-bold text-brand-dark">
-                        Direct hotels  inventory & publish
+                        Direct hotels — publish & unpublish
                     </h2>
                     <DirectHotelsPanel />
                 </section>

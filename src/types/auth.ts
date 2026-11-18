@@ -41,7 +41,9 @@ export interface HotelPartnerKyc {
         bankName?: string;
         accountNumber?: string;
     };
-    /** Partner acknowledged SaaS subscription is paid separately after approval. */
+    /** Partner acknowledged commission (not SaaS) billing after approval. */
+    acknowledgedCommissionBilling?: boolean;
+    /** @deprecated Legacy SaaS ack — prefer acknowledgedCommissionBilling. */
     acknowledgedSaaSBilling?: boolean;
 }
 
@@ -51,7 +53,7 @@ export interface HotelPartnerRequest {
     phone?: string;
     message?: string;
     submittedAt?: any;
-    /** Chosen SaaS plan at signup (paid after approval in Billing). */
+    /** @deprecated SaaS plans removed — kept for old Firestore docs only. */
     preferredPlanCode?: string;
     /** Advanced partner KYC package */
     kyc?: HotelPartnerKyc;
@@ -84,6 +86,7 @@ export type RegisterOptions = {
         city?: string;
         phone?: string;
         message?: string;
+        /** @deprecated SaaS plans removed. */
         preferredPlanCode?: string;
         /** When true, create as draft (KYC incomplete). Default for stepped signup. */
         asDraft?: boolean;

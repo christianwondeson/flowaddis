@@ -65,11 +65,11 @@ service cloud.firestore {
     }
 
     /**
-     * Hotel messaging  ops (SA↔desk) + guest (guest↔desk)
+     * Hotel messaging — ops (SA↔desk) + guest (guest↔desk) + support
      * hotelChats/{hotelId}/threads/{threadId}/messages/{messageId}
      *
-     * Desk staff must be able to post even when the thread doc is mid-create
-     * (canAccessThread alone races). Guest posts still require thread access.
+     * List queries must be constrained (type / guestUid) so they match these rules.
+     * Desk staff may post even when the thread doc is mid-create.
      */
     match /hotelChats/{hotelId}/threads/{threadId} {
       allow read: if signedIn() && (

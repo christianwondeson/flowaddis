@@ -6,8 +6,7 @@ import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Building2, ExternalLink, Plus, RefreshCw } from 'lucide-react';
-import { HotelRegistrationWizard } from '@/components/admin/hotel-registration-wizard';
+import { Building2, ExternalLink, RefreshCw } from 'lucide-react';
 import { AdminLoader } from '@/components/ui/admin-loader';
 import {
     getHotelVerification,
@@ -64,15 +63,14 @@ function statusBadge(status?: string) {
 }
 
 /**
- * Super Admin: Nest Direct hotels  register via OTA-style wizard, then
- * publish only when business verification docs are on file.
+ * Super Admin: Nest Direct hotels — publish / unpublish inventory.
+ * Hotels are created via partner KYC approval or Assign hotel access (not here).
  */
 export function DirectHotelsPanel() {
     const [hotels, setHotels] = useState<DirectHotelRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [q, setQ] = useState('');
     const [busyId, setBusyId] = useState<string | null>(null);
-    const [wizardOpen, setWizardOpen] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -169,9 +167,10 @@ export function DirectHotelsPanel() {
                                 Direct hotels (BookAddis inventory)
                             </h2>
                             <p className="text-sm text-gray-500 mt-0.5 max-w-2xl">
-                                Register with property details + business license
-                                (OTA-style). Publish only after verification docs are
-                                complete; hotel admins then set rooms and daily prices.
+                                Publish hotels to guest search when verification docs
+                                are complete, or unpublish to hide them. Create hotels
+                                via partner approval or Assign hotel access — not a
+                                separate register form here.
                             </p>
                         </div>
                     </div>
@@ -185,14 +184,6 @@ export function DirectHotelsPanel() {
                         >
                             <RefreshCw className="w-4 h-4 mr-1" />
                             Refresh
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => setWizardOpen(true)}
-                        >
-                            <Plus className="w-4 h-4 mr-1" />
-                            Register hotel
                         </Button>
                     </div>
                 </div>
@@ -210,8 +201,8 @@ export function DirectHotelsPanel() {
                 <AdminLoader label="Loading Direct hotels…" />
             ) : filtered.length === 0 ? (
                 <p className="p-6 text-sm text-gray-500">
-                    No Direct hotels yet. Use Register hotel, or approve a partner
-                    request (create / link with KYC docs).
+                    No Direct hotels yet. Approve a partner request (create / link
+                    with KYC), or use User Management → Assign hotel access.
                 </p>
             ) : (
                 <ul className="divide-y divide-gray-100">
@@ -294,12 +285,6 @@ export function DirectHotelsPanel() {
                     })}
                 </ul>
             )}
-
-            <HotelRegistrationWizard
-                open={wizardOpen}
-                onClose={() => setWizardOpen(false)}
-                onCreated={() => void load()}
-            />
         </div>
     );
 }

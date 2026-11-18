@@ -21,7 +21,7 @@ export function AdminCmsErrorBanner({ error, errorCode }: Props) {
                 <code className="rounded bg-white/80 px-1">adminStatus</code> to <code className="rounded bg-white/80 px-1">approved</code> (not{" "}
                 <code className="rounded bg-white/80 px-1">pending</code> or <code className="rounded bg-white/80 px-1">rejected</code>).                 Ensure the Nest API can read Firestore (Firebase Admin on the API) with{" "}
                 <code className="rounded bg-white/80 px-1">FIRESTORE_DATABASE_ID=flowaddis-db</code> on{" "}
-                <code className="rounded bg-white/80 px-1">api.bookaddis.com</code>, then restart Nest.{" "}
+                <code className="rounded bg-white/80 px-1">api-prod.bookaddis.com</code>, then restart Nest.{" "}
                 <code className="rounded bg-white/80 px-1">BACKEND_URL</code> on the Next server must point at that API.
             </p>
         );

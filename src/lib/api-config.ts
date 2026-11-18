@@ -1,4 +1,5 @@
-import { requireRapidApiKey } from './env';
+import { readRapidApiKey, requireRapidApiKey } from './env';
+import { NextResponse } from 'next/server';
 
 // API Configuration (RAPIDAPI_KEY read lazily so `next build` works without RapidAPI env)
 export const API_CONFIG = {
@@ -18,6 +19,18 @@ export const getApiHeaders = (hostOverride?: string) => ({
     'x-rapidapi-host': hostOverride || API_CONFIG.RAPIDAPI_HOST,
     'Content-Type': 'application/json',
 });
+
+/** Firebase SSR must have RAPIDAPI_KEY at runtime (not only on the laptop .env). */
+export function rapidApiMissingResponse(): NextResponse | null {
+    if (readRapidApiKey()) return null;
+    return NextResponse.json(
+        {
+            error: 'Hotel search is not configured on this server (missing RAPIDAPI_KEY).',
+            code: 'RAPIDAPI_KEY_MISSING',
+        },
+        { status: 503 },
+    );
+}
 
 // API Endpoints
 export const API_ENDPOINTS = {
