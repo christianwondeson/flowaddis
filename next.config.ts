@@ -65,8 +65,8 @@ function buildContentSecurityPolicy(isDev: boolean): string {
       ? "img-src 'self' data: blob: https: http://127.0.0.1:1337 http://localhost:1337"
       : "img-src 'self' data: blob: https:",
     isDev
-      ? `connect-src 'self' http://127.0.0.1:1337 http://localhost:1337 http://127.0.0.1:4000 http://localhost:4000 https://api-prod.bookaddis.com https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`
-      : `connect-src 'self' https://api-prod.bookaddis.com https://api.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
+      ? `connect-src 'self' http://127.0.0.1:1337 http://localhost:1337 http://127.0.0.1:4000 http://localhost:4000 https://api-prod.bookaddis.com https://api.bookaddis.com https://cms-prod.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`
+      : `connect-src 'self' https://api-prod.bookaddis.com https://api.bookaddis.com https://cms-prod.bookaddis.com https://cms.bookaddis.com https://api.stripe.com https://m.stripe.network https://*.stripe.com https://*.googleapis.com https://*.gstatic.com https://www.google.com https://www.google-analytics.com https://www.googletagmanager.com https://firebase.googleapis.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.recaptcha.net wss://*.firebaseio.com https://*.firebaseio.com wss://*.googleapis.com ${mpgsScript}`,
     `frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.recaptcha.net https://recaptcha.google.com ${firebaseFrames} ${mpgsScript}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -95,7 +95,7 @@ function productionPublicEnv(): Record<string, string> {
   const strapi = (process.env.NEXT_PUBLIC_STRAPI_URL || process.env.STRAPI_URL || '').trim();
   const cms =
     !strapi || localOrigin.test(strapi)
-      ? 'https://cms.bookaddis.com'
+      ? 'https://cms-prod.bookaddis.com'
       : strapi.replace(/\/$/, '');
   return {
     NEXT_PUBLIC_STRAPI_URL: cms,
@@ -157,6 +157,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '**.bstatic.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cms-prod.bookaddis.com',
       },
       {
         protocol: 'https',

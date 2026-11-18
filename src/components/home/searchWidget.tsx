@@ -15,7 +15,9 @@ import {
   ArrowLeftRight,
   Minus,
   Plus,
+  ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LocationInput } from '@/components/search/location-input';
 import dynamic from 'next/dynamic';
@@ -26,6 +28,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateRangeShort } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
 import { Counter } from '@/components/shared/counter';
+import { RideLogo, FeresLogo, YangoLogo, MeterTaxiLogo } from '@/components/shuttles/ride-partner-logos';
 
 const GuestSelector = dynamic(() => import('@/components/search/guest-selector').then((m) => m.GuestSelector), {
   ssr: false,
@@ -656,70 +659,103 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
 
       case 'shuttles':
         return (
-          <div className="flex flex-col lg:flex-row gap-3 lg:items-end w-full">
-            <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-              <div className="lg:col-span-3">
-                <label className={FIELD_LABEL} htmlFor="shuttle-pickup">
-                  Pick-up
-                </label>
-                <div className={FIELD_TRIGGER}>
-                  <MapPin className={FIELD_ICON} aria-hidden />
-                  <input
-                    id="shuttle-pickup"
-                    type="text"
-                    value={shuttlePickup}
-                    onChange={(e) => setShuttlePickup(e.target.value)}
-                    placeholder="Airport or hotel"
-                    className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none placeholder:text-gray-400"
-                  />
+          <div className="flex flex-col gap-3.5 w-full">
+            <div className="flex flex-col lg:flex-row gap-3 lg:items-end w-full">
+              <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                <div className="lg:col-span-3">
+                  <label className={FIELD_LABEL} htmlFor="shuttle-pickup">
+                    Pick-up
+                  </label>
+                  <div className={FIELD_TRIGGER}>
+                    <MapPin className={FIELD_ICON} aria-hidden />
+                    <input
+                      id="shuttle-pickup"
+                      type="text"
+                      value={shuttlePickup}
+                      onChange={(e) => setShuttlePickup(e.target.value)}
+                      placeholder="Airport or hotel"
+                      className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="lg:col-span-3">
+                  <label className={FIELD_LABEL} htmlFor="shuttle-dropoff">
+                    Drop-off
+                  </label>
+                  <div className={FIELD_TRIGGER}>
+                    <MapPin className={FIELD_ICON} aria-hidden />
+                    <input
+                      id="shuttle-dropoff"
+                      type="text"
+                      value={shuttleDropoff}
+                      onChange={(e) => setShuttleDropoff(e.target.value)}
+                      placeholder="Destination"
+                      className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="lg:col-span-3">
+                  {singleDatePopover(
+                    'Date',
+                    shuttleDate,
+                    (date) => setShuttleDate(formatDateLocal(date)),
+                    shuttleDateOpen,
+                    setShuttleDateOpen,
+                  )}
+                </div>
+                <div className="lg:col-span-3">
+                  <label className={FIELD_LABEL} htmlFor="shuttle-time">
+                    Time
+                  </label>
+                  <div className={cn(FIELD_TRIGGER, 'relative')}>
+                    <Clock className={FIELD_ICON} aria-hidden />
+                    <span className={cn(FIELD_VALUE, 'pointer-events-none')}>
+                      {formatTimeDisplay(shuttleTime)}
+                    </span>
+                    <input
+                      id="shuttle-time"
+                      type="time"
+                      value={shuttleTime}
+                      onChange={(e) => setShuttleTime(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      aria-label="Pick-up time"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="lg:col-span-3">
-                <label className={FIELD_LABEL} htmlFor="shuttle-dropoff">
-                  Drop-off
-                </label>
-                <div className={FIELD_TRIGGER}>
-                  <MapPin className={FIELD_ICON} aria-hidden />
-                  <input
-                    id="shuttle-dropoff"
-                    type="text"
-                    value={shuttleDropoff}
-                    onChange={(e) => setShuttleDropoff(e.target.value)}
-                    placeholder="Destination"
-                    className="flex-1 min-w-0 bg-transparent text-gray-900 dark:text-slate-100 font-medium text-sm outline-none placeholder:text-gray-400"
-                  />
-                </div>
-              </div>
-              <div className="lg:col-span-3">
-                {singleDatePopover(
-                  'Date',
-                  shuttleDate,
-                  (date) => setShuttleDate(formatDateLocal(date)),
-                  shuttleDateOpen,
-                  setShuttleDateOpen,
-                )}
-              </div>
-              <div className="lg:col-span-3">
-                <label className={FIELD_LABEL} htmlFor="shuttle-time">
-                  Time
-                </label>
-                <div className={cn(FIELD_TRIGGER, 'relative')}>
-                  <Clock className={FIELD_ICON} aria-hidden />
-                  <span className={cn(FIELD_VALUE, 'pointer-events-none')}>
-                    {formatTimeDisplay(shuttleTime)}
-                  </span>
-                  <input
-                    id="shuttle-time"
-                    type="time"
-                    value={shuttleTime}
-                    onChange={(e) => setShuttleTime(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    aria-label="Pick-up time"
-                  />
-                </div>
-              </div>
+              {searchButton}
             </div>
-            {searchButton}
+
+            {/* Ride-Hailing Partners Strip (RIDE, FERES, YANGO) */}
+            <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className="font-semibold text-gray-600 dark:text-slate-400">
+                  Trusted ride & transit partners:
+                </span>
+                <div className="flex items-center gap-2">
+                  <Link href="/shuttles?mode=rides" title="RIDE - Call 8294">
+                    <RideLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
+                  </Link>
+                  <Link href="/shuttles?mode=rides" title="FERES - Call 6090">
+                    <FeresLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
+                  </Link>
+                  <Link href="/shuttles?mode=rides" title="Yango - Book via app">
+                    <YangoLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
+                  </Link>
+                  <Link href="/shuttles?mode=rides" title="Meter Taxi - Call 6303">
+                    <MeterTaxiLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
+                  </Link>
+                </div>
+              </div>
+
+              <Link
+                href="/shuttles?mode=rides"
+                className="font-bold text-brand-primary hover:text-teal-700 dark:hover:text-teal-400 transition-colors inline-flex items-center gap-1"
+              >
+                <span>Compare ride fares & hotlines</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         );
 

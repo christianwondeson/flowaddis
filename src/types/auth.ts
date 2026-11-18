@@ -12,6 +12,28 @@ export type HotelPartnerStatus =
     | 'approved'
     | 'rejected';
 
+/** Digitally executed merchant partnership agreement between Hotel & BookAddis. */
+export interface HotelDigitalAgreement {
+    agreementVersion: string;
+    legalBusinessName: string;
+    tradeName: string;
+    tin: string;
+    businessRegistrationNumber?: string;
+    businessAddress?: string;
+    city: string;
+    cbeAccount?: string;
+    bankName?: string;
+    signatoryName: string;
+    signatoryTitle: string;
+    signatoryIdNumber?: string;
+    signatureType: 'draw' | 'type';
+    signatureDataUrl?: string;
+    signedAt: string;
+    commissionRatePercent: number;
+    acceptedTerms: boolean;
+    ipAddress?: string;
+}
+
 /** KYC / business docs for hotel partner onboarding (Firestore + Storage URLs). */
 export interface HotelPartnerKyc {
     legalBusinessName?: string;
@@ -43,6 +65,8 @@ export interface HotelPartnerKyc {
     };
     /** Partner acknowledged commission (not SaaS) billing after approval. */
     acknowledgedCommissionBilling?: boolean;
+    /** Digital agreement executed during onboarding. */
+    digitalAgreement?: HotelDigitalAgreement;
     /** @deprecated Legacy SaaS ack — prefer acknowledgedCommissionBilling. */
     acknowledgedSaaSBilling?: boolean;
 }

@@ -73,7 +73,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     error:
-                        `Cannot reach Strapi at ${origin}. Start flowaddis-cms (npm run develop) and set STRAPI_URL=http://127.0.0.1:1337 in .env.local.`,
+                        `Cannot reach Strapi at ${origin}. Ensure Bookaddis-cms is reachable at ${origin} and STRAPI_URL / STRAPI_API_TOKEN are configured.`,
                     code: 'STRAPI_UNREACHABLE',
                 },
                 { status: 503 },

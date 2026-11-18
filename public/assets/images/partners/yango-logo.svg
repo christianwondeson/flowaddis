@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50" fill="none">
+  <!-- Card background -->
+  <rect width="160" height="50" rx="10" fill="#EB1537"/>
+  <!-- Yango iconic Y symbol inside rounded squircle -->
+  <g transform="translate(10, 8)">
+    <rect width="34" height="34" rx="9" fill="#FFFFFF"/>
+    <!-- Stylized ribbon Y in Yango red -->
+    <path d="M10 10 C10 14, 15 18, 17 21 L17 26 C17 27.5, 18 28, 19.5 28 C21 28, 22 27.5, 22 26 L22 21 C24 18, 29 14, 29 10" stroke="#EB1537" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- yango wordmark -->
+  <text x="54" y="32" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="24" fill="#FFFFFF" letter-spacing="-0.5">yango</text>
+  <!-- Ride / App badge -->
+  <rect x="119" y="14" width="33" height="22" rx="6" fill="#FFFFFF" fill-opacity="0.2"/>
+  <rect x="119" y="14" width="33" height="22" rx="6" stroke="#FFFFFF" stroke-width="1"/>
+  <text x="135.5" y="29.5" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" font-weight="800" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">RIDE</text>
+</svg>
+

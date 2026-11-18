@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Preloader } from '@/components/ui/preloader'
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { useAuth } from '@/components/providers/auth-provider'
-import type { HotelPartnerKyc, RegisterAccountType, UserRole } from '@/types/auth'
+import type { HotelPartnerKyc, RegisterAccountType, UserRole, HotelDigitalAgreement } from '@/types/auth'
+import { HotelDigitalAgreementViewer } from '@/components/partner/hotel-digital-agreement'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -51,7 +52,7 @@ const HOTEL_STEPS = [
     'Property & legal',
     'KYC documents',
     'Payout',
-    'Review',
+    'Agreement & Sign',
 ] as const
 
 function SignUpContent() {
@@ -88,6 +89,7 @@ function SignUpContent() {
     const [bankName, setBankName] = useState('')
     const [accountNumber, setAccountNumber] = useState('')
     const [ackCommission, setAckCommission] = useState(false)
+    const [digitalAgreement, setDigitalAgreement] = useState<HotelDigitalAgreement | null>(null)
 
     const [accountReady, setAccountReady] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -330,7 +332,11 @@ function SignUpContent() {
             )
             return
         }
-        if (!ackCommission) {
+        if (!digitalAgreement || !digitalAgreement.acceptedTerms || !digitalAgreement.signatureDataUrl) {
+            toast.error('Please digitally sign and accept the partnership agreement before submitting.')
+            return
+        }
+        if (!ackCommission && !digitalAgreement.acceptedTerms) {
             toast.error('Please acknowledge the commission billing terms')
             return
         }
@@ -377,6 +383,7 @@ function SignUpContent() {
                     accountNumber: payout.accountNumber,
                 }),
                 acknowledgedCommissionBilling: true,
+                digitalAgreement: digitalAgreement || undefined,
             })
             await updateDoc(
                 doc(db, 'users', uid),
@@ -529,7 +536,7 @@ function SignUpContent() {
             return step < 2 ? 'Continue' : 'Create guest account'
         }
         if (step === 1 && !accountReady) return 'Create account & continue'
-        if (step === 5) return 'Submit for approval'
+        if (step === 5) return 'Sign & Submit Application'
         return 'Continue'
     })()
 
@@ -835,44 +842,36 @@ function SignUpContent() {
                 )}
 
                 {accountType === 'hotel_partner' && step === 5 && (
-                    <div className="space-y-4">
-                        <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-sm space-y-2">
-                            <p className="font-semibold text-brand-dark">Review</p>
-                            <p>
-                                <strong>{hotelName}</strong>
-                                {city ? ` · ${city}` : ''}
-                            </p>
-                            <ul className="list-disc pl-5 text-slate-600 space-y-1">
-                                <li>
-                                    You → BookAddis: monthly commission on stayed
-                                    BookAddis reservations (pay via Invoices)
-                                </li>
-                                <li>
-                                    Guests → BookAddis → you: prepaid settlements to your
-                                    payout account
-                                </li>
-                            </ul>
-                        </div>
-                        <label className="flex items-start gap-3 text-sm cursor-pointer">
-                    <input
-                        type="checkbox"
-                                className="mt-1"
-                                checked={ackCommission}
-                                onChange={(e) => setAckCommission(e.target.checked)}
-                            />
-                            <span>
-                                I understand BookAddis charges commission on stayed
-                                reservations (not a monthly SaaS fee), and guest payouts
-                                are separate from commission invoices.
-                            </span>
-                        </label>
+                    <div className="space-y-5">
+                        <HotelDigitalAgreementViewer
+                            data={{
+                                legalBusinessName,
+                                hotelName,
+                                tin,
+                                regNumber,
+                                city,
+                                businessAddress,
+                                phone,
+                                roomCount,
+                                accountName,
+                                cbeAccount,
+                                bankName,
+                                ownershipRole,
+                            }}
+                            onSignComplete={(agr) => {
+                                setDigitalAgreement(agr)
+                                setAckCommission(true)
+                            }}
+                            initialAgreement={digitalAgreement || undefined}
+                        />
+
                         <div className="space-y-2">
-                            <Label>Notes for Super Admin</Label>
+                            <Label>Notes for Super Admin (Optional)</Label>
                             <textarea
-                                className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                className="w-full min-h-[70px] rounded-xl border border-input bg-background px-3 py-2 text-xs sm:text-sm"
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
-                                placeholder="PMS, star rating, existing Booking.com listing…"
+                                placeholder="PMS used, star rating, current Booking.com listing, specific questions…"
                             />
                         </div>
                     </div>

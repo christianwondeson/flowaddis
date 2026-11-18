@@ -41,6 +41,9 @@ const env = {
 
 const rapidKey = (env.RAPIDAPI_KEY || env.NEXT_PUBLIC_RAPIDAPI_KEY || '').trim();
 const strapiToken = (env.STRAPI_API_TOKEN || '').trim();
+const fbAdminProjectId = (env.ADMIN_FIREBASE_PROJECT_ID || '').trim();
+const fbAdminClientEmail = (env.ADMIN_FIREBASE_CLIENT_EMAIL || '').trim();
+const fbAdminPrivateKey = env.ADMIN_FIREBASE_PRIVATE_KEY || '';
 const fbPath = path.join(root, 'firebase.json');
 const original = fs.readFileSync(fbPath, 'utf8');
 const json = JSON.parse(original);
@@ -54,9 +57,19 @@ if (!json.hosting?.frameworksBackend) {
 
 json.hosting.frameworksBackend.environmentVariables = {
   BACKEND_URL: 'https://api-prod.bookaddis.com',
-  NEXT_PUBLIC_STRAPI_URL: 'https://cms.bookaddis.com',
-  STRAPI_URL: 'https://cms.bookaddis.com',
+  NEXT_PUBLIC_STRAPI_URL: 'https://cms-prod.bookaddis.com',
+  STRAPI_URL: 'https://cms-prod.bookaddis.com',
 };
+
+if (fbAdminProjectId) {
+  json.hosting.frameworksBackend.environmentVariables.ADMIN_FIREBASE_PROJECT_ID = fbAdminProjectId;
+}
+if (fbAdminClientEmail) {
+  json.hosting.frameworksBackend.environmentVariables.ADMIN_FIREBASE_CLIENT_EMAIL = fbAdminClientEmail;
+}
+if (fbAdminPrivateKey) {
+  json.hosting.frameworksBackend.environmentVariables.ADMIN_FIREBASE_PRIVATE_KEY = fbAdminPrivateKey;
+}
 
 if (rapidKey) {
   json.hosting.frameworksBackend.environmentVariables.RAPIDAPI_KEY = rapidKey;

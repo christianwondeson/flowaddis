@@ -9,10 +9,11 @@ import {
     isKycPackageComplete,
     kycMissingLabels,
 } from '@/lib/hotel-partner-kyc';
-import { FileText, ImageIcon } from 'lucide-react';
+import { FileText, ImageIcon, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HotelDigitalAgreementViewer } from '@/components/partner/hotel-digital-agreement';
 
-type DocKey = 'logo' | 'license' | 'tax' | 'ownerId';
+type DocKey = 'logo' | 'license' | 'tax' | 'ownerId' | 'agreement';
 
 const DOCS: {
     key: DocKey;
@@ -38,6 +39,14 @@ const DOCS: {
         key: 'ownerId',
         label: 'Authorized person ID',
         url: (u) => u?.hotelPartnerRequest?.kyc?.ownerIdUrl,
+    },
+    {
+        key: 'agreement',
+        label: 'Signed Agreement',
+        url: (u) =>
+            u?.hotelPartnerRequest?.kyc?.digitalAgreement?.signatureDataUrl
+                ? 'agreement-signed'
+                : undefined,
     },
 ];
 
@@ -66,13 +75,20 @@ export function HotelPartnerReviewModal({
         license: false,
         tax: false,
         ownerId: false,
+        agreement: false,
     });
     const [active, setActive] = useState<DocKey>('logo');
     const [rejectNotes, setRejectNotes] = useState('');
 
     useEffect(() => {
         if (!open) return;
-        setViewed({ logo: false, license: false, tax: false, ownerId: false });
+        setViewed({
+            logo: false,
+            license: false,
+            tax: false,
+            ownerId: false,
+            agreement: false,
+        });
         setActive('logo');
         setRejectNotes('');
     }, [open, user?.id]);
@@ -167,7 +183,29 @@ export function HotelPartnerReviewModal({
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-white min-h-[280px] flex items-center justify-center overflow-hidden">
-                    {!activeUrl ? (
+                    {active === 'agreement' ? (
+                        <div className="w-full p-3 sm:p-4 overflow-y-auto max-h-[500px]">
+                            <HotelDigitalAgreementViewer
+                                readOnly
+                                data={{
+                                    legalBusinessName: kyc?.legalBusinessName || '',
+                                    hotelName: user.hotelPartnerRequest?.hotelName || '',
+                                    tin: kyc?.tin || '',
+                                    regNumber: kyc?.businessRegistrationNumber || '',
+                                    city: kyc?.city || '',
+                                    businessAddress: kyc?.businessAddress || '',
+                                    phone: kyc?.contactPhone || '',
+                                    roomCount: kyc?.declaredRoomCount,
+                                    accountName: kyc?.payoutDraft?.accountName || '',
+                                    cbeAccount: kyc?.payoutDraft?.cbeAccount || '',
+                                    bankName: kyc?.payoutDraft?.bankName || '',
+                                    ownershipRole: kyc?.ownershipRole,
+                                }}
+                                initialAgreement={kyc?.digitalAgreement}
+                                onSignComplete={() => {}}
+                            />
+                        </div>
+                    ) : !activeUrl ? (
                         <p className="text-sm text-slate-500 p-6">
                             Document not uploaded
                         </p>
@@ -204,7 +242,7 @@ export function HotelPartnerReviewModal({
                     )}
                 </div>
 
-                {!activeUrl ? null : (
+                {!activeUrl || active === 'agreement' ? null : (
                     <a
                         href={activeUrl}
                         target="_blank"

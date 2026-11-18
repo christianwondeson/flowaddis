@@ -20,7 +20,7 @@ function friendlyUploadError(status: number, raw: string): string {
         return (
             'Image too large for the CMS server (nginx 413). ' +
             'We compress before upload  try fewer/smaller photos, or raise ' +
-            'client_max_body_size on the Strapi nginx host (cms.bookaddis.com). ' +
+            'client_max_body_size on the Strapi nginx host (cms-prod.bookaddis.com). ' +
             'For local uploads use STRAPI_URL=http://127.0.0.1:1337 in .env.local.'
         );
     }

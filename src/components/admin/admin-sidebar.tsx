@@ -49,7 +49,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ className, onNavigat
         { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
         { name: 'Hotels', path: '/admin/partners', icon: Hotel },
         { name: 'Reservations', path: '/admin/reservations', icon: BookOpen },
-        { name: 'Finance (all hotels)', path: '/admin/finance', icon: Wallet },
+        { name: 'Billing & Invoices (all hotels)', path: '/admin/finance', icon: Wallet },
         { name: 'Statement (all hotels)', path: '/admin/statement', icon: FileText },
         { name: 'Manage Flights', path: '/admin/flights', icon: Plane },
         { name: 'Support & Disputes', path: '/admin/support', icon: LifeBuoy },

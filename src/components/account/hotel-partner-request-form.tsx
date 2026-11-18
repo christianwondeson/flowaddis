@@ -11,9 +11,10 @@ import { toast } from 'sonner';
 import { Hotel } from 'lucide-react';
 import Link from 'next/link';
 import { canAccessHotelPortal, canAccessSuperAdmin } from '@/lib/auth/admin-utils';
-import type { HotelPartnerKyc } from '@/types/auth';
+import type { HotelPartnerKyc, HotelDigitalAgreement } from '@/types/auth';
 import { KycDocUploader } from '@/components/account/kyc-doc-uploader';
 import { SignupStepRail } from '@/components/auth/signup-step-rail';
+import { HotelDigitalAgreementViewer } from '@/components/partner/hotel-digital-agreement';
 import {
     omitUndefinedDeep,
     validateHotelPayoutFields,
@@ -24,7 +25,7 @@ const STEPS = [
     'Property & legal',
     'KYC documents',
     'Payout (guest cuts)',
-    'Commission & submit',
+    'Agreement & Sign',
 ] as const;
 
 /**
@@ -53,6 +54,7 @@ export function HotelPartnerRequestForm() {
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [ackCommission, setAckCommission] = useState(false);
+    const [digitalAgreement, setDigitalAgreement] = useState<HotelDigitalAgreement | null>(null);
     const [saving, setSaving] = useState(false);
 
     if (!user) return null;
@@ -158,8 +160,8 @@ export function HotelPartnerRequestForm() {
             return true;
         }
         if (s === 3) {
-            if (!ackCommission) {
-                toast.error('Please acknowledge the commission billing terms');
+            if (!digitalAgreement || !digitalAgreement.acceptedTerms || !digitalAgreement.signatureDataUrl) {
+                toast.error('Please digitally sign and accept the partnership agreement');
                 return false;
             }
             return true;
@@ -215,6 +217,7 @@ export function HotelPartnerRequestForm() {
                     accountNumber: payout.accountNumber,
                 }),
                 acknowledgedCommissionBilling: true,
+                digitalAgreement: digitalAgreement || undefined,
             });
             await updateDoc(
                 doc(db, 'users', user.id),
@@ -418,38 +421,33 @@ export function HotelPartnerRequestForm() {
             )}
 
             {step === 3 && (
-                <div className="space-y-4">
-                    <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-4 text-sm text-slate-700 space-y-2">
-                        <p className="font-semibold text-brand-dark">Two money flows</p>
-                        <ul className="list-disc pl-5 space-y-1 text-slate-600">
-                            <li>
-                                <strong>You → BookAddis:</strong> monthly commission on
-                                stayed BookAddis reservations — pay via Hotel Portal →
-                                Invoices (CBE Birr).
-                            </li>
-                            <li>
-                                <strong>Guests → BookAddis → you:</strong> prepaid booking
-                                settlements to the payout account you provided.
-                            </li>
-                        </ul>
-                    </div>
-                    <label className="flex items-start gap-3 text-sm cursor-pointer">
-                        <input
-                            type="checkbox"
-                            className="mt-1"
-                            checked={ackCommission}
-                            onChange={(e) => setAckCommission(e.target.checked)}
-                        />
-                        <span>
-                            I understand BookAddis charges commission on stayed
-                            reservations (not a monthly SaaS fee), and guest payouts are
-                            separate from commission invoices.
-                        </span>
-                    </label>
+                <div className="space-y-5">
+                    <HotelDigitalAgreementViewer
+                        data={{
+                            legalBusinessName,
+                            hotelName,
+                            tin,
+                            regNumber,
+                            city,
+                            businessAddress,
+                            phone,
+                            roomCount,
+                            accountName,
+                            cbeAccount,
+                            bankName,
+                            ownershipRole,
+                        }}
+                        onSignComplete={(agr) => {
+                            setDigitalAgreement(agr);
+                            setAckCommission(true);
+                        }}
+                        initialAgreement={digitalAgreement || undefined}
+                    />
+
                     <div className="space-y-2">
-                        <Label>Notes for Super Admin</Label>
+                        <Label>Notes for Super Admin (Optional)</Label>
                         <textarea
-                            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            className="w-full min-h-[70px] rounded-xl border border-input bg-background px-3 py-2 text-xs sm:text-sm"
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             placeholder="PMS, star rating, existing Booking.com listing, etc."
@@ -482,7 +480,7 @@ export function HotelPartnerRequestForm() {
                         disabled={saving}
                         onClick={() => void onSubmit()}
                     >
-                        {saving ? 'Submitting KYC…' : 'Submit for approval'}
+                        {saving ? 'Submitting Application…' : 'Sign & Submit Application'}
                     </Button>
                 )}
             </div>

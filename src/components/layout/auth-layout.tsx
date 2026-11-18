@@ -18,7 +18,7 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ title, subtitle, wide, children, footerLink }: AuthLayoutProps) {
-    const width = wide ? 'sm:max-w-2xl' : 'sm:max-w-md'
+    const width = wide ? 'sm:max-w-2xl lg:max-w-3xl' : 'sm:max-w-md'
     return (
         <div className="min-h-screen bg-brand-gray/30 flex flex-col justify-center py-10 sm:py-12 sm:px-6 lg:px-8">
             <div className={`sm:mx-auto sm:w-full ${width}`}>

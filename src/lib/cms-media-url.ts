@@ -5,7 +5,7 @@
  */
 const LOCAL_CMS_ORIGIN = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/i;
 
-export const PRODUCTION_CMS_URL = 'https://cms.bookaddis.com';
+export const PRODUCTION_CMS_URL = 'https://cms-prod.bookaddis.com';
 
 /** True when we must not serve localhost CMS URLs to clients / image optimizer. */
 export function shouldPublicizeCmsUrls(): boolean {

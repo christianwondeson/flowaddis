@@ -43,7 +43,7 @@ const PROPERTY_NAV = [
     { name: 'Photos', segment: 'photos', icon: Images },
     { name: 'Messages', segment: 'messages', icon: MessageSquare },
     { name: 'Transactions', segment: 'transactions', icon: CreditCard },
-    { name: 'Invoices', segment: 'billing', icon: Wallet },
+    { name: 'Billing & Invoices', segment: 'billing', icon: Wallet },
     { name: 'Statement', segment: 'statement', icon: FileText },
     { name: 'Property', segment: 'property', icon: Building2 },
 ] as const;

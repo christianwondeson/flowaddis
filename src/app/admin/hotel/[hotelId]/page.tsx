@@ -14,6 +14,7 @@ import {
     CalendarDays,
     CreditCard,
     TrendingUp,
+    Wallet,
 } from 'lucide-react';
 
 /** Empty duplicate created before Momona inventory lived on the Wire Test hotel. */
@@ -160,6 +161,12 @@ export default function HotelDashboardPage() {
                         className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-brand-dark hover:border-brand-primary/40"
                     >
                         Edit rates
+                    </Link>
+                    <Link
+                        href={`/admin/hotel/${hotelId}/billing`}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-brand-dark hover:border-brand-primary/40"
+                    >
+                        Billing & Invoices
                     </Link>
                 </div>
             </div>

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { EthiopiaTripAdvisorSection } from "./ethiopia-trip-advisor";
 
 export type MyTripsListProps = {
     data: UseMyTripsDataResult;
@@ -274,6 +275,12 @@ export function MyTripsList({ data, variant = "full", summaryLimit = 3 }: MyTrip
                             </Button>
                         </div>
                     ) : null}
+                </div>
+            )}
+
+            {variant === "full" && (
+                <div className="pt-6 sm:pt-8 border-t border-border/80 dark:border-slate-800">
+                    <EthiopiaTripAdvisorSection />
                 </div>
             )}
         </div>

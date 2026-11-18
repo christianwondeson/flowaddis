@@ -158,7 +158,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
             {
                 error: unreachable
-                    ? `Cannot reach Strapi at ${strapi}. Production must use https://cms.bookaddis.com (not localhost).`
+                    ? `Cannot reach Strapi at ${strapi}. Production must use https://cms-prod.bookaddis.com (not localhost).`
                     : 'Upload failed',
                 detail: msg,
                 strapi,

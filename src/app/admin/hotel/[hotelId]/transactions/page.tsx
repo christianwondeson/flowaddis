@@ -104,18 +104,35 @@ export default function HotelTransactionsPage() {
         {
             id: 'status',
             header: 'Status',
-            cell: (tx) => (
-                <div>
-                    <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-                        {tx.status}
-                    </span>
-                    {tx.booking_status ? (
-                        <div className="text-[11px] text-slate-500 mt-1">
-                            Booking {tx.booking_status}
-                        </div>
-                    ) : null}
-                </div>
-            ),
+            cell: (tx) => {
+                const s = String(tx.status || '').toLowerCase();
+                const badgeClass =
+                    s === 'succeeded'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : s === 'confirmed'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : s === 'failed'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200';
+                const label =
+                    s === 'succeeded'
+                        ? 'Paid (Prepaid)'
+                        : s === 'confirmed'
+                          ? 'Pay on Arrival'
+                          : tx.status;
+                return (
+                    <div>
+                        <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${badgeClass}`}>
+                            {label}
+                        </span>
+                        {tx.booking_status ? (
+                            <div className="text-[11px] text-slate-500 mt-1">
+                                Booking {tx.booking_status}
+                            </div>
+                        ) : null}
+                    </div>
+                );
+            },
         },
         {
             id: 'amount',

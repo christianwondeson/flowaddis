@@ -15,7 +15,11 @@ export function SignupStepRail({ steps, current, className }: Props) {
         <ol
             className={cn(
                 'grid gap-2 text-[11px] font-semibold',
-                steps.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4',
+                steps.length <= 3
+                    ? 'grid-cols-3'
+                    : steps.length <= 4
+                      ? 'grid-cols-2 sm:grid-cols-4'
+                      : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6',
                 className,
             )}
         >

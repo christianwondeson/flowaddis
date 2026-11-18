@@ -35,7 +35,7 @@ interface Transaction {
     id: string;
     amount: number;
     currency: string;
-    status: 'succeeded' | 'failed' | 'pending';
+    status: 'succeeded' | 'failed' | 'pending' | 'confirmed' | string;
     provider: string;
     transaction_id: string;
     created_at: string;
@@ -134,6 +134,13 @@ export default function TransactionsPage() {
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100">
                         <CheckCircle2 className="w-3 h-3" />
                         Success
+                    </span>
+                );
+            case 'confirmed':
+                return (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Pay on Arrival
                     </span>
                 );
             case 'failed':

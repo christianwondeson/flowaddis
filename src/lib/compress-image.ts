@@ -1,6 +1,6 @@
 /**
  * Shrink images before Strapi upload so nginx/Strapi 413s are less likely
- * (cms.bookaddis.com nginx often caps ~1–2MB).
+ * (cms-prod.bookaddis.com nginx often caps ~1–2MB).
  */
 const DEFAULT_MAX_EDGE = 1920;
 const DEFAULT_MAX_BYTES = 1.4 * 1024 * 1024;

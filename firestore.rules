@@ -11,22 +11,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function userDoc() {
+      let path = adminUserPath();
+      return exists(path) ? get(path).data : {};
+    }
+
     // Align with Nest RolesGuard: admin role + not pending/rejected
     function isAdmin() {
-      let path = adminUserPath();
-      let data = exists(path) ? get(path).data : null;
+      let data = userDoc();
       return signedIn()
-        && data != null
-        && data.role == 'admin'
-        && (
-          !('adminStatus' in data)
-          || !(data.adminStatus in ['pending', 'rejected'])
-        );
+        && data.get('role', '') == 'admin'
+        && !(data.get('adminStatus', '') in ['pending', 'rejected']);
     }
 
     function userRole() {
-      let path = adminUserPath();
-      return exists(path) ? get(path).data.role : null;
+      return userDoc().get('role', '');
     }
 
     function isHotelStaff() {
@@ -39,12 +38,15 @@ service cloud.firestore {
 
     function canAccessThread(hotelId, threadId) {
       let path = threadPath(hotelId, threadId);
-      let data = exists(path) ? get(path).data : null;
-      return data != null && (
+      let data = exists(path) ? get(path).data : {};
+      return exists(path) && (
         isAdmin() ||
         isHotelStaff() ||
-        data.guestUid == request.auth.uid ||
-        request.auth.uid in data.participantUids
+        data.get('guestUid', '') == request.auth.uid ||
+        (
+          'participantUids' in data &&
+          request.auth.uid in data.participantUids
+        )
       );
     }
 
@@ -75,8 +77,8 @@ service cloud.firestore {
       allow read: if signedIn() && (
         isAdmin() ||
         isHotelStaff() ||
-        resource.data.guestUid == request.auth.uid ||
-        request.auth.uid in resource.data.participantUids
+        (resource != null && resource.data.get('guestUid', '') == request.auth.uid) ||
+        (resource != null && 'participantUids' in resource.data && request.auth.uid in resource.data.participantUids)
       );
 
       allow create, update: if signedIn() && (
@@ -121,3 +123,4 @@ service cloud.firestore {
     }
   }
 }
+
