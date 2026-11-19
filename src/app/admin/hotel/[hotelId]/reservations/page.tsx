@@ -258,10 +258,16 @@ export default function HotelReservationsPage() {
             />
 
             {items.length > 0 ? (
-                <p className="text-sm text-right font-extrabold text-brand-dark">
-                    Commission: {items[0]?.currency || 'ETB'}{' '}
-                    {commissionTotal.toLocaleString()}
-                </p>
+                <div className="fixed bottom-4 right-6 z-30 flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-xs text-xs font-semibold text-slate-700">
+                    <span className="text-slate-500">Total Expected:</span>
+                    <strong className="text-sm font-extrabold text-teal-800">
+                        Commission: {items[0]?.currency || 'ETB'}{' '}
+                        {commissionTotal.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                        })}
+                    </strong>
+                </div>
             ) : null}
 
             <HotelReservationDetailSheet

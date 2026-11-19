@@ -14,7 +14,8 @@ import {
     type AdminColumn,
 } from '@/components/ui/admin-data-table';
 import { toast } from 'sonner';
-import { Copy, FileText, Loader2 } from 'lucide-react';
+import { Copy, FileText, Loader2, Printer, Download, Building2 } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
 import { formatAdminDate } from '@/lib/admin-date-format';
 import { cn } from '@/lib/utils';
 import {
@@ -107,6 +108,10 @@ export default function HotelBillingPage() {
         bank_name: '',
         account_number: '',
     });
+    const [bankInstructionsOpen, setBankInstructionsOpen] = useState(false);
+    const [invoiceForPrint, setInvoiceForPrint] = useState<CommissionInvoice | null>(
+        null,
+    );
 
     const lastMonth = useMemo(() => {
         const d = new Date();
@@ -333,13 +338,24 @@ export default function HotelBillingPage() {
             id: 'actions',
             header: 'Actions',
             cell: (r) => (
-                <Link
-                    href={statementHref(hotelId, r.period_start, r.period_end)}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:underline"
-                >
-                    <FileText className="w-3.5 h-3.5" />
-                    View statement
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setInvoiceForPrint(r)}
+                        className="inline-flex items-center gap-0.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:underline"
+                        title="View / Print PDF"
+                    >
+                        PDF ⤓
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <Link
+                        href={statementHref(hotelId, r.period_start, r.period_end)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:underline"
+                    >
+                        <FileText className="w-3.5 h-3.5" />
+                        View statement
+                    </Link>
+                </div>
             ),
         },
         {
@@ -466,17 +482,28 @@ export default function HotelBillingPage() {
                                             )}
                                         </td>
                                         <td className="p-3">
-                                            <Link
-                                                href={statementHref(
-                                                    hotelId,
-                                                    inv.period_start,
-                                                    inv.period_end,
-                                                )}
-                                                className="inline-flex items-center gap-1 font-semibold text-teal-700 hover:underline"
-                                            >
-                                                <FileText className="w-3.5 h-3.5" />
-                                                View statement
-                                            </Link>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInvoiceForPrint(inv)}
+                                                    className="inline-flex items-center gap-0.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:underline"
+                                                    title="View / Print PDF"
+                                                >
+                                                    PDF ⤓
+                                                </button>
+                                                <span className="text-slate-300">|</span>
+                                                <Link
+                                                    href={statementHref(
+                                                        hotelId,
+                                                        inv.period_start,
+                                                        inv.period_end,
+                                                    )}
+                                                    className="inline-flex items-center gap-1 font-semibold text-teal-700 hover:underline"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5" />
+                                                    View statement
+                                                </Link>
+                                            </div>
                                         </td>
                                         <td className="p-3 font-semibold text-amber-700">
                                             {inv.due_by
@@ -495,56 +522,69 @@ export default function HotelBillingPage() {
                 </div>
 
                 {pendingInvoices.length > 0 ? (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
-                        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end flex-1">
-                            <div className="min-w-[200px]">
-                                <Label htmlFor="commission-msisdn">
-                                    CBE Birr number
-                                </Label>
-                                <Input
-                                    id="commission-msisdn"
-                                    placeholder="0912345678"
-                                    value={payMsisdn}
-                                    onChange={(e) => setPayMsisdn(e.target.value)}
-                                    className="mt-1 h-10 rounded-xl"
-                                    disabled={paying || Boolean(pendingPayRef)}
-                                />
+                    <div className="space-y-2">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+                            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end flex-1">
+                                <div className="min-w-[200px]">
+                                    <Label htmlFor="commission-msisdn">
+                                        CBE Birr number
+                                    </Label>
+                                    <Input
+                                        id="commission-msisdn"
+                                        placeholder="0912345678"
+                                        value={payMsisdn}
+                                        onChange={(e) => setPayMsisdn(e.target.value)}
+                                        className="mt-1 h-10 rounded-xl bg-white"
+                                        disabled={paying || Boolean(pendingPayRef)}
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    className="rounded-xl h-10 bg-teal-700 hover:bg-teal-800 text-white font-semibold"
+                                    disabled={
+                                        paying ||
+                                        Boolean(pendingPayRef) ||
+                                        selectedIds.size === 0
+                                    }
+                                    onClick={() => void paySelected()}
+                                >
+                                    {paying || pendingPayRef
+                                        ? 'Waiting for payment…'
+                                        : 'Proceed to pay'}
+                                </Button>
                             </div>
-                            <Button
+                            <div className="text-sm lg:text-right shrink-0 space-y-1">
+                                <p className="text-slate-600">
+                                    Total amount due:{' '}
+                                    <strong className="text-brand-dark">
+                                        {currency}{' '}
+                                        {pendingInvoices
+                                            .reduce(
+                                                (s, i) => s + Number(i.amount || 0),
+                                                0,
+                                            )
+                                            .toLocaleString()}
+                                    </strong>
+                                </p>
+                                <p className="text-slate-600">
+                                    Amount to be paid:{' '}
+                                    <strong className="text-brand-dark">
+                                        {currency} {amountDue.toLocaleString()}
+                                    </strong>
+                                </p>
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-500 px-1">
+                            If you&apos;d like to pay via bank transfer, refer to the{' '}
+                            <button
                                 type="button"
-                                className="rounded-xl h-10"
-                                disabled={
-                                    paying ||
-                                    Boolean(pendingPayRef) ||
-                                    selectedIds.size === 0
-                                }
-                                onClick={() => void paySelected()}
+                                onClick={() => setBankInstructionsOpen(true)}
+                                className="text-teal-700 underline font-semibold hover:text-teal-900"
                             >
-                                {paying || pendingPayRef
-                                    ? 'Waiting for payment…'
-                                    : 'Proceed to pay'}
-                            </Button>
-                        </div>
-                        <div className="text-sm lg:text-right shrink-0 space-y-1">
-                            <p className="text-slate-600">
-                                Total amount due:{' '}
-                                <strong className="text-brand-dark">
-                                    {currency}{' '}
-                                    {pendingInvoices
-                                        .reduce(
-                                            (s, i) => s + Number(i.amount || 0),
-                                            0,
-                                        )
-                                        .toLocaleString()}
-                                </strong>
-                            </p>
-                            <p className="text-slate-600">
-                                Amount to be paid:{' '}
-                                <strong className="text-brand-dark">
-                                    {currency} {amountDue.toLocaleString()}
-                                </strong>
-                            </p>
-                        </div>
+                                payment instructions
+                            </button>
+                            .
+                        </p>
                     </div>
                 ) : null}
             </section>
@@ -641,6 +681,245 @@ export default function HotelBillingPage() {
                     {savingPayout ? 'Saving…' : 'Save payout profile'}
                 </Button>
             </section>
+
+            {/* Bank Transfer Instructions Modal */}
+            <Modal
+                isOpen={bankInstructionsOpen}
+                onClose={() => setBankInstructionsOpen(false)}
+                title="Bank Transfer Payment Instructions"
+            >
+                <div className="space-y-4 text-sm text-slate-700">
+                    <p className="text-slate-600">
+                        To settle your outstanding commission invoice via bank
+                        transfer or mobile banking, please use the following
+                        official BookAddis account details:
+                    </p>
+
+                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-3 font-mono text-xs">
+                        <div>
+                            <span className="text-slate-400 block font-sans text-xs">
+                                Beneficiary Name:
+                            </span>
+                            <strong className="text-slate-900 text-sm">
+                                BookAddis Technologies PLC
+                            </strong>
+                        </div>
+                        <div>
+                            <span className="text-slate-400 block font-sans text-xs">
+                                Bank Name:
+                            </span>
+                            <strong className="text-slate-900">
+                                Commercial Bank of Ethiopia (CBE)
+                            </strong>
+                        </div>
+                        <div>
+                            <span className="text-slate-400 block font-sans text-xs">
+                                Account Number:
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <strong className="text-teal-800 text-sm">
+                                    1000456789123
+                                </strong>
+                                <button
+                                    type="button"
+                                    onClick={() => copyRef('1000456789123')}
+                                    className="p-1 hover:bg-slate-200 rounded"
+                                    title="Copy account number"
+                                >
+                                    <Copy className="w-3.5 h-3.5 text-slate-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <span className="text-slate-400 block font-sans text-xs">
+                                Telebirr Merchant ID:
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <strong className="text-slate-900 text-sm">
+                                    654321 (+251911234567)
+                                </strong>
+                                <button
+                                    type="button"
+                                    onClick={() => copyRef('654321')}
+                                    className="p-1 hover:bg-slate-200 rounded"
+                                    title="Copy Telebirr ID"
+                                >
+                                    <Copy className="w-3.5 h-3.5 text-slate-500" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="border-t border-slate-200 pt-2">
+                            <span className="text-amber-800 block font-sans text-xs font-bold">
+                                Important Payment Reference:
+                            </span>
+                            <p className="text-slate-700 font-sans text-xs mt-0.5">
+                                Please quote your Invoice Number (e.g.{' '}
+                                {pendingInvoices[0]?.payment_reference ||
+                                    '1660385575'}
+                                ) in the transfer remarks or description field so
+                                payment can be matched automatically.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <Button
+                            type="button"
+                            className="rounded-xl"
+                            onClick={() => setBankInstructionsOpen(false)}
+                        >
+                            Understood
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Print / View PDF Invoice Modal */}
+            <Modal
+                isOpen={Boolean(invoiceForPrint)}
+                onClose={() => setInvoiceForPrint(null)}
+                title={`Commission Invoice #${invoiceForPrint?.payment_reference || ''}`}
+            >
+                {invoiceForPrint && (
+                    <div className="space-y-6 text-sm">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                            <div>
+                                <h3 className="text-lg font-extrabold text-slate-900">
+                                    BookAddis Technologies PLC
+                                </h3>
+                                <p className="text-xs text-slate-500">
+                                    Commission Invoice · Tax ID: 0078912345
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <span
+                                    className={cn(
+                                        'inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider',
+                                        invoiceForPrint.status === 'paid'
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-amber-100 text-amber-800',
+                                    )}
+                                >
+                                    {invoiceForPrint.status === 'paid'
+                                        ? 'Paid'
+                                        : 'Outstanding'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <span className="text-slate-400 block font-bold uppercase">
+                                    Invoice Number
+                                </span>
+                                <strong className="text-slate-900 font-mono text-sm">
+                                    {invoiceForPrint.payment_reference}
+                                </strong>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 block font-bold uppercase">
+                                    Invoice Date
+                                </span>
+                                <strong className="text-slate-900">
+                                    {formatAdminDate(invoiceForPrint.created_at)}
+                                </strong>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 block font-bold uppercase">
+                                    Billing Period
+                                </span>
+                                <strong className="text-slate-900">
+                                    {formatPeriod(
+                                        invoiceForPrint.period_start,
+                                        invoiceForPrint.period_end,
+                                    )}
+                                </strong>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 block font-bold uppercase">
+                                    Payment Due Date
+                                </span>
+                                <strong className="text-slate-900">
+                                    {invoiceForPrint.due_by
+                                        ? formatAdminDate(invoiceForPrint.due_by)
+                                        : 'Due upon receipt'}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 overflow-hidden">
+                            <table className="w-full text-xs">
+                                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left">
+                                    <tr>
+                                        <th className="p-3">Description</th>
+                                        <th className="p-3">Stay Outcomes</th>
+                                        <th className="p-3 text-right">
+                                            Total Commission
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="p-3 font-medium text-slate-800">
+                                            OTA Platform Commission Fees (Direct &amp; POS
+                                            reservations)
+                                        </td>
+                                        <td className="p-3 text-slate-600">
+                                            {invoiceForPrint.booking_count != null
+                                                ? `${invoiceForPrint.booking_count} bookings`
+                                                : 'Stayed stays'}
+                                        </td>
+                                        <td className="p-3 text-right font-bold text-slate-900">
+                                            {invoiceForPrint.currency}{' '}
+                                            {Number(
+                                                invoiceForPrint.amount,
+                                            ).toLocaleString(undefined, {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                            <Link
+                                href={statementHref(
+                                    hotelId,
+                                    invoiceForPrint.period_start,
+                                    invoiceForPrint.period_end,
+                                )}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:underline"
+                            >
+                                <FileText className="w-4 h-4" />
+                                View itemized reservation statement
+                            </Link>
+
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-xl"
+                                    onClick={() => window.print()}
+                                >
+                                    <Printer className="w-4 h-4 mr-1.5" />
+                                    Print Invoice
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="rounded-xl"
+                                    onClick={() => setInvoiceForPrint(null)}
+                                >
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
