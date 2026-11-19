@@ -57,12 +57,26 @@ import {
 } from '@/lib/firebase-auth-user-message';
 import { clearAuthRelatedSessionStorage } from '@/lib/auth-helpers';
 
+let lastSyncToken = '';
+let lastSyncTime = 0;
+let syncPromise: Promise<Response> | null = null;
+
 async function postSessionCookie(token: string): Promise<Response> {
-    return fetch('/api/auth/session', {
+    const now = Date.now();
+    // Deduplicate in-flight and recent requests for the same token within 10 seconds
+    if (token === lastSyncToken && now - lastSyncTime < 10000 && syncPromise) {
+        return syncPromise;
+    }
+    lastSyncToken = token;
+    lastSyncTime = now;
+    syncPromise = fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
+    }).finally(() => {
+        syncPromise = null;
     });
+    return syncPromise;
 }
 
 declare global {
@@ -103,7 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const isCheckoutGuest =
                     user.isAnonymous || user.uid.startsWith('guest_');
                 if (!isCheckoutGuest) {
-                    const token = await user.getIdToken(true);
+                    const token = await user.getIdToken(false);
                     const res = await postSessionCookie(token);
                     if (res.status === 429) {
                         toast.error(
@@ -184,39 +198,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loading =
         authLoading || (!!firebaseUser && !isCheckoutGuestUser && !profileReady);
 
-    /**
-     * Wait for the user state to update with the expected role.
-     * This prevents race conditions where navigation occurs before state is synchronized.
-     * @param expectedRole - The role we expect the user to have
-     * @param timeoutMs - Maximum time to wait (default 5000ms)
-     * @returns Promise that resolves when user state matches expected role or timeout occurs
-     */
-    const waitForUserUpdate = useCallback(
-        async (uid: string, expectedRole: UserRole, timeoutMs: number = 2000): Promise<void> => {
-            const startTime = Date.now();
-            const pollInterval = 16;
-            const norm = (r: string | undefined) => String(r ?? '').toLowerCase().trim();
-
-            return new Promise((resolve) => {
-                const checkUser = () => {
-                    const currentUser = queryClient.getQueryData<User>(queryKeys.user.profile(uid));
-                    if (norm(currentUser?.role) === norm(expectedRole)) {
-                        resolve();
-                        return;
-                    }
-                    if (Date.now() - startTime >= timeoutMs) {
-                        resolve();
-                        return;
-                    }
-                    setTimeout(checkUser, pollInterval);
-                };
-                // React Query updates are synchronous for setQueryData, but allow one frame for subscribers
-                queueMicrotask(() => checkUser());
-            });
-        },
-        [queryClient],
-    );
-
     const completeLoginAfterUser = useCallback(
         async (firebaseUser: FirebaseUser, loginEmail?: string): Promise<UserRole> => {
             if (loginEmail) clearEmailLoginGuard(loginEmail);
@@ -251,11 +232,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             role,
                             emailVerified: firebaseUser.emailVerified,
                             name: userData.name || firebaseUser.displayName || '',
+                            phone: userData.phone,
                             adminStatus: userData.adminStatus || 'none',
+                            hotelPartnerStatus: userData.hotelPartnerStatus,
+                            hotelPartnerRequest: userData.hotelPartnerRequest,
+                            referralCode: userData.referralCode,
                         };
 
                         queryClient.setQueryData(queryKeys.user.profile(firebaseUser.uid), userProfileData);
-                        await waitForUserUpdate(firebaseUser.uid, role, 2000);
+                        setFirebaseUser(firebaseUser);
+                        // Microtask yield so React Query subscribers receive synchronous store update
+                        await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
                         return role;
                     }
                 } catch (e: unknown) {
@@ -279,6 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             adminStatus: 'none',
                         };
                         queryClient.setQueryData(queryKeys.user.profile(firebaseUser.uid), fallback);
+                        setFirebaseUser(firebaseUser);
                         return APP_CONSTANTS.ROLES.USER;
                     }
                     throw new Error(getFirebaseAuthUserMessage(e, 'completeLoginAfterUser'));
@@ -286,7 +274,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return APP_CONSTANTS.ROLES.USER;
         },
-        [auth, db, queryClient, waitForUserUpdate],
+        [auth, db, queryClient],
     );
 
     const login = async (email: string, password?: string): Promise<UserRole> => {

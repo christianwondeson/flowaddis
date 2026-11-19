@@ -15,7 +15,7 @@ import { AuthLayout } from "@/components/layout/auth-layout"
 import { FormField } from "@/components/auth/form-field"
 import { isMfaSignInRequiredError } from "@/lib/mfa-sign-in-error"
 import { MfaSignInPanel } from "@/components/auth/mfa-sign-in-panel"
-import { buildAuthContinueHref } from "@/lib/auth/post-login-path"
+import { buildAuthContinueHref, getPostAuthPath } from "@/lib/auth/post-login-path"
 import { executeRecaptchaEnterprise, getRecaptchaEnterpriseSiteKey } from "@/lib/recaptcha-enterprise"
 import {
     annotateRecaptchaAssessmentWithApi,
@@ -47,17 +47,20 @@ function SignInContent() {
     /** Prevents useEffect from overriding pushAfterLogin with stale role=user before Firestore loads */
     const skipSessionRedirectRef = useRef(false)
 
-    const pushAfterLogin = (_role?: UserRole) => {
+    const pushAfterLogin = (resolvedRole?: UserRole) => {
         skipSessionRedirectRef.current = true
         setRouting(true)
-        // Resolve role + hotelPartnerStatus on /auth/continue (avoids wrong dashboard for pending hotels).
-        router.replace(buildAuthContinueHref(from))
+        const targetRole = resolvedRole || user?.role || "user"
+        const partnerStatus = user?.hotelPartnerStatus
+        const dest = getPostAuthPath({ role: targetRole, hotelPartnerStatus: partnerStatus }, from)
+        router.replace(dest)
     }
 
     useEffect(() => {
         if (skipSessionRedirectRef.current || mfaResolver || loading || !user) return
         setRouting(true)
-        router.replace(buildAuthContinueHref(from))
+        const dest = getPostAuthPath(user, from)
+        router.replace(dest)
     }, [mfaResolver, loading, user, from, router])
 
     const initRecaptcha = useCallback(() => {

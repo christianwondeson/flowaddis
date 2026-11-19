@@ -28,10 +28,24 @@ export default function AdminLayout({
     const { canAccessPortal } = useHotelPortalAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const hotelPath = isHotelPortalPath(pathname);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [loadingTimeout, setLoadingTimeout] = useState(false);
-    const [gate, setGate] = useState<'checking' | 'ready' | 'blocked'>('checking');
-    const hotelPath = isHotelPortalPath(pathname);
+
+    // Compute gate synchronously on mount so pre-authenticated admins never see a verifying flash
+    const computeInitialGate = (): 'checking' | 'ready' | 'blocked' => {
+        if (loading) return 'checking';
+        if (!user) return 'blocked';
+        if (hotelPath) {
+            if (canAccessSuperAdmin(user)) return 'blocked';
+            if (!canAccessPortal) return 'blocked';
+            return 'ready';
+        }
+        if (!canAccessSuperAdmin(user)) return 'blocked';
+        return 'ready';
+    };
+
+    const [gate, setGate] = useState<'checking' | 'ready' | 'blocked'>(computeInitialGate);
 
     useEffect(() => {
         if (loading) {
