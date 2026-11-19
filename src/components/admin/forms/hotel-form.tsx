@@ -40,7 +40,7 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSuccess }) => 
     const [pricing, setPricing] = useState({
         original: "",
         discounted: "",
-        currency: "USD",
+        currency: "ETB",
         category: "Mid-range" as "Budget" | "Mid-range" | "Luxury" | "Premium",
     });
     const [submitting, setSubmitting] = useState(false);
@@ -254,8 +254,8 @@ export const HotelForm: React.FC<HotelFormProps> = ({ onCancel, onSuccess }) => 
                             onChange={(e) => setPricing({ ...pricing, currency: e.target.value })}
                             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold"
                         >
-                            <option value="USD">USD</option>
                             <option value="ETB">ETB</option>
+                            <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
                         </select>
                     </div>

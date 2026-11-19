@@ -85,8 +85,21 @@ export function FeaturedHotels() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {featuredHotels.map((hotel, index) => {
           const isSaved = currentTrip.some((item) => item.details?.id === hotel.id);
+          const isDirectUuid =
+            typeof hotel.id === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              hotel.id,
+            );
+          const isDirect =
+            (hotel as { inventory_source?: string }).inventory_source ===
+              'bookaddis_direct' ||
+            (hotel as { inventory_source?: string }).inventory_source ===
+              'pms_synced' ||
+            isDirectUuid;
           const currency = String(
-            (hotel as { currency?: string }).currency || 'USD',
+            (hotel as { currency?: string; default_currency?: string }).currency ||
+              (hotel as { default_currency?: string }).default_currency ||
+              (isDirect ? 'ETB' : 'USD'),
           ).toUpperCase();
           const priceLabel = formatHotelPrice(
             Number(hotel.price) || 0,

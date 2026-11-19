@@ -36,6 +36,7 @@ function HotelDetailPageInner() {
         reviews: 0,
         reviewWord: '',
         price: 0,
+        currency: 'ETB',
         image: HOTEL_PLACEHOLDER,
         images: [HOTEL_PLACEHOLDER],
     });
@@ -183,6 +184,8 @@ function HotelDetailPageInner() {
                     reviews: h.reviews ?? reviewsData.length,
                     reviewWord: h.reviewWord || prev.reviewWord,
                     price: h.price ?? prev.price,
+                    currency: h.currency || h.default_currency || (isDirect ? 'ETB' : 'USD'),
+                    default_currency: h.default_currency || h.currency || (isDirect ? 'ETB' : 'USD'),
                     image: images[0],
                     images,
                     amenities: amenityLabels.length

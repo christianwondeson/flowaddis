@@ -731,6 +731,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // console.info(`reCAPTCHA rendered successfully in #${containerId}`);
             } catch (error) {
                 console.error('Error rendering reCAPTCHA:', error);
+                if (typeof window !== 'undefined') {
+                    console.warn(
+                        '[reCAPTCHA] Failed to render. Diagnostics:\n' +
+                        '1. Authorized Domains: Verify that "' + (window.location?.hostname || 'bookaddis.com') + '" is added under Firebase Console -> Authentication -> Settings -> Authorized Domains.\n' +
+                        '2. Network/QUIC Protocol Error: If you see net::ERR_QUIC_PROTOCOL_ERROR, UDP port 443 is blocked/dropped on your network. Disable QUIC at chrome://flags/#enable-quic.\n' +
+                        '3. Ad-blocker or firewall blocking *.gstatic.com or google.com/recaptcha.'
+                    );
+                }
                 if (myRequestId === requestIdRef.current) {
                     isRenderingRef.current = false;
                     currentContainerIdRef.current = null;

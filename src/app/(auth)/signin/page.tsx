@@ -2,7 +2,7 @@
 
 import type React from "react"
 import type { MultiFactorResolver } from "firebase/auth"
-import { Suspense, useState, useEffect, useRef } from "react"
+import { Suspense, useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-provider"
 import type { UserRole } from "@/types/auth"
@@ -32,6 +32,7 @@ function SignInContent() {
     const [submitting, setSubmitting] = useState(false)
     const [routing, setRouting] = useState(false)
     const [recaptchaSolved, setRecaptchaSolved] = useState(false)
+    const [recaptchaError, setRecaptchaError] = useState<string | null>(null)
     const [googleOnlyAccount, setGoogleOnlyAccount] = useState(false)
     const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
 
@@ -59,25 +60,32 @@ function SignInContent() {
         router.replace(buildAuthContinueHref(from))
     }, [mfaResolver, loading, user, from, router])
 
+    const initRecaptcha = useCallback(() => {
+        if (mfaResolver) return
+        setRecaptchaError(null)
+        setRecaptchaSolved(false)
+        renderRecaptcha('recaptcha-container', 'normal', () => {
+            setRecaptchaSolved(true)
+            setRecaptchaError(null)
+        })?.catch((err: unknown) => {
+            console.warn('[signin] reCAPTCHA render failed:', err)
+            setRecaptchaError(
+                'Security verification failed to load (network or domain error). Please retry.',
+            )
+        })
+    }, [mfaResolver, renderRecaptcha])
+
     useEffect(() => {
-        if (mfaResolver) return;
-        let cancelled = false;
-        setRecaptchaSolved(false);
-        void renderRecaptcha('recaptcha-container', 'normal', () => {
-            if (!cancelled) setRecaptchaSolved(true);
-        });
+        initRecaptcha()
 
         return () => {
-            cancelled = true;
-            // Only clear on real unmount / MFA switch  avoids wiping the widget
-            // when auth finishes initializing (renderRecaptcha identity changes).
-            clearRecaptcha();
-            setRecaptchaSolved(false);
-        };
+            clearRecaptcha()
+            setRecaptchaSolved(false)
+        }
         // Intentionally omit renderRecaptcha from deps: it changes when Firebase
         // auth hydrates and was clearing the checkbox in normal browser sessions.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mfaResolver, clearRecaptcha]);
+    }, [mfaResolver, clearRecaptcha])
 
     const refreshSignInMethods = async (value: string) => {
         if (!value.includes("@")) {
@@ -304,6 +312,19 @@ function SignInContent() {
 
                 {/* Visible reCAPTCHA container */}
                 <div id="recaptcha-container" className="flex justify-center my-4 overflow-hidden rounded-lg min-h-[78px]"></div>
+
+                {recaptchaError && (
+                    <div className="flex flex-col items-center gap-2 p-3 my-2 text-xs rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
+                        <p className="text-center font-medium">{recaptchaError}</p>
+                        <button
+                            type="button"
+                            onClick={() => initRecaptcha()}
+                            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                        >
+                            Retry Verification
+                        </button>
+                    </div>
+                )}
 
                 {/* Sign In Button */}
                 <Button

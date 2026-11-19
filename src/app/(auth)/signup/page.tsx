@@ -1,7 +1,7 @@
 'use client'
 
 import type { MultiFactorResolver } from 'firebase/auth'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Preloader } from '@/components/ui/preloader'
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
@@ -95,6 +95,7 @@ function SignUpContent() {
     const [loading, setLoading] = useState(false)
     const [googleSubmitting, setGoogleSubmitting] = useState(false)
     const [recaptchaSolved, setRecaptchaSolved] = useState(false)
+    const [recaptchaError, setRecaptchaError] = useState<string | null>(null)
     const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
 
     const {
@@ -131,17 +132,26 @@ function SignUpContent() {
         }
     }, [user, router])
 
-    useEffect(() => {
+    const initRecaptcha = useCallback(() => {
         if (accountType === 'hotel_partner' && accountReady) return
         const credentialsStep = accountType === 'guest' ? 2 : 1
         if (step !== credentialsStep) return
-        let cancelled = false
+        setRecaptchaError(null)
         setRecaptchaSolved(false)
-        void renderRecaptcha('recaptcha-container', 'normal', () => {
-            if (!cancelled) setRecaptchaSolved(true)
+        renderRecaptcha('recaptcha-container', 'normal', () => {
+            setRecaptchaSolved(true)
+            setRecaptchaError(null)
+        })?.catch((err: unknown) => {
+            console.warn('[signup] reCAPTCHA render failed:', err)
+            setRecaptchaError(
+                'Security verification failed to load (network or domain error). Please retry.',
+            )
         })
+    }, [accountType, accountReady, step, renderRecaptcha])
+
+    useEffect(() => {
+        initRecaptcha()
         return () => {
-            cancelled = true
             clearRecaptcha()
             setRecaptchaSolved(false)
         }
@@ -638,6 +648,18 @@ function SignUpContent() {
                             id="recaptcha-container"
                             className="flex justify-center overflow-hidden rounded-lg min-h-[78px]"
                         />
+                        {recaptchaError && (
+                            <div className="flex flex-col items-center gap-2 p-3 text-xs rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
+                                <p className="text-center font-medium">{recaptchaError}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => initRecaptcha()}
+                                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                                >
+                                    Retry Verification
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -669,6 +691,18 @@ function SignUpContent() {
                             id="recaptcha-container"
                             className="flex justify-center overflow-hidden rounded-lg min-h-[78px]"
                         />
+                        {recaptchaError && (
+                            <div className="flex flex-col items-center gap-2 p-3 text-xs rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
+                                <p className="text-center font-medium">{recaptchaError}</p>
+                                <button
+                                    type="button"
+                                    onClick={() => initRecaptcha()}
+                                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                                >
+                                    Retry Verification
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 

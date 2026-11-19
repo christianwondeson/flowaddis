@@ -25,9 +25,19 @@ export function HotelInventoryBadge({
     );
 }
 
-export function isBookaddisBookableHotel(hotel: Pick<Hotel, 'inventory_source' | 'bookable'>): boolean {
+export function isBookaddisBookableHotel(
+    hotel: Pick<Hotel, 'inventory_source' | 'bookable'> & { id?: string },
+): boolean {
     if (hotel.bookable === true) return true;
     if (hotel.bookable === false) return false;
+    if (
+        typeof hotel.id === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            hotel.id,
+        )
+    ) {
+        return true;
+    }
     const src = hotel.inventory_source;
     return src === 'bookaddis_direct' || src === 'pms_synced';
 }

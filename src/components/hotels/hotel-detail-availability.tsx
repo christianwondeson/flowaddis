@@ -631,7 +631,13 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         </div>
                                     )}
                                 <div className="mt-3 text-lg font-bold">
-                                    {formatHotelPrice(totalPrice, 'USD', etbPerUsd)}
+                                    {formatHotelPrice(
+                                        totalPrice,
+                                        (hotel as any)?.currency ||
+                                            (hotel as any)?.default_currency ||
+                                            (canReserve ? 'ETB' : 'USD'),
+                                        etbPerUsd,
+                                    )}
                                 </div>
                                 <Button
                                     disabled
@@ -698,7 +704,9 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                         <td className="px-6 py-6 font-bold">
                                             {formatHotelPrice(
                                                 Number(price) || 0,
-                                                'USD',
+                                                (hotel as any)?.currency ||
+                                                    (hotel as any)?.default_currency ||
+                                                    (canReserve ? 'ETB' : 'USD'),
                                                 etbPerUsd,
                                             )}
                                         </td>
