@@ -133,9 +133,13 @@ function ResetPasswordForm() {
                         {error}
                     </p>
                 ) : null}
-                <Button type="submit" disabled={loading} className="w-full bg-brand-primary text-white">
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-lg bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/35 active:translate-y-0 disabled:opacity-50 min-h-[46px]"
+                >
                     {loading ? "Saving…" : "Update password"}
-                </Button>
+                </button>
             </form>
         </AuthLayout>
     );

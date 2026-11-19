@@ -40,7 +40,7 @@ import {
     validateHotelPropertyFields,
 } from '@/lib/hotel-partner-kyc'
 import { auth, db } from '@/lib/firebase'
-import { Building2, UserRound } from 'lucide-react'
+import { Building2, UserRound, ArrowRight, User, Mail, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/lib/react-query'
@@ -569,9 +569,17 @@ function SignUpContent() {
                 <SignupStepRail steps={steps} current={step} />
 
                 {step === 0 && (
-                    <div className="space-y-3">
-                        <p className="text-sm font-medium text-gray-900">I want to</p>
-                        <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-4 animate-slide-in-right">
+                        <div>
+                            <p className="text-base font-semibold text-slate-900 dark:text-white">
+                                How will you use BookAddis?
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                Choose your account type to get started. You can always add the other later.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -579,41 +587,107 @@ function SignUpContent() {
                                     setAccountReady(false)
                                 }}
                                 className={cn(
-                                    'flex items-start gap-3 rounded-xl border p-3 text-left transition-colors',
+                                    'group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5',
                                     accountType === 'guest'
-                                        ? 'border-brand-primary bg-brand-primary/5'
-                                        : 'border-gray-200 hover:bg-gray-50',
+                                        ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 to-emerald-50/50 shadow-md shadow-teal-500/10 ring-2 ring-teal-500/20'
+                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700',
                                 )}
                             >
-                                <UserRound className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
-                                <span>
-                                    <span className="block text-sm font-semibold text-gray-900">
-                                        Book as a guest
+                                <div className="flex items-start gap-3.5">
+                                    <span
+                                        className={cn(
+                                            'grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-all duration-300 group-hover:scale-105',
+                                            accountType === 'guest'
+                                                ? 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md shadow-teal-500/25'
+                                                : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
+                                        )}
+                                    >
+                                        <UserRound className="h-5 w-5" />
                                     </span>
-                                    <span className="mt-0.5 block text-xs text-gray-500">
-                                        Search hotels and complete bookings
-                                    </span>
-                                </span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                                                Book as a guest
+                                            </h3>
+                                            <span
+                                                className={cn(
+                                                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                                                    accountType === 'guest'
+                                                        ? 'bg-teal-600 text-white'
+                                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+                                                )}
+                                            >
+                                                Free forever
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                            Search hotels, flights and shuttles, and manage your trips across Ethiopia.
+                                        </p>
+                                    </div>
+                                    <ArrowRight
+                                        className={cn(
+                                            'mt-2.5 h-4 w-4 shrink-0 transition-all duration-300 group-hover:translate-x-1',
+                                            accountType === 'guest'
+                                                ? 'text-teal-600'
+                                                : 'text-slate-300 group-hover:text-slate-500',
+                                        )}
+                                    />
+                                </div>
                             </button>
+
                             <button
                                 type="button"
-                                onClick={() => setAccountType('hotel_partner')}
+                                onClick={() => {
+                                    setAccountType('hotel_partner')
+                                    setAccountReady(false)
+                                }}
                                 className={cn(
-                                    'flex items-start gap-3 rounded-xl border p-3 text-left transition-colors',
+                                    'group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5',
                                     accountType === 'hotel_partner'
-                                        ? 'border-brand-primary bg-brand-primary/5'
-                                        : 'border-gray-200 hover:bg-gray-50',
+                                        ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 to-emerald-50/50 shadow-md shadow-teal-500/10 ring-2 ring-teal-500/20'
+                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700',
                                 )}
                             >
-                                <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
-                                <span>
-                                    <span className="block text-sm font-semibold text-gray-900">
-                                        List my hotel
+                                <div className="flex items-start gap-3.5">
+                                    <span
+                                        className={cn(
+                                            'grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-all duration-300 group-hover:scale-105',
+                                            accountType === 'hotel_partner'
+                                                ? 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md shadow-teal-500/25'
+                                                : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
+                                        )}
+                                    >
+                                        <Building2 className="h-5 w-5" />
                                     </span>
-                                    <span className="mt-0.5 block text-xs text-gray-500">
-                                        Choose a plan → KYC docs → Super Admin review
-                                    </span>
-                                </span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                                                Register as a hotel
+                                            </h3>
+                                            <span
+                                                className={cn(
+                                                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                                                    accountType === 'hotel_partner'
+                                                        ? 'bg-teal-600 text-white'
+                                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+                                                )}
+                                            >
+                                                Partner program
+                                            </span>
+                                        </div>
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                            List your property, complete KYC verification and receive direct guest payouts.
+                                        </p>
+                                    </div>
+                                    <ArrowRight
+                                        className={cn(
+                                            'mt-2.5 h-4 w-4 shrink-0 transition-all duration-300 group-hover:translate-x-1',
+                                            accountType === 'hotel_partner'
+                                                ? 'text-teal-600'
+                                                : 'text-slate-300 group-hover:text-slate-500',
+                                        )}
+                                    />
+                                </div>
                             </button>
                         </div>
                     </div>
@@ -911,17 +985,17 @@ function SignUpContent() {
                     </div>
                 )}
 
-                <div className="flex flex-wrap gap-2 justify-between pt-1">
+                <div className="flex flex-wrap gap-2 justify-between pt-2">
                     <Button
                         type="button"
                         variant="outline"
                         disabled={step === 0 || loading}
                         onClick={goBack}
-                        className="rounded-xl"
+                        className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200"
                     >
                         Back
                     </Button>
-                <Button
+                    <button
                         type="button"
                         disabled={
                             loading ||
@@ -934,19 +1008,19 @@ function SignUpContent() {
                                 : false)
                         }
                         onClick={() => void goNext()}
-                        className="rounded-xl min-w-[140px] bg-brand-primary hover:bg-brand-primary/90"
+                        className="rounded-xl min-w-[140px] px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-semibold text-sm shadow-md shadow-teal-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                     >
                         {primaryLabel}
-                </Button>
+                    </button>
                 </div>
 
-                <p className="text-xs text-center text-gray-500">
+                <p className="text-xs text-center text-slate-500">
                     By continuing, you agree to our{' '}
-                    <a href="/terms" className="text-brand-primary hover:underline">
+                    <a href="/terms" className="text-teal-600 hover:underline">
                         Terms
                     </a>{' '}
                     and{' '}
-                    <a href="/privacy" className="text-brand-primary hover:underline">
+                    <a href="/privacy" className="text-teal-600 hover:underline">
                         Privacy Policy
                     </a>
                     .
@@ -974,32 +1048,40 @@ function CredentialsFields(props: {
             <FormField label="Full Name">
                 <Input
                     value={props.name}
+                    icon={<User className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setName(e.target.value)}
-                    placeholder="John Doe"
+                    placeholder="Abebe Bikila"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
                 />
             </FormField>
             <FormField label="Email Address">
                 <Input
                     type="email"
                     value={props.email}
+                    icon={<Mail className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setEmail(e.target.value)}
-                    placeholder="name@company.com"
+                    placeholder="name@example.com"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
                 />
             </FormField>
             <FormField label="Password">
-                <p className="text-xs text-gray-600 mb-1.5">{PASSWORD_POLICY_HINT}</p>
+                <p className="text-xs text-slate-500 mb-1.5">{PASSWORD_POLICY_HINT}</p>
                 <PasswordInput
                     value={props.password}
+                    icon={<Lock className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setPassword(e.target.value)}
                     placeholder="••••••••"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
                 />
                 <PasswordStrengthMeter password={props.password} className="mt-2" />
             </FormField>
             <FormField label="Confirm Password">
                 <PasswordInput
                     value={props.confirmPassword}
+                    icon={<Lock className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
                 />
             </FormField>
             {props.showReferral && props.setReferralCode ? (
@@ -1008,6 +1090,7 @@ function CredentialsFields(props: {
                         value={props.referralCode || ''}
                         onChange={(e) => props.setReferralCode!(e.target.value)}
                         placeholder="Friend or promo code"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
                     />
                 </FormField>
             ) : null}

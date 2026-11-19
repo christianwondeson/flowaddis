@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { AuthLayout } from '@/components/layout/auth-layout';
@@ -90,26 +90,37 @@ function ForgotPasswordContent() {
             }}
         >
             <form onSubmit={onSubmit} className="space-y-4 sm:space-y-5">
-                <FormField label="Email Address" error={error}>
+                <FormField label="Email address" error={error}>
                     <Input
                         type="email"
-                        placeholder="name@company.com"
+                        placeholder="name@example.com"
+                        icon={<Mail className="h-4 w-4 text-slate-400" />}
                         value={email}
                         onChange={(e) => {
                             setEmail(e.target.value);
                             setError('');
                         }}
-                        className="w-full"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
                     />
                 </FormField>
 
-                <Button
+                <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-brand-primary hover:bg-teal-700 text-white font-semibold py-2.5 sm:py-3 rounded-2xl transition-colors"
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-lg bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/35 active:translate-y-0 disabled:opacity-50 min-h-[46px]"
                 >
-                    {loading ? 'Sending...' : 'Send Reset Link'}
-                </Button>
+                    {loading ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Sending link…
+                        </>
+                    ) : (
+                        <>
+                            Send Reset Link
+                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                        </>
+                    )}
+                </button>
             </form>
         </AuthLayout>
     );
