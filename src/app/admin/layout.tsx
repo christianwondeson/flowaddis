@@ -150,12 +150,12 @@ export default function AdminLayout({
         setGate('ready');
     }, [loading, loadingTimeout, user, hotelPath, pathname, router, canAccessPortal]);
 
-    const showShell = useMemo(
-        () => gate === 'ready' && !!user && !hotelPath && canAccessSuperAdmin(user),
-        [gate, user, hotelPath],
-    );
+    // Hotel extranet uses its own layout under /admin/hotel/**
+    if (hotelPath) {
+        return <>{children}</>;
+    }
 
-    if (gate !== 'ready' || !user) {
+    if (gate !== 'ready' || !user || !canAccessSuperAdmin(user)) {
         return (
             <Preloader
                 fullScreen
@@ -163,25 +163,10 @@ export default function AdminLayout({
                 label={
                     !user
                         ? 'Redirecting to sign in…'
-                        : hotelPath && canAccessSuperAdmin(user)
-                          ? 'Opening Super Admin inventory…'
+                        : !canAccessSuperAdmin(user)
+                          ? 'Redirecting…'
                           : 'Verifying admin access…'
                 }
-            />
-        );
-    }
-
-    // Hotel extranet uses its own layout under /admin/hotel/**
-    if (hotelPath) {
-        return <>{children}</>;
-    }
-
-    if (!showShell) {
-        return (
-            <Preloader
-                fullScreen
-                size="lg"
-                label="Verifying admin access…"
             />
         );
     }

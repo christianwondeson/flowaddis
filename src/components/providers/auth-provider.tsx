@@ -89,8 +89,18 @@ declare global {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-    const [authLoading, setAuthLoading] = useState(true);
+    const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(() => {
+        if (typeof window !== 'undefined' && auth?.currentUser) {
+            return auth.currentUser;
+        }
+        return null;
+    });
+    const [authLoading, setAuthLoading] = useState<boolean>(() => {
+        if (typeof window !== 'undefined' && auth?.currentUser) {
+            return false;
+        }
+        return true;
+    });
     const queryClient = useQueryClient();
     const router = useRouter();
     const isRenderingRef = useRef<boolean>(false);

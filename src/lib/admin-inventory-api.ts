@@ -3,24 +3,21 @@
 import { auth } from '@/lib/firebase';
 import { withRequestLoading } from '@/lib/request-loading';
 
-/** Super Admin Nest inventory via `/api/admin/inventory/*` → `/api/v1/admin/*`. */
+/**
+ * Super Admin Nest inventory via `/api/admin/inventory/*` → `/api/v1/admin/*`.
+ * GET queries execute without global blocking overlays so individual pages
+ * can render their own non-blocking in-content loaders (avoiding duplicate preloaders).
+ * Mutations (POST, PUT, DELETE) use withRequestLoading when requested.
+ */
 export async function adminInventoryFetch<T = unknown>(
     path: string,
     init?: RequestInit,
     loadingLabel?: string,
 ): Promise<T> {
     const method = (init?.method || 'GET').toUpperCase();
-    const label =
-        loadingLabel ||
-        (method === 'GET'
-            ? 'Loading…'
-            : method === 'POST'
-              ? 'Saving…'
-              : method === 'PUT' || method === 'PATCH'
-                ? 'Updating…'
-                : 'Working…');
+    const isMutation = method !== 'GET' && method !== 'HEAD';
 
-    return withRequestLoading(async () => {
+    const executeFetch = async (): Promise<T> => {
         const token = await auth?.currentUser?.getIdToken();
         if (!token) throw new Error('Not signed in');
 
@@ -43,5 +40,20 @@ export async function adminInventoryFetch<T = unknown>(
             );
         }
         return data as T;
-    }, label);
+    };
+
+    // Only apply global requestLoading to mutations (POST, PUT, DELETE) or when an explicit loadingLabel is given.
+    // Standard GET reads should NEVER trigger a global full-screen preloader overlay.
+    if (isMutation || (loadingLabel && method !== 'GET')) {
+        const label =
+            loadingLabel ||
+            (method === 'POST'
+                ? 'Saving…'
+                : method === 'PUT' || method === 'PATCH'
+                  ? 'Updating…'
+                  : 'Working…');
+        return withRequestLoading(executeFetch, label);
+    }
+
+    return executeFetch();
 }

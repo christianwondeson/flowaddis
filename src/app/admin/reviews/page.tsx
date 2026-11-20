@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Preloader } from '@/components/ui/preloader';
+import { AdminLoader } from '@/components/ui/admin-loader';
 
-/** Merged into Support & Disputes  keep URL for old bookmarks. */
+/** Merged into Support & Disputes — keep URL for old bookmarks. */
 export default function SuperAdminDisputedReviewsRedirect() {
     const router = useRouter();
 
@@ -13,10 +13,8 @@ export default function SuperAdminDisputedReviewsRedirect() {
     }, [router]);
 
     return (
-        <Preloader
-            fullScreen
-            size="lg"
-            label="Opening Support & Disputes…"
-        />
+        <div className="py-20 flex justify-center items-center">
+            <AdminLoader label="Opening Support & Disputes…" />
+        </div>
     );
 }

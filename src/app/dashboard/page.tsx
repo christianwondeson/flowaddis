@@ -7,37 +7,51 @@ import { AccountShell } from "@/components/account/account-shell";
 import { AccountOverviewStats } from "@/components/account/account-overview-stats";
 import { MyTripsList } from "@/components/trips/my-trips-list";
 import { useMyTripsData } from "@/hooks/use-my-trips-data";
-import { canAccessSuperAdmin } from "@/lib/auth-helpers";
-import { Loader2 } from "lucide-react";
+import { canAccessSuperAdmin, isHotelPortalRole } from "@/lib/auth-helpers";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CustomerDashboard() {
     const { user, loading } = useRequireSignedIn();
     const router = useRouter();
-    const tripsData = useMyTripsData(user?.id, { enabled: !!user?.id });
+    const tripsData = useMyTripsData(user?.id, { enabled: !!user?.id && !canAccessSuperAdmin(user) && !isHotelPortalRole(user) });
 
-    // Super admin accounts belong in the Super Admin operations console (/admin)
+    // Redirect admins and hotel operators to their dedicated management consoles immediately
+    const isAdmin = Boolean(user && canAccessSuperAdmin(user));
+    const isHotelStaff = Boolean(user && isHotelPortalRole(user));
+
     useEffect(() => {
-        if (!loading && user && canAccessSuperAdmin(user)) {
+        if (isAdmin) {
             router.replace('/admin');
+        } else if (isHotelStaff) {
+            router.replace('/admin/hotel');
         }
-    }, [user, loading, router]);
+    }, [isAdmin, isHotelStaff, router]);
+
+    // If user is admin or hotel partner, do not render customer dashboard or conflicting loaders
+    if (isAdmin || isHotelStaff) {
+        return null;
+    }
 
     if (loading) {
         return (
-            <div className="flex min-h-[50vh] flex-col items-center justify-center bg-brand-gray/30 pt-24 dark:bg-background">
-                <Loader2 className="h-9 w-9 animate-spin text-brand-primary" aria-hidden />
-                <p className="mt-3 text-sm text-muted-foreground">Loading your account…</p>
-            </div>
+            <AccountShell
+                title="Overview"
+                description="Track bookings from secure checkout and any trip bundles on your account."
+            >
+                <div className="space-y-6 animate-pulse">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Skeleton className="h-28 rounded-2xl" />
+                        <Skeleton className="h-28 rounded-2xl" />
+                        <Skeleton className="h-28 rounded-2xl" />
+                    </div>
+                    <Skeleton className="h-64 rounded-2xl" />
+                </div>
+            </AccountShell>
         );
     }
 
     if (!user) {
-        return (
-            <div className="flex min-h-[50vh] flex-col items-center justify-center bg-brand-gray/30 pt-24 dark:bg-background">
-                <Loader2 className="h-9 w-9 animate-spin text-brand-primary" aria-hidden />
-                <p className="mt-3 text-sm text-muted-foreground">Signing out…</p>
-            </div>
-        );
+        return null;
     }
 
     const firstName = user.name?.trim()?.split(/\s+/)[0];
