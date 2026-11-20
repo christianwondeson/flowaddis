@@ -272,7 +272,7 @@ function SignInContent() {
                             setGoogleOnlyAccount(false)
                         }}
                         onBlur={(e) => void refreshSignInMethods(e.target.value)}
-                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 px-3 sm:px-3.5 text-sm sm:text-base"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base"
                     />
                 </FormField>
 
@@ -296,7 +296,7 @@ function SignInContent() {
                             setPassword(e.target.value)
                             setErrors({ ...errors, password: "" })
                         }}
-                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 px-3 sm:px-3.5 text-sm sm:text-base"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base"
                     />
                 </FormField>
 

@@ -1079,7 +1079,7 @@ function CredentialsFields(props: {
                     icon={<User className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setName(e.target.value)}
                     placeholder="Abebe Bikila"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base"
                 />
             </FormField>
             <FormField label="Email Address">
@@ -1089,7 +1089,7 @@ function CredentialsFields(props: {
                     icon={<Mail className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base"
                 />
             </FormField>
             <FormField label="Password">
@@ -1099,7 +1099,7 @@ function CredentialsFields(props: {
                     icon={<Lock className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base"
                 />
                 <PasswordStrengthMeter password={props.password} className="mt-2" />
             </FormField>
@@ -1109,7 +1109,7 @@ function CredentialsFields(props: {
                     icon={<Lock className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base"
                 />
             </FormField>
             {props.showReferral && props.setReferralCode ? (
@@ -1118,7 +1118,7 @@ function CredentialsFields(props: {
                         value={props.referralCode || ''}
                         onChange={(e) => props.setReferralCode!(e.target.value)}
                         placeholder="Friend or promo code"
-                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 px-3.5 text-sm sm:text-base"
                     />
                 </FormField>
             ) : null}
