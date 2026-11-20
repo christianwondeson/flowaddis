@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,12 @@ import { formatDateLocal, parseDateLocal } from '@/lib/date-utils';
 import { useAuth } from '@/components/providers/auth-provider';
 import { BookingModal } from '@/components/booking/booking-modal';
 import { toast } from 'sonner';
+import {
+    COUNTRY_PHONE_CONFIGS,
+    getCountryConfig,
+    validateEmail,
+    validatePhoneNumber,
+} from '@/lib/phone-validation';
 import {
     normalizePromotions,
     resolveHotelPromotionDiscount,
@@ -81,8 +87,20 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
         () => user?.name?.split(/\s+/).slice(1).join(' ') || '',
     );
     const [email, setEmail] = useState(() => user?.email || '');
+    const [emailError, setEmailError] = useState<string | null>(null);
     const [phoneCountry, setPhoneCountry] = useState('ET');
     const [phone, setPhone] = useState('');
+    const [phoneError, setPhoneError] = useState<string | null>(null);
+
+    const currentCountryConfig = useMemo(
+        () => getCountryConfig(phoneCountry),
+        [phoneCountry],
+    );
+
+    const phoneValidation = useMemo(
+        () => (phone.trim() ? validatePhoneNumber(phone, phoneCountry) : { isValid: false, normalizedE164: '', nationalDigits: '' }),
+        [phone, phoneCountry],
+    );
 
     const [paymentPref, setPaymentPref] = useState<
         'pay_now' | 'pay_at_property'
@@ -215,16 +233,23 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
             toast.error(t('reserve.toastNameRequired'));
             return;
         }
-        const emailNorm = email.trim().toLowerCase();
-        if (!emailNorm.includes('@') || emailNorm.length < 5) {
-            toast.error(t('reserve.toastEmailRequired'));
+
+        const emailCheck = validateEmail(email);
+        if (!emailCheck.isValid) {
+            setEmailError(emailCheck.error || 'Please enter a valid email address');
+            toast.error(emailCheck.error || 'Please enter a valid email address');
             return;
         }
-        const phoneDigits = phone.replace(/\D/g, '');
-        if (phoneDigits.length < 8) {
-            toast.error(t('reserve.toastPhoneRequired'));
+        setEmailError(null);
+
+        const phoneCheck = validatePhoneNumber(phone, phoneCountry);
+        if (!phoneCheck.isValid) {
+            setPhoneError(phoneCheck.error || 'Please enter a valid phone number');
+            toast.error(phoneCheck.error || 'Please enter a valid phone number');
             return;
         }
+        setPhoneError(null);
+
         const meal = normalizeMealPlan(mealPlan);
         const stay_codes = buildStayCodes({
             dayUse,
@@ -272,8 +297,8 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                     guest: {
                         firstName: firstName.trim(),
                         lastName: lastName.trim(),
-                        email: emailNorm,
-                        phone: phone.trim(),
+                        email: email.trim().toLowerCase(),
+                        phone: phoneCheck.normalizedE164,
                     },
                 }),
             );
@@ -505,38 +530,108 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                     />
                                 </div>
                                 <div className="space-y-1.5 sm:col-span-2">
-                                    <Label>{t('reserve.emailAddress')}</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="guest-email" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                            {t('reserve.emailAddress')}
+                                        </Label>
+                                        {emailError && (
+                                            <span className="flex items-center gap-1 text-xs font-semibold text-rose-600">
+                                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                <span>{emailError}</span>
+                                            </span>
+                                        )}
+                                    </div>
                                     <Input
-                                        className={fieldClass}
+                                        id="guest-email"
+                                        className={cn(
+                                            fieldClass,
+                                            emailError &&
+                                                'border-rose-500 focus-visible:ring-rose-500/20 focus-visible:border-rose-500 bg-rose-50/20 text-rose-950',
+                                        )}
                                         type="email"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={(e) => {
+                                            setEmail(e.target.value);
+                                            if (emailError) setEmailError(null);
+                                        }}
+                                        onBlur={() => {
+                                            if (email.trim()) {
+                                                const check = validateEmail(email);
+                                                if (!check.isValid) setEmailError(check.error || null);
+                                                else setEmailError(null);
+                                            }
+                                        }}
                                         disabled={Boolean(user?.email)}
+                                        placeholder="name@example.com"
                                         required
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>{t('reserve.country')}</Label>
+                                    <Label htmlFor="guest-phone-country" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                        {t('reserve.country')}
+                                    </Label>
                                     <select
+                                        id="guest-phone-country"
                                         className={fieldClass}
                                         value={phoneCountry}
-                                        onChange={(e) => setPhoneCountry(e.target.value)}
+                                        onChange={(e) => {
+                                            setPhoneCountry(e.target.value);
+                                            if (phoneError) setPhoneError(null);
+                                        }}
                                     >
-                                        <option value="ET">Ethiopia</option>
-                                        <option value="KE">Kenya</option>
-                                        <option value="US">United States</option>
-                                        <option value="GB">United Kingdom</option>
+                                        {COUNTRY_PHONE_CONFIGS.map((c) => (
+                                            <option key={c.code} value={c.code}>
+                                                {c.flag} {c.name} ({c.dial})
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>{t('reserve.phone')}</Label>
-                                    <Input
-                                        className={fieldClass}
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        placeholder={t('reserve.phonePlaceholder')}
-                                        required
-                                    />
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="guest-phone" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                            {t('reserve.phone')}
+                                        </Label>
+                                        {phoneValidation.isValid && phoneValidation.carrier ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                                <CheckCircle2 className="w-3 h-3 text-teal-600" />
+                                                <span>{phoneValidation.carrier}</span>
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    <div className="relative">
+                                        <Input
+                                            id="guest-phone"
+                                            className={cn(
+                                                fieldClass,
+                                                phoneError &&
+                                                    'border-rose-500 focus-visible:ring-rose-500/20 focus-visible:border-rose-500 bg-rose-50/20 text-rose-950',
+                                            )}
+                                            value={phone}
+                                            onChange={(e) => {
+                                                setPhone(e.target.value);
+                                                if (phoneError) setPhoneError(null);
+                                            }}
+                                            onBlur={() => {
+                                                if (phone.trim()) {
+                                                    const check = validatePhoneNumber(phone, phoneCountry);
+                                                    if (!check.isValid) setPhoneError(check.error || null);
+                                                    else setPhoneError(null);
+                                                }
+                                            }}
+                                            placeholder={currentCountryConfig.placeholder}
+                                            required
+                                        />
+                                    </div>
+                                    {phoneError ? (
+                                        <p className="flex items-center gap-1 text-xs font-semibold text-rose-600 mt-1">
+                                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                            <span>{phoneError}</span>
+                                        </p>
+                                    ) : phoneCountry === 'ET' && !phone.trim() ? (
+                                        <p className="text-[11px] text-slate-500 mt-1">
+                                            Ethio telecom: <strong>+251 9...</strong> or <strong>09...</strong> · Safaricom: <strong>+251 7...</strong> or <strong>07...</strong>
+                                        </p>
+                                    ) : null}
                                 </div>
                             </div>
                         </section>
@@ -958,7 +1053,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                 ratePlanId={draft.ratePlanId}
                 initialGuestName={fullName}
                 initialGuestEmail={email}
-                initialGuestPhone={phone}
+                initialGuestPhone={phoneValidation.normalizedE164 || phone}
                 startAtPayment
                 preferredPaymentTiming={paymentPref}
                 isLocal={

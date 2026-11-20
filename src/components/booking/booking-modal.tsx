@@ -22,6 +22,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { consumeMatchedHotelDraft } from '@/lib/booking-draft-storage';
 import { useTranslations } from '@/components/providers/locale-provider';
 import type { PaymentSuccessResult } from '@/lib/payment-success';
+import {
+    COUNTRY_PHONE_CONFIGS,
+    getCountryConfig,
+    validateEmail,
+    validatePhoneNumber,
+    type CountryPhoneConfig,
+} from '@/lib/phone-validation';
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -60,23 +67,7 @@ interface BookingModalProps {
 
 const normalizePhone = (v: string) => v.replace(/[^+\d]/g, '');
 
-type Country = { code: string; name: string; dial: string; flag: string; min: number; max: number };
-const COUNTRIES: Country[] = [
-    { code: 'ET', name: 'Ethiopia', dial: '+251', flag: '🇪🇹', min: 9, max: 9 },
-    { code: 'US', name: 'United States', dial: '+1', flag: '🇺🇸', min: 10, max: 10 },
-    { code: 'CA', name: 'Canada', dial: '+1', flag: '🇨🇦', min: 10, max: 10 },
-    { code: 'GB', name: 'United Kingdom', dial: '+44', flag: '🇬🇧', min: 10, max: 10 },
-    { code: 'AE', name: 'United Arab Emirates', dial: '+971', flag: '🇦🇪', min: 9, max: 9 },
-    { code: 'DE', name: 'Germany', dial: '+49', flag: '🇩🇪', min: 10, max: 11 },
-    { code: 'TR', name: 'Turkey', dial: '+90', flag: '🇹🇷', min: 10, max: 11 },
-    { code: 'SA', name: 'Saudi Arabia', dial: '+966', flag: '🇸🇦', min: 9, max: 9 },
-    { code: 'KE', name: 'Kenya', dial: '+254', flag: '🇰🇪', min: 9, max: 9 },
-    { code: 'NG', name: 'Nigeria', dial: '+234', flag: '🇳🇬', min: 7, max: 10 },
-    { code: 'ZA', name: 'South Africa', dial: '+27', flag: '🇿🇦', min: 9, max: 9 },
-    { code: 'FR', name: 'France', dial: '+33', flag: '🇫🇷', min: 9, max: 9 },
-    { code: 'IN', name: 'India', dial: '+91', flag: '🇮🇳', min: 10, max: 10 },
-    { code: 'CN', name: 'China', dial: '+86', flag: '🇨🇳', min: 11, max: 11 },
-];
+const COUNTRIES: CountryPhoneConfig[] = COUNTRY_PHONE_CONFIGS;
 type BookingFormData = {
     name: string;
     email: string;
@@ -134,7 +125,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             z
                 .object({
                     name: z.string().min(2, t('bookingUi.validation.nameMin')),
-                    email: z.string().email(t('bookingUi.validation.emailInvalid')),
+                    email: z
+                        .string()
+                        .email(t('bookingUi.validation.emailInvalid'))
+                        .refine((v) => validateEmail(v).isValid, {
+                            message: 'Please enter a valid email address (e.g. name@example.com)',
+                        }),
                     phone: z
                         .string()
                         .transform(normalizePhone)
@@ -313,10 +309,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     // Country and national number UI state
     const [countryCode, setCountryCode] = useState<string>('ET');
-    const selectedCountry: Country = useMemo(() => COUNTRIES.find(c => c.code === countryCode) || COUNTRIES[0], [countryCode]);
+    const selectedCountry: CountryPhoneConfig = useMemo(
+        () => getCountryConfig(countryCode),
+        [countryCode],
+    );
     const [nationalNumber, setNationalNumber] = useState<string>('');
 
-    const updatePhoneE164 = (cc: Country, nat: string) => {
+    const updatePhoneE164 = (cc: CountryPhoneConfig, nat: string) => {
         const natDigits = nat.replace(/\D/g, '');
         const e164 = `${cc.dial}${natDigits}`;
         setValue('phone', e164, { shouldValidate: true });
@@ -433,26 +432,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const handleFormSubmit = (data: BookingFormData) => {
-        // Additional country-based length validation
-        const natDigits = nationalNumber.replace(/\D/g, '');
-        if (natDigits.length < selectedCountry.min || natDigits.length > selectedCountry.max) {
+        // Detailed country and carrier validation
+        const phoneCheck = validatePhoneNumber(nationalNumber, countryCode);
+        if (!phoneCheck.isValid) {
             setError('phone', {
                 type: 'validate',
-                message:
-                    selectedCountry.min === selectedCountry.max
-                        ? t('bookingUi.phoneLengthExact', {
-                              n: selectedCountry.min,
-                              country: selectedCountry.name,
-                          })
-                        : t('bookingUi.phoneLengthRange', {
-                              min: selectedCountry.min,
-                              max: selectedCountry.max,
-                              country: selectedCountry.name,
-                          }),
+                message: phoneCheck.error || t('bookingUi.validation.phoneInvalid'),
             });
             return;
         }
-        setBookingData({ ...data, email: resolveBookingEmail(data) });
+        setBookingData({ ...data, phone: phoneCheck.normalizedE164, email: resolveBookingEmail(data) });
         setStep('payment');
     };
 
@@ -584,7 +573,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 )}
                                 {/* Country selector + phone input */}
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">{t('bookingUi.phoneNumber')}</label>
+                                    <div className="flex items-center justify-between mb-1.5 ml-1">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                            {t('bookingUi.phoneNumber')}
+                                        </label>
+                                        {countryCode === 'ET' && nationalNumber.trim() ? (() => {
+                                            const check = validatePhoneNumber(nationalNumber, 'ET');
+                                            return check.carrier ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                                    {check.carrier}
+                                                </span>
+                                            ) : null;
+                                        })() : null}
+                                    </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                         <div className="col-span-1">
                                             <Select value={countryCode} onValueChange={(v) => {
@@ -602,7 +603,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                         <SelectItem key={c.code} value={c.code}>
                                                             <span className="flex items-center gap-2 text-sm">
                                                                 <span>{c.flag}</span>
-                                                                <span className="w-6 inline-block">{c.dial}</span>
+                                                                <span className="w-6 inline-block font-medium">{c.dial}</span>
                                                                 <span className="text-gray-700">{c.name}</span>
                                                             </span>
                                                         </SelectItem>
@@ -615,7 +616,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                 id="phone"
                                                 label={undefined as any}
                                                 type="tel"
-                                                placeholder={`e.g. ${selectedCountry.dial} ...`}
+                                                placeholder={selectedCountry.placeholder}
                                                 value={nationalNumber}
                                                 onChange={(e) => {
                                                     const v = e.target.value;
@@ -626,6 +627,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             />
                                         </div>
                                     </div>
+                                    {countryCode === 'ET' && !errors.phone && (
+                                        <p className="text-[11px] text-gray-500 mt-1 ml-1">
+                                            Ethio telecom: <strong>9...</strong> · Safaricom: <strong>7...</strong> (9 digits)
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Popover

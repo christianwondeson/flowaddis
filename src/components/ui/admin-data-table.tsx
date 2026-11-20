@@ -177,27 +177,31 @@ export function AdminDataTable<T>({
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="rounded-lg h-8"
+                            className="rounded-lg h-8 gap-1.5"
                         >
-                            <Columns3 className="w-3.5 h-3.5 mr-1.5" />
+                            <Columns3 className="w-3.5 h-3.5 text-slate-500" />
                             Columns
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                        <DropdownMenuLabel>Show columns</DropdownMenuLabel>
+                    <DropdownMenuContent align="end" className="min-w-[15rem] max-w-sm shadow-lg">
+                        <DropdownMenuLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Toggle Columns
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        {columns.map((c) => (
-                            <DropdownMenuCheckboxItem
-                                key={c.id}
-                                checked={visibleIds.has(c.id)}
-                                disabled={c.alwaysVisible}
-                                onCheckedChange={(checked) =>
-                                    toggleColumn(c.id, Boolean(checked))
-                                }
-                            >
-                                {c.header}
-                            </DropdownMenuCheckboxItem>
-                        ))}
+                        <div className="max-h-72 overflow-y-auto space-y-0.5">
+                            {columns.map((c) => (
+                                <DropdownMenuCheckboxItem
+                                    key={c.id}
+                                    checked={visibleIds.has(c.id)}
+                                    disabled={c.alwaysVisible}
+                                    onCheckedChange={(checked) =>
+                                        toggleColumn(c.id, Boolean(checked))
+                                    }
+                                >
+                                    {c.header}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </div>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
