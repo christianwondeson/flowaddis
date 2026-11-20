@@ -174,30 +174,30 @@ export const Preloader: React.FC<PreloaderProps> = ({
         );
     }
 
-    // Full / Large Travel Brand Preloader
+    // Full / Compact Travel Brand Preloader
     const fullContent = (
-        <div className="relative flex flex-col items-center px-6 select-none">
+        <div className="relative flex flex-col items-center px-7 py-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-white/80 dark:border-slate-800 shadow-xl shadow-slate-900/5 select-none transition-all">
             {/* Soft background ambient glow */}
             <div
                 aria-hidden
-                className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-emerald-400/10 blur-3xl"
+                className="pointer-events-none absolute -top-12 left-1/2 h-44 w-44 -translate-x-1/2 rounded-full bg-emerald-400/15 blur-2xl"
             />
 
-            {/* Concentric rotating rings with cycling category icons */}
-            <div className="relative flex h-24 w-24 items-center justify-center">
+            {/* Concentric rotating rings with cycling category icons - compact 16x16 */}
+            <div className="relative flex h-16 w-16 items-center justify-center">
                 <div
                     aria-hidden
                     className="absolute inset-0 rounded-full border border-gray-100 dark:border-slate-800"
                 />
                 <div
                     aria-hidden
-                    className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-emerald-500 [animation-duration:2.4s]"
+                    className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-emerald-500 [animation-duration:2s]"
                 />
                 <div
                     aria-hidden
-                    className="absolute inset-2 rounded-full border border-gray-100 dark:border-slate-800"
+                    className="absolute inset-1.5 rounded-full border border-gray-100 dark:border-slate-800"
                 />
-                <div className="relative h-8 w-8 text-emerald-600">
+                <div className="relative h-6 w-6 text-emerald-600">
                     {categories.map((category, index) => {
                         const Icon = category.icon;
                         return (
@@ -209,7 +209,7 @@ export const Preloader: React.FC<PreloaderProps> = ({
                                         : 'scale-75 opacity-0'
                                 }`}
                             >
-                                <Icon className="h-8 w-8" strokeWidth={1.5} />
+                                <Icon className="h-5.5 w-5.5" strokeWidth={1.75} />
                             </span>
                         );
                     })}
@@ -219,14 +219,14 @@ export const Preloader: React.FC<PreloaderProps> = ({
 
             {/* Label: either passed custom label or cycling uppercase category tracking */}
             {label ? (
-                <div className="relative mt-6 text-center max-w-sm px-2">
-                    <p className="text-sm font-semibold tracking-wide text-gray-800">{label}</p>
-                    <p className="mt-1 h-4 text-[10px] font-medium tracking-[0.25em] text-emerald-600 uppercase">
+                <div className="relative mt-3 text-center max-w-xs px-2">
+                    <p className="text-xs font-semibold tracking-wide text-gray-800 dark:text-gray-100">{label}</p>
+                    <p className="mt-0.5 h-3.5 text-[9px] font-medium tracking-[0.25em] text-emerald-600 uppercase">
                         {categories[activeIndex]?.label}
                     </p>
                 </div>
             ) : (
-                <p className="relative mt-6 h-5 w-32 text-xs font-light tracking-[0.3em] text-gray-500 uppercase">
+                <p className="relative mt-3 h-4 w-32 text-center text-[10px] font-medium tracking-[0.25em] text-gray-500 dark:text-gray-400 uppercase">
                     {categories.map((category, index) => (
                         <span
                             key={category.label}
@@ -240,11 +240,11 @@ export const Preloader: React.FC<PreloaderProps> = ({
                 </p>
             )}
 
-            {/* Smooth emerald progress bar */}
+            {/* Smooth emerald progress bar - compact 36px width */}
             {showProgress ? (
-                <div className="mt-8 h-[3px] w-56 overflow-hidden rounded-full bg-gray-200 dark:bg-slate-800">
+                <div className="mt-3.5 h-[2.5px] w-36 overflow-hidden rounded-full bg-gray-200/80 dark:bg-slate-800">
                     <div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-500 transition-all duration-200 ease-out"
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500/70 to-emerald-500 transition-all duration-200 ease-out"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
@@ -256,7 +256,7 @@ export const Preloader: React.FC<PreloaderProps> = ({
         return (
             <div
                 className={cn(
-                    'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-slate-950',
+                    'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/50 dark:bg-slate-950/50 backdrop-blur-[2px] transition-all',
                     className,
                 )}
                 role="status"
