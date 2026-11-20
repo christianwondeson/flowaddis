@@ -25,6 +25,7 @@ import {
     Wallet,
     ChevronLeft,
     ChevronRight,
+    UserCheck,
     type LucideIcon,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -36,6 +37,7 @@ export interface HotelNavGroup {
     items: {
         name: string;
         segment: string;
+        href?: string;
         icon: LucideIcon;
     }[];
 }
@@ -80,6 +82,7 @@ export const HOTEL_ADMIN_GROUPS: HotelNavGroup[] = [
             { name: 'Statement', segment: 'statement', icon: FileText },
             { name: 'Transactions', segment: 'transactions', icon: CreditCard },
             { name: 'Property Profile', segment: 'property', icon: Building2 },
+            { name: 'My Profile', segment: 'profile', href: '/profile', icon: UserCheck },
         ],
     },
 ];
@@ -217,8 +220,8 @@ export function HotelPortalSidebar({
 
                             <div className="space-y-1">
                                 {group.items.map((item) => {
-                                    const href = item.segment ? `${base}/${item.segment}` : base;
-                                    const active = isActive(item.segment);
+                                    const href = item.href || (item.segment ? `${base}/${item.segment}` : base);
+                                    const active = item.href ? pathname === item.href : isActive(item.segment);
                                     const Icon = item.icon;
                                     return (
                                         <div key={item.name} className="relative group">

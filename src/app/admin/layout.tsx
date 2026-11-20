@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useRouter, usePathname } from 'next/navigation';
@@ -216,7 +217,11 @@ export default function AdminLayout({
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <Link
+                        href="/profile"
+                        className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+                        title="View profile and account settings"
+                    >
                         <div className="text-right hidden sm:block">
                             <div className="text-sm font-extrabold text-brand-dark">
                                 {user.name || 'Admin User'}
@@ -228,7 +233,7 @@ export default function AdminLayout({
                         <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold">
                             {user.name ? user.name[0].toUpperCase() : 'A'}
                         </div>
-                    </div>
+                    </Link>
                 </header>
 
                 <main className="flex-1 p-4 sm:p-8 overflow-y-auto">

@@ -63,7 +63,7 @@ export default function ProfilePage() {
                             <p className="text-muted-foreground">{user.email}</p>
                             {phoneLine ? <p className="mt-0.5 text-sm text-muted-foreground">{phoneLine}</p> : null}
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Sign-in identity above; booking name and phone are edited below (server).
+                                Sign-in email, display name, and contact phone number can be managed below.
                             </p>
                         </div>
                     </div>

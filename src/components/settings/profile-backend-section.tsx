@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, UserCircle } from "lucide-react";
+import { validateEmail } from "@/lib/phone-validation";
 
 type ProfilePayload = {
     id: string;
@@ -35,6 +36,56 @@ export function ProfileBackendSection({ embedded = false, onProfileSynced }: Pro
     const [email, setEmail] = useState("");
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
+    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [newEmailInput, setNewEmailInput] = useState("");
+    const [savingEmail, setSavingEmail] = useState(false);
+    const [emailError, setEmailError] = useState<string | null>(null);
+
+    const saveEmail = async () => {
+        if (!auth?.currentUser) return;
+        const normalized = newEmailInput.trim().toLowerCase();
+        if (normalized === email.toLowerCase()) {
+            setIsEditingEmail(false);
+            return;
+        }
+        const check = validateEmail(normalized);
+        if (!check.isValid) {
+            setEmailError(check.error || "Please enter a valid email address");
+            return;
+        }
+
+        setSavingEmail(true);
+        setEmailError(null);
+        try {
+            const token = await auth.currentUser.getIdToken(true);
+            const res = await fetch("/api/users/update-email", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    targetUid: auth.currentUser.uid,
+                    newEmail: normalized,
+                }),
+            });
+            const data = (await res.json().catch(() => ({}))) as { error?: string };
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to update email");
+            }
+            await auth.currentUser.getIdToken(true);
+            setEmail(normalized);
+            setIsEditingEmail(false);
+            await queryClient.invalidateQueries({ queryKey: queryKeys.user.all });
+            toast.success("Email successfully updated in Firebase and database!");
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : "Failed to update email";
+            setEmailError(msg);
+            toast.error(msg);
+        } finally {
+            setSavingEmail(false);
+        }
+    };
 
     const syncFirebaseAndFirestore = useCallback(
         async (data: ProfilePayload) => {
@@ -131,10 +182,10 @@ export function ProfileBackendSection({ embedded = false, onProfileSynced }: Pro
         <>
             <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
                 <UserCircle className="w-5 h-5 text-brand-primary" aria-hidden />
-                <h2 id="settings-profile">Profile</h2>
+                <h2 id="settings-profile">Profile & Account</h2>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 pl-0 sm:pl-7">
-                Name and phone are stored on our servers. Email comes from your sign-in account and cannot be changed here.
+                Manage your sign-in email, display name, and contact phone number.
             </p>
         </>
     );
@@ -162,13 +213,92 @@ export function ProfileBackendSection({ embedded = false, onProfileSynced }: Pro
             {titleBlock}
             {embedded ? (
                 <p id="profile-edit" className="text-sm text-slate-500 dark:text-slate-400">
-                    Update the name and phone we store for bookings. Email is managed by your sign-in provider.
+                    Update your sign-in email address, display name, and booking contact phone.
                 </p>
             ) : null}
             <div className={`space-y-4 max-w-md ${embedded ? "" : "pl-0 sm:pl-7"}`}>
                 <div className="space-y-2">
-                    <Label htmlFor="profile-email">Email</Label>
-                    <Input id="profile-email" value={email} readOnly disabled className="bg-muted" />
+                    <div className="flex items-center justify-between">
+                        <Label htmlFor="profile-email">Sign-in email</Label>
+                        {!isEditingEmail ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setNewEmailInput(email);
+                                    setIsEditingEmail(true);
+                                }}
+                                className="text-xs font-semibold text-brand-primary hover:underline"
+                            >
+                                Change email
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsEditingEmail(false);
+                                    setEmailError(null);
+                                }}
+                                className="text-xs text-muted-foreground hover:underline"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                    </div>
+                    {!isEditingEmail ? (
+                        <Input id="profile-email" value={email} readOnly disabled className="bg-muted text-muted-foreground font-mono text-sm" />
+                    ) : (
+                        <div className="space-y-2 rounded-xl border border-teal-200 bg-teal-50/50 p-3 dark:border-teal-900/60 dark:bg-teal-950/20">
+                            <Input
+                                id="profile-email-edit"
+                                type="email"
+                                value={newEmailInput}
+                                onChange={(e) => {
+                                    setNewEmailInput(e.target.value);
+                                    if (emailError) setEmailError(null);
+                                }}
+                                placeholder="Enter your new email address"
+                                error={emailError || undefined}
+                                className="bg-white dark:bg-slate-900"
+                            />
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => void saveEmail()}
+                                    disabled={
+                                        savingEmail ||
+                                        !newEmailInput ||
+                                        newEmailInput.trim().toLowerCase() === email.toLowerCase()
+                                    }
+                                    className="h-8 text-xs font-semibold"
+                                >
+                                    {savingEmail ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                                            Updating Firebase…
+                                        </>
+                                    ) : (
+                                        "Update email"
+                                    )}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        setIsEditingEmail(false);
+                                        setEmailError(null);
+                                    }}
+                                    className="h-8 text-xs"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-tight">
+                                Updates your login credential in Firebase Authentication and your profile database.
+                            </p>
+                        </div>
+                    )}
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="profile-name">Display name</Label>

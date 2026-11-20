@@ -13,6 +13,7 @@ import {
 import { db, auth } from '@/lib/firebase';
 import { User, UserRole } from '@/types/auth';
 import { parseUserRole } from '@/lib/auth/admin-utils';
+import { validateEmail } from '@/lib/phone-validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -217,6 +218,47 @@ export default function UsersPage() {
                 role: editForm.role,
             };
 
+            // Check if email was changed
+            const originalEmail = (userToEdit.email || '').trim().toLowerCase();
+            const nextEmail = editForm.email.trim().toLowerCase();
+            const isEmailChanged = nextEmail !== '' && nextEmail !== originalEmail;
+
+            if (isEmailChanged) {
+                const emailCheck = validateEmail(nextEmail);
+                if (!emailCheck.isValid) {
+                    toast.error(emailCheck.error || 'Please enter a valid email address');
+                    setSavingEdit(false);
+                    return;
+                }
+
+                const token = await auth?.currentUser?.getIdToken();
+                if (!token) {
+                    toast.error('Authentication session expired. Please sign in again.');
+                    setSavingEdit(false);
+                    return;
+                }
+
+                const emailRes = await fetch('/api/users/update-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        targetUid: userToEdit.id,
+                        newEmail: nextEmail,
+                    }),
+                });
+
+                const emailData = await emailRes.json().catch(() => ({}));
+                if (!emailRes.ok) {
+                    toast.error(emailData.error || 'Failed to update email in Firebase Authentication');
+                    setSavingEdit(false);
+                    return;
+                }
+                updates.email = nextEmail;
+            }
+
             if (editForm.accountStatus === 'partner_pending') {
                 updates.hotelPartnerStatus = 'pending';
             } else if (editForm.accountStatus === 'admin_pending') {
@@ -239,6 +281,7 @@ export default function UsersPage() {
                         ? {
                               ...u,
                               name: editForm.name.trim(),
+                              email: isEmailChanged ? nextEmail : u.email,
                               phone: editForm.phone.trim() || undefined,
                               role: editForm.role,
                               hotelPartnerStatus:
@@ -641,12 +684,21 @@ export default function UsersPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <Label htmlFor="edit-email">Email Address</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="edit-email">Email Address</Label>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">
+                                        Firebase Auth Sync
+                                    </span>
+                                </div>
                                 <Input
                                     id="edit-email"
+                                    type="email"
                                     value={editForm.email}
-                                    disabled
-                                    className="h-10 rounded-xl bg-slate-100 text-slate-500 cursor-not-allowed"
+                                    onChange={(e) =>
+                                        setEditForm((f) => ({ ...f, email: e.target.value }))
+                                    }
+                                    placeholder="e.g. user@example.com"
+                                    className="h-10 rounded-xl"
                                 />
                             </div>
 

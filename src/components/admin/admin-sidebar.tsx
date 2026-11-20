@@ -17,6 +17,7 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
+    UserCheck,
     type LucideIcon,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
@@ -66,6 +67,7 @@ export const SUPER_ADMIN_GROUPS: AdminNavGroup[] = [
         title: 'Administration',
         items: [
             { name: 'User Management', path: '/admin/users', icon: Users },
+            { name: 'My Profile', path: '/profile', icon: UserCheck },
         ],
     },
 ];

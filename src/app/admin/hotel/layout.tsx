@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -128,7 +129,11 @@ function HotelExtranetChrome({ children }: { children: React.ReactNode }) {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-4 shrink-0">
+                    <Link
+                        href="/profile"
+                        className="flex items-center gap-4 shrink-0 hover:opacity-80 transition-opacity"
+                        title="View profile and account settings"
+                    >
                         <div className="text-right hidden sm:block">
                             <div className="text-sm font-extrabold text-brand-dark">
                                 {user?.name || 'Hotel Admin'}
@@ -138,7 +143,7 @@ function HotelExtranetChrome({ children }: { children: React.ReactNode }) {
                         <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold">
                             {user?.name ? user.name[0].toUpperCase() : 'H'}
                         </div>
-                    </div>
+                    </Link>
                 </header>
 
                 <main className="flex-1 p-4 sm:p-8 overflow-y-auto scrollbar-hide">
