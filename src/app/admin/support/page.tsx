@@ -270,15 +270,11 @@ function AdminSupportInner() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                Array(6)
-                  .fill(0)
-                  .map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td colSpan={7} className="px-6 py-4">
-                        <div className="h-10 bg-gray-50 rounded-lg w-full" />
-                      </td>
-                    </tr>
-                  ))
+                <tr>
+                  <td colSpan={7} className="px-6 py-16">
+                    <AdminLoader label="Loading support tickets…" />
+                  </td>
+                </tr>
               ) : items.length ? (
                 items.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50/60 transition-colors">

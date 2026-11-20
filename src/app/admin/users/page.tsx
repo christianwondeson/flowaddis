@@ -51,7 +51,6 @@ import {
     type AdminColumn,
 } from '@/components/ui/admin-data-table';
 import { AdminLoader } from '@/components/ui/admin-loader';
-import { withRequestLoading } from '@/lib/request-loading';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -135,26 +134,24 @@ export default function UsersPage() {
 
     const fetchUsers = async () => {
         try {
-            await withRequestLoading(async () => {
-                if (!db) return;
-                const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-                const querySnapshot = await getDocs(q);
-                const fetchedUsers: User[] = [];
-                querySnapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    fetchedUsers.push({
-                        id: docSnap.id,
-                        ...data,
-                        role: parseUserRole(data.role),
-                        email: String(data.email || ''),
-                        name: String(data.name || ''),
-                        phone: String(data.phone || ''),
-                        emailVerified: Boolean(data.emailVerified),
-                    } as User);
-                });
-                setUsers(fetchedUsers);
-                setPage(1);
-            }, 'Loading users…');
+            if (!db) return;
+            const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const fetchedUsers: User[] = [];
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                fetchedUsers.push({
+                    id: docSnap.id,
+                    ...data,
+                    role: parseUserRole(data.role),
+                    email: String(data.email || ''),
+                    name: String(data.name || ''),
+                    phone: String(data.phone || ''),
+                    emailVerified: Boolean(data.emailVerified),
+                } as User);
+            });
+            setUsers(fetchedUsers);
+            setPage(1);
         } catch (error) {
             console.error('Error fetching users:', error);
             toast.error('Failed to load users from database.');

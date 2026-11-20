@@ -29,7 +29,6 @@ import {
     ADMIN_PAGE_SIZE,
     type AdminColumn,
 } from '@/components/ui/admin-data-table';
-import { withRequestLoading } from '@/lib/request-loading';
 
 interface Transaction {
     id: string;
@@ -78,43 +77,41 @@ export default function TransactionsPage() {
         const fetchTransactions = async () => {
             setLoading(true);
             try {
-                await withRequestLoading(async () => {
-                    const token = await auth?.currentUser?.getIdToken();
-                    const all: Transaction[] = [];
-                    let offset = 0;
-                    const pageSize = 500;
-                    let total = 0;
+                const token = await auth?.currentUser?.getIdToken();
+                const all: Transaction[] = [];
+                let offset = 0;
+                const pageSize = 500;
+                let total = 0;
 
-                    // Page through Nest until every payment row is loaded.
-                    for (;;) {
-                        const url = new URL(
-                            '/api/admin/payments',
-                            window.location.origin,
-                        );
-                        if (statusFilter !== 'all') {
-                            url.searchParams.append('status', statusFilter);
-                        }
-                        url.searchParams.set('limit', String(pageSize));
-                        url.searchParams.set('offset', String(offset));
-
-                        const response = await fetch(url.toString(), {
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                            },
-                        });
-                        if (!response.ok) break;
-                        const data = await response.json();
-                        const batch: Transaction[] = data.items || [];
-                        total = Number(data.total ?? batch.length);
-                        all.push(...batch);
-                        offset += batch.length;
-                        if (batch.length === 0 || all.length >= total) break;
+                // Page through Nest until every payment row is loaded.
+                for (;;) {
+                    const url = new URL(
+                        '/api/admin/payments',
+                        window.location.origin,
+                    );
+                    if (statusFilter !== 'all') {
+                        url.searchParams.append('status', statusFilter);
                     }
+                    url.searchParams.set('limit', String(pageSize));
+                    url.searchParams.set('offset', String(offset));
 
-                    setTransactions(all);
-                    setApiTotal(total);
-                    setPage(1);
-                }, 'Loading transactions…');
+                    const response = await fetch(url.toString(), {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    if (!response.ok) break;
+                    const data = await response.json();
+                    const batch: Transaction[] = data.items || [];
+                    total = Number(data.total ?? batch.length);
+                    all.push(...batch);
+                    offset += batch.length;
+                    if (batch.length === 0 || all.length >= total) break;
+                }
+
+                setTransactions(all);
+                setApiTotal(total);
+                setPage(1);
             } catch (error) {
                 console.error('Error fetching transactions:', error);
             } finally {
