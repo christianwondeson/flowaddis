@@ -1,16 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useRequireSignedIn } from "@/hooks/use-require-signed-in";
 import { AccountShell } from "@/components/account/account-shell";
 import { AccountOverviewStats } from "@/components/account/account-overview-stats";
 import { MyTripsList } from "@/components/trips/my-trips-list";
 import { useMyTripsData } from "@/hooks/use-my-trips-data";
+import { canAccessSuperAdmin } from "@/lib/auth-helpers";
 import { Loader2 } from "lucide-react";
 
 export default function CustomerDashboard() {
     const { user, loading } = useRequireSignedIn();
+    const router = useRouter();
     const tripsData = useMyTripsData(user?.id, { enabled: !!user?.id });
+
+    // Super admin accounts belong in the Super Admin operations console (/admin)
+    useEffect(() => {
+        if (!loading && user && canAccessSuperAdmin(user)) {
+            router.replace('/admin');
+        }
+    }, [user, loading, router]);
 
     if (loading) {
         return (

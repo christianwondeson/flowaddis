@@ -34,6 +34,8 @@ export default function AdminLayout({
 
     // Compute gate synchronously on mount so pre-authenticated admins never see a verifying flash
     const computeInitialGate = (): 'checking' | 'ready' | 'blocked' => {
+        if (user && canAccessSuperAdmin(user) && !hotelPath) return 'ready';
+        if (user && hotelPath && canAccessPortal) return 'ready';
         if (loading) return 'checking';
         if (!user) return 'blocked';
         if (hotelPath) {
@@ -58,6 +60,15 @@ export default function AdminLayout({
     }, [loading]);
 
     useEffect(() => {
+        if (user && canAccessSuperAdmin(user) && !hotelPath) {
+            setGate('ready');
+            return;
+        }
+        if (user && hotelPath && canAccessPortal) {
+            setGate('ready');
+            return;
+        }
+
         if (loading && !loadingTimeout) {
             setGate('checking');
             return;

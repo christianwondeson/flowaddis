@@ -215,19 +215,13 @@ function SignInContent() {
         }
     }
 
-    // Auth bootstrap, post-login navigation, or already-signed-in redirect
-    if (loading || routing || (user && !mfaResolver)) {
+    // If user is already authenticated with an established session, redirect seamlessly
+    if (user && !mfaResolver && !submitting) {
         return (
             <Preloader
                 fullScreen
                 size="lg"
-                label={
-                    loading
-                        ? "Checking your session…"
-                        : routing
-                          ? "Opening your account…"
-                          : "Signing you in…"
-                }
+                label="Redirecting to your account…"
             />
         )
     }

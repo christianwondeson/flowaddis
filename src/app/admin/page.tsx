@@ -196,7 +196,14 @@ export default function AdminDashboard() {
     const monthlyData = data?.monthly_trend ?? [];
     const maxBookings = Math.max(1, ...monthlyData.map((d) => d.bookings));
     const maxRevenue = Math.max(1, ...monthlyData.map((d) => d.revenue));
-    const bookingStats = data?.booking_breakdown ?? [];
+    const bookingStats = (data?.booking_breakdown && data.booking_breakdown.length > 0)
+        ? data.booking_breakdown
+        : [
+            { type: 'Hotels', count: 0, percentage: 0 },
+            { type: 'Flights', count: 0, percentage: 0 },
+            { type: 'Conferences', count: 0, percentage: 0 },
+            { type: 'Shuttles', count: 0, percentage: 0 },
+          ];
     const health = data?.payment_health;
     const methods = data?.payment_methods ?? [];
     const recentBookings = data?.recent_bookings ?? [];
@@ -407,16 +414,19 @@ export default function AdminDashboard() {
 
                             <div className="h-64 flex items-end justify-between gap-1 sm:gap-2">
                                 {monthlyData.map((row) => {
+                                    const hasData = row.bookings > 0 || row.revenue > 0;
                                     const hBook = (row.bookings / maxBookings) * 100;
                                     const hRev = (row.revenue / maxRevenue) * 100;
-                                    const barH = Math.max(hBook, hRev * 0.85, row.bookings ? 8 : 4);
+                                    const barH = hasData
+                                        ? Math.max(hBook, hRev * 0.85, 12)
+                                        : 6;
                                     return (
                                         <div
                                             key={row.ym}
                                             className="flex-1 flex flex-col items-center group"
                                         >
                                             <div className="w-full h-full flex flex-col justify-end relative">
-                                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg">
+                                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg pointer-events-none">
                                                     <div className="font-bold">
                                                         {row.bookings} bookings
                                                     </div>
@@ -425,7 +435,11 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </div>
                                                 <div
-                                                    className="w-full bg-linear-to-t from-brand-primary to-brand-secondary rounded-t-lg transition-all duration-500 group-hover:from-brand-secondary group-hover:to-brand-primary"
+                                                    className={`w-full rounded-t-lg transition-all duration-500 ${
+                                                        hasData
+                                                            ? 'bg-gradient-to-t from-brand-primary to-brand-secondary group-hover:from-brand-secondary group-hover:to-brand-primary shadow-sm'
+                                                            : 'bg-slate-100 group-hover:bg-slate-200'
+                                                    }`}
                                                     style={{ height: `${barH}%` }}
                                                 />
                                             </div>
