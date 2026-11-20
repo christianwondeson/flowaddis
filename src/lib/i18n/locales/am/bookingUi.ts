@@ -65,6 +65,7 @@ export const bookingUiAm = {
             cbeBirrPhoneLabel: 'የኢትዮጵያ ሞባይል ቁጥር',
             cbeBirrPhonePlaceholder: 'ለምሳሌ 0912345678',
             cbeBirrPhoneHint: 'በ09 ወይም 07 ይጀምራል፣ በድምሩ 10 አኃዝ።',
+            cbeBirrPhoneLockedHint: 'ከቦታ ማስያዣው ቅጽ በተወሰደው የስልክ ቁጥር ተቆልፏል።',
             cbeBirrSendUssd: 'USSD ይላኩ እና {amount} ይክፈሉ',
             cbeBirrUssdSentTitle: 'በስልክዎ ያጽድቁ',
             cbeBirrUssdSentHint:

@@ -65,6 +65,7 @@ export const bookingUiEn = {
             cbeBirrPhoneLabel: 'CBE Birr mobile number',
             cbeBirrPhonePlaceholder: 'e.g. 0912345678',
             cbeBirrPhoneHint: 'Example format: 0912345678 (starts with 09 or 07, 10 digits).',
+            cbeBirrPhoneLockedHint: 'Phone number locked to contact details from booking form.',
             cbeBirrSendUssd: 'Send USSD & pay {amount}',
             cbeBirrUssdSentTitle: 'Approve on your phone',
             cbeBirrUssdSentHint:

@@ -7,6 +7,7 @@ import {
     Globe2,
     Landmark,
     Loader2,
+    Lock,
     Phone,
     ShieldCheck,
     Smartphone,
@@ -44,6 +45,7 @@ import {
 import { nestCheckoutMoney } from '@/lib/currency-utils';
 import type { PaymentSuccessResult } from '@/lib/payment-success';
 import { useMpgsCheckout } from '@/hooks/use-mpgs-checkout';
+import { toLocalEthiopianPhone } from '@/lib/phone-validation';
 
 const USE_MPGS_CHECKOUT = process.env.NEXT_PUBLIC_MPGS_ENABLED === 'true';
 
@@ -166,9 +168,34 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     const [paymentReference, setPaymentReference] = useState<string | null>(null);
     const [ussdInstructions, setUssdInstructions] = useState<string | null>(null);
     const [awaitingBankPayment, setAwaitingBankPayment] = useState(false);
+    const bookingPhone = useMemo(() => {
+        return (
+            customerPhone?.trim() ||
+            (externalSnapshot?.guestPhone as string)?.trim() ||
+            (externalSnapshot?.phone as string)?.trim() ||
+            ''
+        );
+    }, [customerPhone, externalSnapshot]);
+
+    const formattedBookingPhone = useMemo(() => {
+        return toLocalEthiopianPhone(bookingPhone);
+    }, [bookingPhone]);
+
+    const isPhoneLocked = useMemo(() => {
+        return Boolean(formattedBookingPhone && ET_MOBILE_PATTERN.test(formattedBookingPhone));
+    }, [formattedBookingPhone]);
+
     // CBE Birr (and future local banks) collect an Ethiopian mobile number to receive the USSD push.
-    const [localPhone, setLocalPhone] = useState('');
+    // Pre-populates with booking details phone when available and locks it to avoid mismatch.
+    const [localPhone, setLocalPhone] = useState(formattedBookingPhone);
     const [localPhoneError, setLocalPhoneError] = useState<string | null>(null);
+
+    // Sync formatted booking phone if it becomes available asynchronously
+    useEffect(() => {
+        if (formattedBookingPhone && formattedBookingPhone !== localPhone) {
+            setLocalPhone(formattedBookingPhone);
+        }
+    }, [formattedBookingPhone, localPhone]);
     const [etbQuoteAmount, setEtbQuoteAmount] = useState<number | null>(null);
     const [etbQuoteLoading, setEtbQuoteLoading] = useState(false);
     // Which group is currently shown. Local and International are mutually exclusive in the UI:
@@ -974,9 +1001,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                                     onClick={() => {
                                         selectMethod('cbebirr');
                                         setPaymentChannel(ch.id);
-                                    setLocalPhone('');
-                                    setLocalPhoneError(null);
-                                }}
+                                        if (formattedBookingPhone) {
+                                            setLocalPhone(formattedBookingPhone);
+                                        }
+                                        setLocalPhoneError(null);
+                                    }}
                                 className={methodCardClass(selected, '#006838')}
                                 style={
                                     selected
@@ -1190,10 +1219,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                         phoneLabel={t('bookingUi.payment.cbeBirrPhoneLabel')}
                         phonePlaceholder={t('bookingUi.payment.cbeBirrPhonePlaceholder')}
                         phoneHint={t('bookingUi.payment.cbeBirrPhoneHint')}
+                        phoneLockedHint={t('bookingUi.payment.cbeBirrPhoneLockedHint')}
                         phone={localPhone}
+                        phoneDisabled={isPhoneLocked}
                         onPhone={(v) => {
-                            setLocalPhone(v);
-                            if (localPhoneError) setLocalPhoneError(null);
+                            if (!isPhoneLocked) {
+                                setLocalPhone(v);
+                                if (localPhoneError) setLocalPhoneError(null);
+                            }
                         }}
                         error={localPhoneError}
                         loading={loading}
@@ -1372,7 +1405,9 @@ interface LocalBankCheckoutProps {
     phoneLabel: string;
     phonePlaceholder: string;
     phoneHint: string;
+    phoneLockedHint?: string;
     phone: string;
+    phoneDisabled?: boolean;
     onPhone: (value: string) => void;
     error: string | null;
     loading: boolean;
@@ -1401,7 +1436,9 @@ const LocalBankCheckout: React.FC<LocalBankCheckoutProps> = ({
     phoneLabel,
     phonePlaceholder,
     phoneHint,
+    phoneLockedHint,
     phone,
+    phoneDisabled,
     onPhone,
     error,
     loading,
@@ -1503,30 +1540,47 @@ const LocalBankCheckout: React.FC<LocalBankCheckoutProps> = ({
 
             <div className="space-y-1.5">
                 <Label htmlFor="local-bank-phone" className="text-xs font-semibold">
-                        {phoneLabel}
-                    </Label>
-                    <div className="relative">
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            <Phone className="h-4 w-4" />
-                        </span>
-                        <Input
-                            id="local-bank-phone"
-                        inputMode="numeric"
-                        autoComplete="tel-national"
-                            placeholder={phonePlaceholder}
-                            value={phone}
-                            maxLength={10}
-                        onChange={(e) =>
-                            onPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
-                        }
-                        className="h-11 rounded-xl border-slate-200 bg-white pl-10 font-mono tracking-wider placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 dark:bg-slate-900"
-                        aria-describedby="local-bank-phone-hint"
-                        />
-                    </div>
-                <p id="local-bank-phone-hint" className="text-[11px] text-muted-foreground">
-                    {phoneHint}
-                </p>
-                    <AnimatePresence>
+                    {phoneLabel}
+                </Label>
+                <Input
+                    id="local-bank-phone"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    placeholder={phonePlaceholder}
+                    value={phone}
+                    disabled={phoneDisabled}
+                    readOnly={phoneDisabled}
+                    maxLength={10}
+                    icon={<Phone className="h-4 w-4 text-muted-foreground" />}
+                    suffix={
+                        phoneDisabled ? (
+                            <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        ) : undefined
+                    }
+                    onChange={(e) =>
+                        onPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+                    }
+                    className={cn(
+                        'h-11 rounded-xl border-slate-200 bg-white font-mono tracking-wider placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 dark:bg-slate-900',
+                        phoneDisabled &&
+                            'cursor-not-allowed border-slate-300 bg-slate-100/90 text-slate-700 select-none shadow-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+                    )}
+                    aria-describedby="local-bank-phone-hint"
+                />
+                {phoneDisabled ? (
+                    <p
+                        id="local-bank-phone-hint"
+                        className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                        <Lock className="h-3.5 w-3.5 shrink-0" />
+                        <span>{phoneLockedHint || 'Phone number locked to contact details from booking form.'}</span>
+                    </p>
+                ) : (
+                    <p id="local-bank-phone-hint" className="text-[11px] text-muted-foreground">
+                        {phoneHint}
+                    </p>
+                )}
+                <AnimatePresence>
                         {error && (
                             <motion.p
                                 initial={{ opacity: 0, height: 0 }}

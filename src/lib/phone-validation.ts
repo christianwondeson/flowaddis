@@ -452,3 +452,25 @@ export function validatePhoneNumber(
         nationalDigits: nationalClean,
     };
 }
+
+/**
+ * Normalizes any Ethiopian phone number representation (E.164 +251..., 251..., 9..., 09..., 07...)
+ * into standard 10-digit national format (e.g. "0912345678" or "0712345678") for USSD payment rails.
+ * Returns empty string if input is null/undefined, or extracted digits.
+ */
+export function toLocalEthiopianPhone(phone?: string | null): string {
+    if (!phone) return '';
+    const cleaned = String(phone).trim();
+    const digits = cleaned.replace(/\D/g, '');
+    if (digits.startsWith('251') && digits.length === 12) {
+        return '0' + digits.slice(3);
+    }
+    if ((digits.startsWith('9') || digits.startsWith('7')) && digits.length === 9) {
+        return '0' + digits;
+    }
+    if ((digits.startsWith('09') || digits.startsWith('07')) && digits.length === 10) {
+        return digits;
+    }
+    return digits;
+}
+

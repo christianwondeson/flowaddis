@@ -3,6 +3,7 @@ import {
     validatePhoneNumber,
     validateEmail,
     getCountryConfig,
+    toLocalEthiopianPhone,
 } from './phone-validation';
 
 describe('Phone and Email Validation', () => {
@@ -88,6 +89,31 @@ describe('Phone and Email Validation', () => {
             expect(validateEmail('user@domain').isValid).toBe(false);
             expect(validateEmail('user@domain.c').isValid).toBe(false);
             expect(validateEmail('not-an-email').isValid).toBe(false);
+        });
+    });
+
+    describe('toLocalEthiopianPhone Normalization', () => {
+        it('normalizes +251 9... and +251 7... E.164 to 09... and 07...', () => {
+            expect(toLocalEthiopianPhone('+251912345678')).toBe('0912345678');
+            expect(toLocalEthiopianPhone('+251 912 345 678')).toBe('0912345678');
+            expect(toLocalEthiopianPhone('+251712345678')).toBe('0712345678');
+            expect(toLocalEthiopianPhone('+251 712 345 678')).toBe('0712345678');
+        });
+
+        it('preserves existing 10-digit 09... and 07... format', () => {
+            expect(toLocalEthiopianPhone('0912345678')).toBe('0912345678');
+            expect(toLocalEthiopianPhone('0712345678')).toBe('0712345678');
+        });
+
+        it('prepends 0 to 9-digit national numbers starting with 9 or 7', () => {
+            expect(toLocalEthiopianPhone('912345678')).toBe('0912345678');
+            expect(toLocalEthiopianPhone('712345678')).toBe('0712345678');
+        });
+
+        it('handles null, undefined or empty gracefully', () => {
+            expect(toLocalEthiopianPhone(null)).toBe('');
+            expect(toLocalEthiopianPhone(undefined)).toBe('');
+            expect(toLocalEthiopianPhone('')).toBe('');
         });
     });
 });

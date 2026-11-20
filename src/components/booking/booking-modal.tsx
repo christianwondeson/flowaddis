@@ -161,7 +161,88 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [step, setStep] = useState<'form' | 'payment' | 'receipt'>(
         startAtPayment ? 'payment' : 'form',
     );
-    const [bookingData, setBookingData] = useState<any>(null);
+    const [bookingData, setBookingData] = useState<any>(() => {
+        if (startAtPayment && (initialGuestName || initialGuestEmail || initialGuestPhone)) {
+            return {
+                name: initialGuestName || '',
+                email: initialGuestEmail || '',
+                phone: initialGuestPhone || '',
+                checkIn: initialCheckIn,
+                checkOut: initialCheckOut,
+            };
+        }
+        return null;
+    });
+
+    const guestPhoneResolved = useMemo(() => {
+        if ((bookingData as BookingFormData | null)?.phone) {
+            return (bookingData as BookingFormData).phone;
+        }
+        if (initialGuestPhone) {
+            return initialGuestPhone;
+        }
+        try {
+            const raw =
+                typeof window !== 'undefined'
+                    ? sessionStorage.getItem('bookaddis_reserve_extras')
+                    : null;
+            if (raw) {
+                const extras = JSON.parse(raw);
+                if (extras?.guest?.phone) return extras.guest.phone;
+            }
+        } catch {
+            /* ignore */
+        }
+        return '';
+    }, [bookingData, initialGuestPhone]);
+
+    const guestNameResolved = useMemo(() => {
+        if ((bookingData as BookingFormData | null)?.name) {
+            return (bookingData as BookingFormData).name;
+        }
+        if (initialGuestName) {
+            return initialGuestName;
+        }
+        try {
+            const raw =
+                typeof window !== 'undefined'
+                    ? sessionStorage.getItem('bookaddis_reserve_extras')
+                    : null;
+            if (raw) {
+                const extras = JSON.parse(raw);
+                const g = extras?.guest;
+                if (g) return `${g.firstName || ''} ${g.lastName || ''}`.trim();
+            }
+        } catch {
+            /* ignore */
+        }
+        return '';
+    }, [bookingData, initialGuestName]);
+
+    const guestEmailResolved = useMemo(() => {
+        if ((bookingData as BookingFormData | null)?.email) {
+            return (bookingData as BookingFormData).email;
+        }
+        if (initialGuestEmail) {
+            return initialGuestEmail;
+        }
+        if (user?.email) {
+            return user.email;
+        }
+        try {
+            const raw =
+                typeof window !== 'undefined'
+                    ? sessionStorage.getItem('bookaddis_reserve_extras')
+                    : null;
+            if (raw) {
+                const extras = JSON.parse(raw);
+                if (extras?.guest?.email) return extras.guest.email;
+            }
+        } catch {
+            /* ignore */
+        }
+        return '';
+    }, [bookingData, initialGuestEmail, user?.email]);
 
     // Create a snapshot for the service identification
     const externalSnapshot = useMemo(
@@ -268,23 +349,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             /* ignore */
         }
 
-        if (!bookingData) {
-            return { ...externalSnapshot, ...industry };
-        }
-        const bd = bookingData as BookingFormData;
+        const bd = bookingData as BookingFormData | null;
+        const guestName = bd?.name || guestNameResolved;
+        const guestEmail = bd?.email || guestEmailResolved;
+        const guestPhone = bd?.phone || guestPhoneResolved;
+
         return {
             ...externalSnapshot,
             ...industry,
-            checkIn: bd.checkIn || externalSnapshot.checkIn,
-            checkOut: bd.checkOut || externalSnapshot.checkOut,
-            guestName: bd.name,
-            guestEmail: bd.email,
-            guestPhone: bd.phone,
-            customerName: bd.name,
-            email: bd.email,
-            phone: bd.phone,
+            checkIn: bd?.checkIn || externalSnapshot.checkIn,
+            checkOut: bd?.checkOut || externalSnapshot.checkOut,
+            guestName,
+            guestEmail,
+            guestPhone,
+            customerName: guestName,
+            email: guestEmail,
+            phone: guestPhone,
         };
-    }, [bookingData, externalSnapshot, hotelAdults]);
+    }, [
+        bookingData,
+        externalSnapshot,
+        guestEmailResolved,
+        guestNameResolved,
+        guestPhoneResolved,
+        hotelAdults,
+    ]);
 
     const {
         register,
@@ -370,16 +459,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             checkIn: initialCheckIn,
             checkOut: initialCheckOut,
         });
-        if (
-            startAtPayment &&
-            nameFromSummary &&
-            (emailFromSummary || user?.email) &&
-            phoneFromSummary
-        ) {
+        if (startAtPayment) {
             const data = {
-                name: nameFromSummary,
-                email: emailFromSummary || user?.email || '',
-                phone: phoneFromSummary,
+                name: nameFromSummary || guestNameResolved,
+                email: emailFromSummary || guestEmailResolved || user?.email || '',
+                phone: phoneFromSummary || guestPhoneResolved,
                 checkIn: initialCheckIn,
                 checkOut: initialCheckOut,
             };
@@ -505,7 +589,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const handleClose = () => {
         onClose();
-        setStep('form');
+        setStep(startAtPayment ? 'payment' : 'form');
         reset();
         setBookingData(null);
     };
@@ -514,7 +598,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[10000] flex items-end justify-center overflow-hidden bg-brand-dark/60 p-0 backdrop-blur-md sm:items-center sm:p-4">
+            <div
+                className="fixed inset-0 z-[10000] flex items-end justify-center overflow-hidden bg-brand-dark/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) handleClose();
+                }}
+            >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.98, y: 16 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -699,7 +788,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <PaymentForm
                                 amount={price || 0}
                                 onSuccess={handlePaymentSuccess}
-                                onCancel={() => setStep('form')}
+                                onCancel={() => {
+                                    if (startAtPayment) {
+                                        onClose();
+                                    } else {
+                                        setStep('form');
+                                    }
+                                }}
                                 isLocal={isLocal}
                                 bookingType={type as any}
                                 source={
@@ -716,7 +811,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 externalItemId={externalItemId}
                                 externalSnapshot={checkoutExternalSnapshot}
                                 currencyCode={currencyCode}
-                                customerPhone={(bookingData as BookingFormData | null)?.phone}
+                                customerPhone={
+                                    (bookingData as BookingFormData | null)?.phone ||
+                                    guestPhoneResolved
+                                }
                                 preferredPaymentTiming={preferredPaymentTiming}
                             />
                         )}
