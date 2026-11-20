@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, Search, MoreVertical, Plane, Calendar, Loader2 } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Plus, Search, MoreVertical, Plane, Calendar, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { FlightForm } from "@/components/admin/forms/flight-form";
 import { useCmsList } from "@/hooks/use-cms-list";
 import { AdminCmsErrorBanner } from "@/components/admin/admin-cms-error-banner";
+import { Preloader } from "@/components/ui/preloader";
 
 function fmtDate(iso: unknown): string {
     if (!iso || typeof iso !== "string") return "Not set";
@@ -17,7 +18,21 @@ function fmtDate(iso: unknown): string {
 
 export default function AdminFlightsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const { items, loading, error, errorCode, refetch } = useCmsList("flights");
+
+    const filteredItems = useMemo(() => {
+        if (!searchQuery.trim()) return items;
+        const q = searchQuery.toLowerCase().trim();
+        return items.filter((row) => {
+            const airline = String(row.airline_name ?? "").toLowerCase();
+            const fn = String(row.flight_number ?? "").toLowerCase();
+            const origin = String(row.origin_code ?? "").toLowerCase();
+            const dest = String(row.destination_code ?? "").toLowerCase();
+            const status = String(row.status ?? "").toLowerCase();
+            return airline.includes(q) || fn.includes(q) || origin.includes(q) || dest.includes(q) || status.includes(q);
+        });
+    }, [items, searchQuery]);
 
     return (
         <div className="space-y-8">
@@ -37,18 +52,35 @@ export default function AdminFlightsPage() {
 
             <AdminCmsErrorBanner error={error} errorCode={errorCode} />
 
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input placeholder="Search…" className="pl-10 bg-gray-50 border-transparent" disabled />
+                    <Input
+                        placeholder="Search airline, flight #, origin, or destination…"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 pr-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                    />
+                    {searchQuery ? (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            aria-label="Clear search"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    ) : null}
+                </div>
+                <div className="text-xs font-semibold text-gray-500 whitespace-nowrap">
+                    Showing {filteredItems.length} of {items.length} flights
                 </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {loading ? (
-                    <div className="flex items-center justify-center py-16 text-gray-500 gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Loading from CMS…
+                    <div className="py-12">
+                        <Preloader label="Loading flights from CMS…" />
                     </div>
                 ) : (
                     <table className="w-full text-left">
@@ -63,14 +95,16 @@ export default function AdminFlightsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {items.length === 0 ? (
+                            {filteredItems.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-10 text-center text-gray-500 text-sm">
-                                        No flights yet. Add one to Strapi via the button above.
+                                        {items.length === 0
+                                            ? "No flights yet. Add one to Strapi via the button above."
+                                            : "No flights match your search query."}
                                     </td>
                                 </tr>
                             ) : (
-                                items.map((row) => {
+                                filteredItems.map((row) => {
                                     const id = row.id as number;
                                     const airline = String(row.airline_name ?? "");
                                     const fn = String(row.flight_number ?? "");
@@ -129,12 +163,17 @@ export default function AdminFlightsPage() {
                 )}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Flight">
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Add New Flight (Strapi)"
+            >
                 <FlightForm
-                    onCancel={() => setIsModalOpen(false)}
                     onSuccess={() => {
-                        void refetch();
+                        setIsModalOpen(false);
+                        refetch();
                     }}
+                    onCancel={() => setIsModalOpen(false)}
                 />
             </Modal>
         </div>

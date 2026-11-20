@@ -558,7 +558,10 @@ function FlightsPageContent() {
 
                             {isLoading && (
                                 <div className="space-y-4">
-                                    {[1, 2, 3].map((i) => (
+                                    <div className="py-6 flex justify-center">
+                                        <Preloader label={t('flightSearch.searching')} />
+                                    </div>
+                                    {[1, 2].map((i) => (
                                         <FlightCardSkeleton key={i} />
                                     ))}
                                 </div>

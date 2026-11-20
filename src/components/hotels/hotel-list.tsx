@@ -3,6 +3,7 @@
 import React from 'react';
 import { HotelCard } from './hotel-card';
 import { HotelCardSkeleton } from './hotel-card-skeleton';
+import { Preloader } from '@/components/ui/preloader';
 import { Hotel } from '@/types';
 
 interface HotelListProps {
@@ -38,10 +39,15 @@ export const HotelList: React.FC<HotelListProps> = ({
 }) => {
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 gap-4 md:gap-6 justify-items-stretch">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <HotelCardSkeleton key={i} />
-                ))}
+            <div className="space-y-6">
+                <div className="py-6 flex justify-center">
+                    <Preloader label="Searching hotels in Addis Ababa…" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:gap-6 justify-items-stretch">
+                    {[1, 2, 3, 4].map((i) => (
+                        <HotelCardSkeleton key={i} />
+                    ))}
+                </div>
             </div>
         );
     }

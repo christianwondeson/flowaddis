@@ -14,6 +14,7 @@ import {
 import { useHotelPortalAuth } from '@/hooks/use-hotel-portal-auth';
 import { toast } from 'sonner';
 import { Preloader } from '@/components/ui/preloader';
+import { clsx } from 'clsx';
 
 function isHotelPortalPath(pathname: string): boolean {
     return pathname === '/admin/hotel' || pathname.startsWith('/admin/hotel/');
@@ -31,6 +32,30 @@ export default function AdminLayout({
     const hotelPath = isHotelPortalPath(pathname);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [loadingTimeout, setLoadingTimeout] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('bookaddis-admin-sidebar-collapsed');
+            if (saved === 'true') {
+                setSidebarCollapsed(true);
+            }
+        } catch {
+            /* localStorage unavailable */
+        }
+    }, []);
+
+    const toggleSidebarCollapse = () => {
+        setSidebarCollapsed((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem('bookaddis-admin-sidebar-collapsed', String(next));
+            } catch {
+                /* noop */
+            }
+            return next;
+        });
+    };
 
     // Compute gate synchronously on mount so pre-authenticated admins never see a verifying flash
     const computeInitialGate = (): 'checking' | 'ready' | 'blocked' => {
@@ -163,7 +188,11 @@ export default function AdminLayout({
 
     return (
         <div className="min-h-screen bg-brand-gray flex">
-            <AdminSidebar className="hidden lg:flex fixed h-full left-0 top-0" />
+            <AdminSidebar
+                className="hidden lg:flex fixed h-full left-0 top-0"
+                collapsed={sidebarCollapsed}
+                onToggleCollapse={toggleSidebarCollapse}
+            />
 
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
                 <SheetContent side="left" className="p-0 w-64 border-r-0">
@@ -175,7 +204,12 @@ export default function AdminLayout({
                 </SheetContent>
             </Sheet>
 
-            <div className="flex-1 lg:ml-64 flex flex-col h-screen w-full">
+            <div
+                className={clsx(
+                    "flex-1 flex flex-col h-screen w-full transition-all duration-300",
+                    sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+                )}
+            >
                 <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40">
                     <div className="flex items-center gap-4">
                         <Sheet>

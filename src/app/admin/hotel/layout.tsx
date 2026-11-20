@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { HotelAccessGate } from '@/components/hotel-portal/hotel-access-gate';
 import { HotelBillingBanner } from '@/components/hotel-portal/hotel-billing-banner';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getHotelBrandLabel, getHotelCoverUrl } from '@/lib/hotel-brand';
+import { clsx } from 'clsx';
 
 /**
  * Same shell as Super Admin: sidebar (Sign Out) + topbar with property brand.
@@ -21,6 +22,30 @@ function HotelExtranetChrome({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const { hotels } = useHotelPortal();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('bookaddis-hotel-sidebar-collapsed');
+            if (saved === 'true') {
+                setCollapsed(true);
+            }
+        } catch {
+            /* noop */
+        }
+    }, []);
+
+    const toggleCollapse = () => {
+        setCollapsed((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem('bookaddis-hotel-sidebar-collapsed', String(next));
+            } catch {
+                /* noop */
+            }
+            return next;
+        });
+    };
 
     const hotelId = typeof params?.hotelId === 'string' ? params.hotelId : '';
     const hotel = hotels.find((h) => h.id === hotelId);
@@ -34,6 +59,8 @@ function HotelExtranetChrome({ children }: { children: React.ReactNode }) {
                 hotelId={isPicker ? undefined : hotelId || undefined}
                 hotelName={isPicker ? undefined : hotel?.name}
                 className="hidden lg:flex fixed h-full left-0 top-0 z-30"
+                collapsed={collapsed}
+                onToggleCollapse={toggleCollapse}
             />
 
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -48,7 +75,12 @@ function HotelExtranetChrome({ children }: { children: React.ReactNode }) {
                 </SheetContent>
             </Sheet>
 
-            <div className="flex-1 lg:ml-64 flex flex-col h-screen w-full">
+            <div
+                className={clsx(
+                    'flex-1 flex flex-col h-screen w-full transition-all duration-300',
+                    collapsed ? 'lg:ml-20' : 'lg:ml-64',
+                )}
+            >
                 <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40">
                     <div className="flex items-center gap-3 min-w-0">
                         <Button
