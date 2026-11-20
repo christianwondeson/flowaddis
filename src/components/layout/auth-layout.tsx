@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Hotel, Plane, Globe, Luggage, Sparkles } from 'lucide-react';
+import { Hotel, Plane, Globe, Luggage } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AuthLayoutProps {
@@ -63,30 +63,11 @@ export function AuthLayout({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-slate-900/40 backdrop-blur-[0.5px] z-10" />
 
-                {/* Top Logo */}
-                <div className="relative z-20">
-                    <Link
-                        href="/"
-                        className="inline-flex items-center gap-2.5 transition-transform duration-200 hover:scale-[1.02] group"
-                    >
-                        <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/30 transition-shadow duration-300 group-hover:shadow-teal-500/50">
-                            <Luggage className="h-5 w-5 text-white" />
-                        </span>
-                        <span className="text-xl font-bold tracking-tight text-white">
-                            Book<span className="text-teal-400">Addis</span>
-                        </span>
-                    </Link>
-                </div>
+                {/* Top spacer to balance vertical flex layout */}
+                <div className="relative z-20 h-6" />
 
                 {/* Main Headline & Value Props */}
                 <div className="relative z-20 my-auto py-8 space-y-6">
-                    <div className="animate-fade-up flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-teal-300 ring-1 ring-white/20 backdrop-blur-sm">
-                            <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-                            Premium Travel & Hospitality
-                        </span>
-                    </div>
-
                     <h1 className="animate-fade-up text-3xl xl:text-4xl 2xl:text-5xl font-extrabold leading-[1.18] text-white tracking-tight max-w-lg">
                         Your premium gateway to{' '}
                         <span className="bg-gradient-to-r from-teal-300 via-emerald-300 to-teal-200 bg-clip-text text-transparent">

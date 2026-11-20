@@ -553,17 +553,30 @@ function SignUpContent() {
     return (
         <AuthLayout
             wide
-            title="Create Account"
-            subtitle={
-                accountType === 'hotel_partner'
-                    ? 'Partner signup: account → KYC → payout → review'
-                    : 'Book stays as a guest in a few short steps'
+            mode={step === 0 ? 'signup' : 'none'}
+            title={
+                step === 0
+                    ? 'Create Account'
+                    : accountType === 'hotel_partner'
+                      ? 'Hotel Partner Registration'
+                      : 'Create Guest Account'
             }
-            footerLink={{
-                text: 'Already have an account?',
-                href: '/signin',
-                linkText: 'Sign In',
-            }}
+            subtitle={
+                step === 0
+                    ? 'How will you use BookAddis? Choose your account type to get started.'
+                    : accountType === 'hotel_partner'
+                      ? 'Complete your partner verification and property listing details'
+                      : 'Enter your credentials to start booking across Ethiopia'
+            }
+            footerLink={
+                step === 0
+                    ? {
+                          text: 'Already have an account?',
+                          href: '/signin',
+                          linkText: 'Sign In',
+                      }
+                    : undefined
+            }
         >
             <div className="space-y-5">
                 <SignupStepRail steps={steps} current={step} />

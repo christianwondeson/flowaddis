@@ -9,8 +9,15 @@ import { ErrorBoundary } from '@/components/shared/error-boundary';
 export function PublicLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isAdmin = pathname?.startsWith('/admin');
+    const isAuth =
+        pathname === '/signin' ||
+        pathname === '/signup' ||
+        pathname === '/forgot-password' ||
+        pathname === '/reset-password' ||
+        pathname === '/login' ||
+        pathname?.startsWith('/auth/');
 
-    if (isAdmin) {
+    if (isAdmin || isAuth) {
         return <>{children}</>;
     }
 
