@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { BedDouble, Bus, Plane, Ticket, type LucideIcon } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -8,72 +9,275 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-interface PreloaderProps {
+export interface PreloaderCategory {
+    icon: LucideIcon | React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    label: string;
+}
+
+export const PRELOADER_CATEGORIES: PreloaderCategory[] = [
+    { icon: Plane, label: 'Flights' },
+    { icon: BedDouble, label: 'Hotels' },
+    { icon: Bus, label: 'Shuttles' },
+    { icon: Ticket, label: 'Events' },
+];
+
+export interface PreloaderProps {
     className?: string;
     size?: 'sm' | 'md' | 'lg' | 'xl';
     fullScreen?: boolean;
     label?: string;
+    onComplete?: () => void;
+    progress?: number;
+    showProgress?: boolean;
+    categories?: PreloaderCategory[];
 }
 
 /**
- * Brand BookAddis preloader  rings + mark (not a plain text spinner).
+ * Premium Travel Brand Preloader for BookAddis / FlowAddis.
+ * Features concentric animated rings, rotating core travel categories (Flights, Hotels, Shuttles, Events),
+ * smooth tracking typography, soft ambient emerald glow, and an emerald gradient progress bar.
  */
 export const Preloader: React.FC<PreloaderProps> = ({
     className,
     size = 'md',
     fullScreen = false,
     label,
+    onComplete,
+    progress: controlledProgress,
+    showProgress = true,
+    categories = PRELOADER_CATEGORIES,
 }) => {
-    const sizeClasses = {
-        sm: 'w-7 h-7',
-        md: 'w-11 h-11',
-        lg: 'w-16 h-16',
-        xl: 'w-24 h-24',
-    };
+    const isControlled = typeof controlledProgress === 'number';
+    const [progress, setProgress] = useState(isControlled ? controlledProgress : 0);
+    const [activeIndex, setActiveIndex] = useState(0);
 
-    const containerSize = sizeClasses[size];
+    // Sync controlled progress if passed
+    useEffect(() => {
+        if (isControlled) {
+            setProgress(Math.min(100, Math.max(0, controlledProgress)));
+        }
+    }, [isControlled, controlledProgress]);
 
-    const content = (
-        <div
-            className={cn('flex flex-col items-center justify-center gap-4', className)}
-            role="status"
-            aria-live="polite"
-            aria-busy="true"
-        >
-            <div className={cn('relative flex items-center justify-center', containerSize)}>
-                <div className="absolute inset-0 rounded-full border-2 border-brand-primary/15" />
-                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-primary border-r-brand-primary/70 animate-spin" />
-                <div className="absolute inset-[18%] rounded-full border border-brand-secondary/40 animate-pulse" />
-                <div className="relative z-[1] flex h-[42%] w-[42%] items-center justify-center rounded-full bg-gradient-to-br from-brand-primary to-brand-secondary shadow-md shadow-brand-primary/25">
-                    <span className="text-[0.55em] font-extrabold tracking-tight text-white select-none">
-                        BA
-                    </span>
-                </div>
-            </div>
-            {label ? (
-                <div className="text-center max-w-xs px-2">
-                    <p className="text-sm font-semibold text-brand-dark">{label}</p>
-                    <div className="mt-2 flex items-center justify-center gap-1" aria-hidden>
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary animate-bounce [animation-delay:0ms]" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary animate-bounce [animation-delay:150ms]" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary animate-bounce [animation-delay:300ms]" />
-                    </div>
-                </div>
-            ) : (
-                <span className="sr-only">Loading</span>
-            )}
-        </div>
-    );
+    // Animate progress
+    useEffect(() => {
+        if (isControlled) return;
 
-    if (fullScreen) {
+        const interval = setInterval(() => {
+            setProgress((prev) => {
+                if (onComplete) {
+                    const next = prev + Math.random() * 6 + 3;
+                    return next >= 100 ? 100 : next;
+                }
+                // Indeterminate progress: smoothly approach ~92% and hold until resolved
+                if (prev < 90) {
+                    const step = Math.max(0.5, (90 - prev) * 0.08);
+                    return prev + step;
+                }
+                return prev;
+            });
+        }, 180);
+
+        return () => clearInterval(interval);
+    }, [isControlled, onComplete]);
+
+    // Rotate travel categories
+    useEffect(() => {
+        if (!categories || categories.length === 0) return;
+        const interval = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % categories.length);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [categories]);
+
+    // Handle onComplete callback when progress reaches 100%
+    useEffect(() => {
+        if (progress >= 100 && onComplete) {
+            const doneTimer = setTimeout(() => {
+                onComplete();
+            }, 500);
+            return () => clearTimeout(doneTimer);
+        }
+    }, [progress, onComplete]);
+
+    // Determine if full-screen mode or standalone prominent mode
+    const isFullScreen = fullScreen || Boolean(onComplete);
+    const isCompact = size === 'sm';
+    const isMedium = size === 'md' && !isFullScreen;
+
+    // Compact inline spinner (e.g. inside a small button or pill)
+    if (isCompact) {
         return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/70 backdrop-blur-md">
-                <div className="rounded-3xl border border-white/40 bg-white/80 px-10 py-8 shadow-2xl">
-                    {content}
-                </div>
+            <div
+                className={cn('relative inline-flex items-center justify-center h-6 w-6', className)}
+                role="status"
+                aria-live="polite"
+            >
+                <div aria-hidden className="absolute inset-0 rounded-full border border-emerald-100" />
+                <div
+                    aria-hidden
+                    className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-emerald-500 [animation-duration:1.5s]"
+                />
+                <span className="sr-only">Loading…</span>
             </div>
         );
     }
 
-    return content;
+    // Medium inline spinner (e.g. inside an AdminLoader table row or form card)
+    if (isMedium) {
+        return (
+            <div
+                className={cn('flex flex-col items-center justify-center gap-3 p-4', className)}
+                role="status"
+                aria-live="polite"
+            >
+                <div className="relative flex h-14 w-14 items-center justify-center">
+                    <div
+                        aria-hidden
+                        className="absolute inset-0 rounded-full border border-gray-100 dark:border-slate-800"
+                    />
+                    <div
+                        aria-hidden
+                        className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-emerald-500 [animation-duration:2.4s]"
+                    />
+                    <div
+                        aria-hidden
+                        className="absolute inset-1.5 rounded-full border border-gray-100 dark:border-slate-800"
+                    />
+                    <div className="relative h-6 w-6 text-emerald-600">
+                        {categories.map((category, index) => {
+                            const Icon = category.icon;
+                            return (
+                                <span
+                                    key={category.label}
+                                    className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-out ${
+                                        index === activeIndex
+                                            ? 'scale-100 opacity-100'
+                                            : 'scale-75 opacity-0'
+                                    }`}
+                                >
+                                    <Icon className="h-5 w-5" strokeWidth={1.75} />
+                                </span>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {label ? (
+                    <p className="text-xs font-semibold text-slate-700 text-center">{label}</p>
+                ) : (
+                    <p className="h-4 w-28 text-center text-[10px] font-medium tracking-[0.25em] text-gray-400 uppercase">
+                        {categories[activeIndex]?.label}
+                    </p>
+                )}
+            </div>
+        );
+    }
+
+    // Full / Large Travel Brand Preloader
+    const fullContent = (
+        <div className="relative flex flex-col items-center px-6 select-none">
+            {/* Soft background ambient glow */}
+            <div
+                aria-hidden
+                className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-emerald-400/10 blur-3xl"
+            />
+
+            {/* Concentric rotating rings with cycling category icons */}
+            <div className="relative flex h-24 w-24 items-center justify-center">
+                <div
+                    aria-hidden
+                    className="absolute inset-0 rounded-full border border-gray-100 dark:border-slate-800"
+                />
+                <div
+                    aria-hidden
+                    className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-emerald-500 [animation-duration:2.4s]"
+                />
+                <div
+                    aria-hidden
+                    className="absolute inset-2 rounded-full border border-gray-100 dark:border-slate-800"
+                />
+                <div className="relative h-8 w-8 text-emerald-600">
+                    {categories.map((category, index) => {
+                        const Icon = category.icon;
+                        return (
+                            <span
+                                key={category.label}
+                                className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ease-out ${
+                                    index === activeIndex
+                                        ? 'scale-100 opacity-100'
+                                        : 'scale-75 opacity-0'
+                                }`}
+                            >
+                                <Icon className="h-8 w-8" strokeWidth={1.5} />
+                            </span>
+                        );
+                    })}
+                    <span className="sr-only">{categories[activeIndex]?.label || 'Loading'}</span>
+                </div>
+            </div>
+
+            {/* Label: either passed custom label or cycling uppercase category tracking */}
+            {label ? (
+                <div className="relative mt-6 text-center max-w-sm px-2">
+                    <p className="text-sm font-semibold tracking-wide text-gray-800">{label}</p>
+                    <p className="mt-1 h-4 text-[10px] font-medium tracking-[0.25em] text-emerald-600 uppercase">
+                        {categories[activeIndex]?.label}
+                    </p>
+                </div>
+            ) : (
+                <p className="relative mt-6 h-5 w-32 text-xs font-light tracking-[0.3em] text-gray-500 uppercase">
+                    {categories.map((category, index) => (
+                        <span
+                            key={category.label}
+                            className={`absolute inset-0 text-center transition-opacity duration-500 ${
+                                index === activeIndex ? 'opacity-100' : 'opacity-0'
+                            }`}
+                        >
+                            {category.label}
+                        </span>
+                    ))}
+                </p>
+            )}
+
+            {/* Smooth emerald progress bar */}
+            {showProgress ? (
+                <div className="mt-8 h-[3px] w-56 overflow-hidden rounded-full bg-gray-200 dark:bg-slate-800">
+                    <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-500 transition-all duration-200 ease-out"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+            ) : null}
+        </div>
+    );
+
+    if (isFullScreen) {
+        return (
+            <div
+                className={cn(
+                    'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white dark:bg-slate-950',
+                    className,
+                )}
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+            >
+                {fullContent}
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className={cn('flex flex-col items-center justify-center py-8', className)}
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+        >
+            {fullContent}
+        </div>
+    );
 };
+
+export default Preloader;
