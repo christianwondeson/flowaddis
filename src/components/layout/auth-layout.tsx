@@ -114,14 +114,14 @@ export function AuthLayout({
             </aside>
 
             {/* Form Content Panel */}
-            <main className="flex-1 flex flex-col justify-center px-5 py-8 sm:px-10 lg:px-12 xl:px-16 min-h-screen bg-slate-50/70 dark:bg-slate-950 overflow-y-auto">
+            <main className="flex-1 flex flex-col justify-start sm:justify-center px-3.5 py-5 sm:px-8 sm:py-8 lg:px-12 xl:px-16 min-h-screen bg-slate-50/70 dark:bg-slate-950 overflow-y-auto">
                 {/* Mobile Top Logo */}
-                <div className="lg:hidden mb-6 flex justify-center">
-                    <Link href="/" className="inline-flex items-center gap-2.5">
-                        <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-lg shadow-teal-500/30">
-                            <Luggage className="h-5 w-5 text-white" />
+                <div className="lg:hidden mb-4 sm:mb-6 flex justify-center">
+                    <Link href="/" className="inline-flex items-center gap-2">
+                        <span className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-md shadow-teal-500/30">
+                            <Luggage className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white" />
                         </span>
-                        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                             Book<span className="text-teal-600 dark:text-teal-400">Addis</span>
                         </span>
                     </Link>
@@ -130,33 +130,33 @@ export function AuthLayout({
                 <div className={cn('w-full mx-auto', cardMaxWidth)}>
                     {/* Top Home Navigation & Book as Guest */}
                     {showHomeNav && (
-                        <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <div className="flex items-center justify-between mb-3.5 sm:mb-5">
                             <Link
                                 href="/"
-                                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors group"
+                                className="inline-flex items-center gap-1.5 py-1 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors group"
                             >
-                                <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                                <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform duration-200 group-hover:-translate-x-1 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
                                 <span>Back to home</span>
                             </Link>
                             <Link
                                 href="/hotels"
-                                className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors group"
+                                className="inline-flex items-center gap-1 py-1 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors group"
                             >
                                 <span>Book as guest</span>
-                                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                                <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                             </Link>
                         </div>
                     )}
 
                     {/* Top Switcher Tab (Sign in vs Create account) */}
                     {showModeTabs && (
-                        <div className="animate-fade-up mb-6 grid grid-cols-2 gap-1 rounded-2xl bg-slate-200/70 dark:bg-slate-900 p-1.5 shadow-inner">
+                        <div className="animate-fade-up mb-4 sm:mb-6 grid grid-cols-2 gap-1 rounded-xl sm:rounded-2xl bg-slate-200/70 dark:bg-slate-900 p-1 sm:p-1.5 shadow-inner">
                             <Link
                                 href="/signin"
                                 className={cn(
-                                    'rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-300',
+                                    'rounded-lg sm:rounded-xl py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold transition-all duration-300',
                                     activeMode === 'signin'
-                                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md shadow-slate-200/50'
+                                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm sm:shadow-md shadow-slate-200/50'
                                         : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
                                 )}
                             >
@@ -165,9 +165,9 @@ export function AuthLayout({
                             <Link
                                 href="/signup"
                                 className={cn(
-                                    'rounded-xl py-2.5 text-center text-sm font-semibold transition-all duration-300',
+                                    'rounded-lg sm:rounded-xl py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold transition-all duration-300',
                                     activeMode === 'signup'
-                                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md shadow-slate-200/50'
+                                        ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm sm:shadow-md shadow-slate-200/50'
                                         : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
                                 )}
                             >
@@ -177,13 +177,13 @@ export function AuthLayout({
                     )}
 
                     {/* Card Surface */}
-                    <div className="rounded-2xl border border-slate-200/90 bg-white dark:bg-slate-900 dark:border-slate-800 p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none animate-slide-in-right">
-                        <div className="mb-6">
-                            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                    <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white dark:bg-slate-900 dark:border-slate-800 p-4 sm:p-6 md:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none animate-slide-in-right">
+                        <div className="mb-4 sm:mb-6">
+                            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
                                 {title}
                             </h2>
                             {subtitle && (
-                                <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+                                <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm leading-relaxed text-slate-500 dark:text-slate-400">
                                     {subtitle}
                                 </p>
                             )}
@@ -192,7 +192,7 @@ export function AuthLayout({
                         {children}
 
                         {footerLink && (
-                            <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
+                            <div className="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-slate-100 dark:border-slate-800 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                                 {footerLink.text}{' '}
                                 <Link
                                     href={footerLink.href}

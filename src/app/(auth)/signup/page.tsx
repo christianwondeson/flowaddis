@@ -582,9 +582,9 @@ function SignUpContent() {
                 <SignupStepRail steps={steps} current={step} />
 
                 {step === 0 && (
-                    <div className="space-y-4 animate-slide-in-right">
+                    <div className="space-y-3.5 sm:space-y-4 animate-slide-in-right">
                         <div>
-                            <p className="text-base font-semibold text-slate-900 dark:text-white">
+                            <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">
                                 How will you use BookAddis?
                             </p>
                             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -592,7 +592,7 @@ function SignUpContent() {
                             </p>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2.5 sm:space-y-3">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -600,22 +600,22 @@ function SignUpContent() {
                                     setAccountReady(false)
                                 }}
                                 className={cn(
-                                    'group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5',
+                                    'group relative w-full overflow-hidden rounded-xl sm:rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-300 hover:-translate-y-0.5',
                                     accountType === 'guest'
                                         ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 to-emerald-50/50 shadow-md shadow-teal-500/10 ring-2 ring-teal-500/20'
                                         : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700',
                                 )}
                             >
-                                <div className="flex items-start gap-3.5">
+                                <div className="flex items-start gap-3 sm:gap-3.5">
                                     <span
                                         className={cn(
-                                            'grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-all duration-300 group-hover:scale-105',
+                                            'grid h-10 w-10 sm:h-11 sm:w-11 shrink-0 place-items-center rounded-xl transition-all duration-300 group-hover:scale-105',
                                             accountType === 'guest'
                                                 ? 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md shadow-teal-500/25'
                                                 : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
                                         )}
                                     >
-                                        <UserRound className="h-5 w-5" />
+                                        <UserRound className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                                     </span>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
@@ -624,7 +624,7 @@ function SignUpContent() {
                                             </h3>
                                             <span
                                                 className={cn(
-                                                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                                                    'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider',
                                                     accountType === 'guest'
                                                         ? 'bg-teal-600 text-white'
                                                         : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
@@ -633,13 +633,13 @@ function SignUpContent() {
                                                 Free forever
                                             </span>
                                         </div>
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-snug sm:leading-relaxed">
                                             Search hotels, flights and shuttles, and manage your trips across Ethiopia.
                                         </p>
                                     </div>
                                     <ArrowRight
                                         className={cn(
-                                            'mt-2.5 h-4 w-4 shrink-0 transition-all duration-300 group-hover:translate-x-1',
+                                            'mt-2 h-4 w-4 shrink-0 transition-all duration-300 group-hover:translate-x-1',
                                             accountType === 'guest'
                                                 ? 'text-teal-600'
                                                 : 'text-slate-300 group-hover:text-slate-500',
@@ -655,22 +655,22 @@ function SignUpContent() {
                                     setAccountReady(false)
                                 }}
                                 className={cn(
-                                    'group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-0.5',
+                                    'group relative w-full overflow-hidden rounded-xl sm:rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-300 hover:-translate-y-0.5',
                                     accountType === 'hotel_partner'
                                         ? 'border-teal-500 bg-gradient-to-br from-teal-50/90 to-emerald-50/50 shadow-md shadow-teal-500/10 ring-2 ring-teal-500/20'
                                         : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:bg-slate-900 dark:border-slate-800 dark:hover:border-slate-700',
                                 )}
                             >
-                                <div className="flex items-start gap-3.5">
+                                <div className="flex items-start gap-3 sm:gap-3.5">
                                     <span
                                         className={cn(
-                                            'grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-all duration-300 group-hover:scale-105',
+                                            'grid h-10 w-10 sm:h-11 sm:w-11 shrink-0 place-items-center rounded-xl transition-all duration-300 group-hover:scale-105',
                                             accountType === 'hotel_partner'
                                                 ? 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md shadow-teal-500/25'
                                                 : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
                                         )}
                                     >
-                                        <Building2 className="h-5 w-5" />
+                                        <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                                     </span>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2">
@@ -679,7 +679,7 @@ function SignUpContent() {
                                             </h3>
                                             <span
                                                 className={cn(
-                                                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                                                    'rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider',
                                                     accountType === 'hotel_partner'
                                                         ? 'bg-teal-600 text-white'
                                                         : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
@@ -688,13 +688,13 @@ function SignUpContent() {
                                                 Partner program
                                             </span>
                                         </div>
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-snug sm:leading-relaxed">
                                             List your property, complete KYC verification and receive direct guest payouts.
                                         </p>
                                     </div>
                                     <ArrowRight
                                         className={cn(
-                                            'mt-2.5 h-4 w-4 shrink-0 transition-all duration-300 group-hover:translate-x-1',
+                                            'mt-2 h-4 w-4 shrink-0 transition-all duration-300 group-hover:translate-x-1',
                                             accountType === 'hotel_partner'
                                                 ? 'text-teal-600'
                                                 : 'text-slate-300 group-hover:text-slate-500',
@@ -998,33 +998,48 @@ function SignUpContent() {
                     </div>
                 )}
 
-                <div className="flex flex-wrap gap-2 justify-between pt-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={step === 0 || loading}
-                        onClick={goBack}
-                        className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200"
-                    >
-                        Back
-                    </Button>
-                    <button
-                        type="button"
-                        disabled={
-                            loading ||
-                            googleSubmitting ||
-                            ((accountType === 'guest' && step === 2) ||
-                            (accountType === 'hotel_partner' &&
-                                step === 1 &&
-                                !accountReady)
-                                ? !recaptchaSolved
-                                : false)
-                        }
-                        onClick={() => void goNext()}
-                        className="rounded-xl min-w-[140px] px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-semibold text-sm shadow-md shadow-teal-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                    >
-                        {primaryLabel}
-                    </button>
+                <div className="pt-2 sm:pt-3">
+                    {step === 0 ? (
+                        <button
+                            type="button"
+                            disabled={loading || googleSubmitting}
+                            onClick={() => void goNext()}
+                            className="w-full h-11 sm:h-12 flex items-center justify-center gap-2 rounded-xl px-5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-bold text-sm sm:text-base shadow-md shadow-teal-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        >
+                            <span>{primaryLabel}</span>
+                            <ArrowRight className="h-4 w-4" />
+                        </button>
+                    ) : (
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={loading}
+                                onClick={goBack}
+                                className="h-11 sm:h-12 px-4 sm:px-6 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 font-semibold text-sm sm:text-base shrink-0"
+                            >
+                                Back
+                            </Button>
+                            <button
+                                type="button"
+                                disabled={
+                                    loading ||
+                                    googleSubmitting ||
+                                    ((accountType === 'guest' && step === 2) ||
+                                    (accountType === 'hotel_partner' &&
+                                        step === 1 &&
+                                        !accountReady)
+                                        ? !recaptchaSolved
+                                        : false)
+                                }
+                                onClick={() => void goNext()}
+                                className="flex-1 h-11 sm:h-12 flex items-center justify-center gap-2 rounded-xl px-4 sm:px-6 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white font-bold text-sm sm:text-base shadow-md shadow-teal-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                            >
+                                <span className="truncate">{primaryLabel}</span>
+                                <ArrowRight className="h-4 w-4 shrink-0" />
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <p className="text-xs text-center text-slate-500">
@@ -1057,14 +1072,14 @@ function CredentialsFields(props: {
     showReferral?: boolean
 }) {
     return (
-        <div className="space-y-4">
+        <div className="space-y-3.5 sm:space-y-4">
             <FormField label="Full Name">
                 <Input
                     value={props.name}
                     icon={<User className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setName(e.target.value)}
                     placeholder="Abebe Bikila"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
                 />
             </FormField>
             <FormField label="Email Address">
@@ -1074,7 +1089,7 @@ function CredentialsFields(props: {
                     icon={<Mail className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
                 />
             </FormField>
             <FormField label="Password">
@@ -1084,7 +1099,7 @@ function CredentialsFields(props: {
                     icon={<Lock className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
                 />
                 <PasswordStrengthMeter password={props.password} className="mt-2" />
             </FormField>
@@ -1094,7 +1109,7 @@ function CredentialsFields(props: {
                     icon={<Lock className="h-4 w-4 text-slate-400" />}
                     onChange={(e) => props.setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                    className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
                 />
             </FormField>
             {props.showReferral && props.setReferralCode ? (
@@ -1103,7 +1118,7 @@ function CredentialsFields(props: {
                         value={props.referralCode || ''}
                         onChange={(e) => props.setReferralCode!(e.target.value)}
                         placeholder="Friend or promo code"
-                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 text-sm sm:text-base px-3 sm:px-3.5"
                     />
                 </FormField>
             ) : null}
@@ -1123,10 +1138,10 @@ function GoogleButton({
             type="button"
             variant="outline"
             disabled={loading}
-            className="w-full py-2.5 flex items-center justify-center gap-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium bg-transparent rounded-xl"
+            className="w-full h-11 sm:h-12 flex items-center justify-center gap-2.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold bg-transparent rounded-xl text-sm sm:text-base transition-colors"
             onClick={onClick}
         >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden>
+            <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
                 <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

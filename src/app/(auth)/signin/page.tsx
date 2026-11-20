@@ -258,7 +258,7 @@ function SignInContent() {
                 linkText: "Sign Up",
             }}
         >
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
                 {/* Email Field */}
                 <FormField label="Email address" error={errors.email}>
                     <Input
@@ -272,14 +272,14 @@ function SignInContent() {
                             setGoogleOnlyAccount(false)
                         }}
                         onBlur={(e) => void refreshSignInMethods(e.target.value)}
-                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 px-3 sm:px-3.5 text-sm sm:text-base"
                     />
                 </FormField>
 
                 {googleOnlyAccount && (
                     <p
                         role="status"
-                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs sm:text-sm text-amber-900"
                     >
                         This email is registered with <strong>Google Sign-In</strong>. Use the Google button
                         below. Your Gmail password is not stored in BookAddis and cannot be used on this form.
@@ -296,7 +296,7 @@ function SignInContent() {
                             setPassword(e.target.value)
                             setErrors({ ...errors, password: "" })
                         }}
-                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 py-2.5 text-sm"
+                        className="w-full rounded-xl bg-slate-50/70 dark:bg-slate-800/40 h-11 sm:h-12 px-3 sm:px-3.5 text-sm sm:text-base"
                     />
                 </FormField>
 
@@ -304,17 +304,17 @@ function SignInContent() {
                 <div className="flex justify-end">
                     <Link
                         href={`/forgot-password?redirect=${encodeURIComponent(from)}`}
-                        className="text-xs sm:text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors"
+                        className="py-0.5 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors"
                     >
                         Forgot password?
                     </Link>
                 </div>
 
                 {/* Visible reCAPTCHA container */}
-                <div id="recaptcha-container" className="flex justify-center my-2 overflow-hidden rounded-lg min-h-[78px]"></div>
+                <div id="recaptcha-container" className="flex justify-center my-1.5 sm:my-2 overflow-hidden rounded-lg min-h-[78px]"></div>
 
                 {recaptchaError && (
-                    <div className="flex flex-col items-center gap-2 p-3 my-2 text-xs rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
+                    <div className="flex flex-col items-center gap-2 p-3 my-1.5 sm:my-2 text-xs rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200">
                         <p className="text-center font-medium">{recaptchaError}</p>
                         <button
                             type="button"
@@ -330,7 +330,7 @@ function SignInContent() {
                 <button
                     type="submit"
                     disabled={submitting || !recaptchaSolved}
-                    className="group flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-lg bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/35 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 min-h-[46px]"
+                    className="group flex w-full items-center justify-center gap-2 rounded-xl h-11 sm:h-12 min-h-[46px] sm:min-h-[48px] text-sm sm:text-base font-bold text-white shadow-lg bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/35 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
                     {submitting ? (
                         <>
@@ -339,14 +339,14 @@ function SignInContent() {
                         </>
                     ) : (
                         <>
-                            Sign in
+                            <span>Sign in</span>
                             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                         </>
                     )}
                 </button>
 
                 {/* Divider */}
-                <div className="relative my-5">
+                <div className="relative my-4 sm:my-5">
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-slate-200 dark:border-slate-800"></div>
                     </div>
@@ -359,7 +359,7 @@ function SignInContent() {
                 <button
                     type="button"
                     disabled={submitting}
-                    className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 disabled:opacity-50"
+                    className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 h-11 sm:h-12 min-h-[44px] sm:min-h-[48px] text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 disabled:opacity-50"
                     onClick={handleGoogleSignIn}
                 >
                     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -375,7 +375,7 @@ function SignInContent() {
                 <div className="pt-2 text-center">
                     <Link
                         href="/hotels"
-                        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors group"
+                        className="inline-flex items-center gap-1.5 py-1 text-xs sm:text-sm text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors group"
                     >
                         <span>Looking to book without signing in?</span>
                         <span className="font-semibold text-teal-600 dark:text-teal-400 underline group-hover:text-teal-700">Continue as guest →</span>
