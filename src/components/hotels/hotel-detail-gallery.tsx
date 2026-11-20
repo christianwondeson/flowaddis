@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from 'react';
-import { Camera, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, ChevronLeft, ChevronRight, X, Maximize2, Minimize2, ZoomIn, ZoomOut, LayoutGrid } from 'lucide-react';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { resolveStrapiFileUrl } from '@/lib/admin-cms-client';
 
@@ -41,7 +41,11 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({
 
     const [current, setCurrent] = useState(0);
     const [lightbox, setLightbox] = useState(false);
+    const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+    const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
+    const [showThumbnails, setShowThumbnails] = useState(true);
     const total = safeImages.length;
+    const lightboxContainerRef = useRef<HTMLDivElement>(null);
 
     const touchStartX = useRef<number | null>(null);
     const handleTouchStart = (e: React.TouchEvent) => {
@@ -57,8 +61,65 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({
         touchStartX.current = null;
     };
 
-    const prev = () => setCurrent((c) => (c - 1 + total) % total);
-    const next = () => setCurrent((c) => (c + 1) % total);
+    const prev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total]);
+    const next = useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
+
+    const toggleFullscreen = useCallback(async () => {
+        try {
+            if (!document.fullscreenElement) {
+                if (lightboxContainerRef.current?.requestFullscreen) {
+                    await lightboxContainerRef.current.requestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                }
+            }
+        } catch {
+            // Fullscreen API may be blocked or not supported on some mobile devices
+        }
+    }, []);
+
+    // Sync fullscreen state
+    useEffect(() => {
+        const handleFsChange = () => {
+            setIsNativeFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
+
+    // Body scroll lock & Keyboard navigation
+    useEffect(() => {
+        if (!lightbox) return;
+
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    void document.exitFullscreen();
+                } else {
+                    setLightbox(false);
+                }
+            } else if (e.key === 'ArrowLeft') {
+                prev();
+            } else if (e.key === 'ArrowRight') {
+                next();
+            } else if (e.key.toLowerCase() === 'f') {
+                void toggleFullscreen();
+            } else if (e.key.toLowerCase() === 'z') {
+                setFitMode((m) => (m === 'contain' ? 'cover' : 'contain'));
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.style.overflow = originalOverflow;
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [lightbox, prev, next, toggleFullscreen]);
 
     const side = safeImages.slice(1, 5);
     while (side.length < 4 && total > 0) {
@@ -177,61 +238,159 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({
             </div>
 
             {lightbox ? (
-                <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
-                    <div className="flex items-center justify-between px-4 py-3 text-white">
-                        <p className="text-sm font-semibold">
-                            {hotelName} · {current + 1} / {total}
-                        </p>
-                        <button
-                            type="button"
-                            onClick={() => setLightbox(false)}
-                            className="p-2 rounded-full hover:bg-white/10"
-                            aria-label="Close"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
+                <div
+                    ref={lightboxContainerRef}
+                    className="fixed inset-0 z-[100] bg-black text-white flex flex-col select-none overflow-hidden"
+                >
+                    {/* Floating sleek top bar */}
+                    <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 bg-gradient-to-b from-black/85 via-black/40 to-transparent">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                            <span className="text-sm sm:text-base font-bold truncate max-w-[200px] sm:max-w-md text-white drop-shadow">
+                                {hotelName}
+                            </span>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-slate-100 shrink-0">
+                                {current + 1} / {total}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            {/* Fit vs Fill Screen toggle (eliminates any letterbox gaps) */}
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setFitMode((m) => (m === 'contain' ? 'cover' : 'contain'))
+                                }
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition backdrop-blur-sm"
+                                title={
+                                    fitMode === 'cover'
+                                        ? 'Fit to screen (Z)'
+                                        : 'Fill screen / No gaps (Z)'
+                                }
+                            >
+                                {fitMode === 'cover' ? (
+                                    <>
+                                        <ZoomOut className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Fit</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ZoomIn className="w-3.5 h-3.5" />
+                                        <span className="hidden sm:inline">Fill</span>
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Thumbnails toggle */}
+                            {total > 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowThumbnails((v) => !v)}
+                                    className={`p-2 rounded-lg transition backdrop-blur-sm ${
+                                        showThumbnails
+                                            ? 'bg-white/25 text-white'
+                                            : 'bg-white/10 hover:bg-white/20 text-slate-300'
+                                    }`}
+                                    title={showThumbnails ? 'Hide thumbnails' : 'Show thumbnails'}
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                </button>
+                            ) : null}
+
+                            {/* Native Fullscreen toggle */}
+                            <button
+                                type="button"
+                                onClick={() => void toggleFullscreen()}
+                                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition backdrop-blur-sm"
+                                title={isNativeFullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
+                            >
+                                {isNativeFullscreen ? (
+                                    <Minimize2 className="w-4 h-4" />
+                                ) : (
+                                    <Maximize2 className="w-4 h-4" />
+                                )}
+                            </button>
+
+                            {/* Close */}
+                            <button
+                                type="button"
+                                onClick={() => setLightbox(false)}
+                                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition backdrop-blur-sm ml-1"
+                                aria-label="Close"
+                                title="Close (Esc)"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex-1 relative flex items-center justify-center px-4 pb-6">
-                        <button
-                            type="button"
-                            onClick={prev}
-                            className="absolute left-3 md:left-8 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center"
-                        >
-                            <ChevronLeft className="w-6 h-6" />
-                        </button>
+
+                    {/* Main Image Viewport - Full Viewport with NO restrictive max-h-80vh */}
+                    <div
+                        className="relative flex-1 w-full h-full flex items-center justify-center overflow-hidden bg-black"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                    >
+                        {/* Prev Button */}
+                        {total > 1 ? (
+                            <button
+                                type="button"
+                                onClick={prev}
+                                aria-label="Previous image"
+                                className="absolute left-3 sm:left-6 z-20 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/40 hover:bg-black/75 border border-white/20 text-white backdrop-blur-md grid place-items-center shadow-2xl transition hover:scale-105 active:scale-95"
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                        ) : null}
+
+                        {/* Full Size Image */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             src={safeImages[current]}
-                            alt=""
-                            className="max-h-[80vh] max-w-full object-contain rounded-lg"
+                            alt={`${hotelName} view ${current + 1}`}
+                            className={`w-full h-full ${
+                                fitMode === 'cover' ? 'object-cover' : 'object-contain'
+                            } transition-transform duration-200`}
                         />
-                        <button
-                            type="button"
-                            onClick={next}
-                            className="absolute right-3 md:right-8 w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center"
-                        >
-                            <ChevronRight className="w-6 h-6" />
-                        </button>
+
+                        {/* Next Button */}
+                        {total > 1 ? (
+                            <button
+                                type="button"
+                                onClick={next}
+                                aria-label="Next image"
+                                className="absolute right-3 sm:right-6 z-20 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/40 hover:bg-black/75 border border-white/20 text-white backdrop-blur-md grid place-items-center shadow-2xl transition hover:scale-105 active:scale-95"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        ) : null}
                     </div>
-                    <div className="overflow-x-auto px-4 pb-4">
-                        <div className="flex gap-2 justify-center min-w-min mx-auto">
-                            {safeImages.map((img, idx) => (
-                                <button
-                                    type="button"
-                                    key={idx}
-                                    onClick={() => setCurrent(idx)}
-                                    className={`h-14 w-20 shrink-0 rounded-md overflow-hidden border-2 ${
-                                        idx === current
-                                            ? 'border-white'
-                                            : 'border-transparent opacity-70'
-                                    }`}
-                                >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={img} alt="" className="w-full h-full object-cover" />
-                                </button>
-                            ))}
+
+                    {/* Floating Bottom Thumbnails Bar */}
+                    {showThumbnails && total > 1 ? (
+                        <div className="absolute bottom-0 inset-x-0 z-30 pt-6 pb-4 px-4 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
+                            <div className="flex gap-2 justify-start sm:justify-center overflow-x-auto max-w-5xl mx-auto py-1 no-scrollbar">
+                                {safeImages.map((img, idx) => (
+                                    <button
+                                        type="button"
+                                        key={idx}
+                                        onClick={() => setCurrent(idx)}
+                                        className={`h-14 w-20 sm:h-16 sm:w-24 shrink-0 rounded-lg overflow-hidden border-2 transition-all duration-150 ${
+                                            idx === current
+                                                ? 'border-emerald-400 ring-2 ring-emerald-400/60 scale-105 opacity-100 shadow-xl'
+                                                : 'border-white/20 opacity-60 hover:opacity-100 hover:border-white/60'
+                                        }`}
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={img}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    ) : null}
                 </div>
             ) : null}
         </>
