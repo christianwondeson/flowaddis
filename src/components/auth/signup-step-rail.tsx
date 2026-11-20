@@ -39,8 +39,8 @@ export function SignupStepRail({ steps, current, className }: Props) {
                 />
             </div>
 
-            {/* Step badges track */}
-            <ol className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
+            {/* Step badges track with hidden scrollbar and smooth horizontal scroll */}
+            <ol className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1.5 -mx-1 px-1">
                 {steps.map((label, i) => {
                     const done = i < current;
                     const active = i === current;

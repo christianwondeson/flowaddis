@@ -376,6 +376,17 @@ function SignInContent() {
                     </svg>
                     <span>Google</span>
                 </button>
+
+                {/* Direct Guest Booking Route */}
+                <div className="pt-2 text-center">
+                    <Link
+                        href="/hotels"
+                        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors group"
+                    >
+                        <span>Looking to book without signing in?</span>
+                        <span className="font-semibold text-teal-600 dark:text-teal-400 underline group-hover:text-teal-700">Continue as guest →</span>
+                    </Link>
+                </div>
             </form>
         </AuthLayout>
     )

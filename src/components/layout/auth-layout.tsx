@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Hotel, Plane, Globe, Luggage } from 'lucide-react';
+import { Hotel, Plane, Globe, Luggage, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface AuthLayoutProps {
@@ -20,6 +20,8 @@ export interface AuthLayoutProps {
     };
     /** Override or hide mode tabs ('signin' | 'signup' | 'none') */
     mode?: 'signin' | 'signup' | 'none';
+    /** Show top navigation with Back to home & Book as guest (default: true) */
+    showHomeNav?: boolean;
 }
 
 const HERO_BENEFITS = [
@@ -35,6 +37,7 @@ export function AuthLayout({
     children,
     footerLink,
     mode,
+    showHomeNav = true,
 }: AuthLayoutProps) {
     const pathname = usePathname();
 
@@ -125,6 +128,26 @@ export function AuthLayout({
                 </div>
 
                 <div className={cn('w-full mx-auto', cardMaxWidth)}>
+                    {/* Top Home Navigation & Book as Guest */}
+                    {showHomeNav && (
+                        <div className="flex items-center justify-between mb-4 sm:mb-5">
+                            <Link
+                                href="/"
+                                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors group"
+                            >
+                                <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                                <span>Back to home</span>
+                            </Link>
+                            <Link
+                                href="/hotels"
+                                className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors group"
+                            >
+                                <span>Book as guest</span>
+                                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+                            </Link>
+                        </div>
+                    )}
+
                     {/* Top Switcher Tab (Sign in vs Create account) */}
                     {showModeTabs && (
                         <div className="animate-fade-up mb-6 grid grid-cols-2 gap-1 rounded-2xl bg-slate-200/70 dark:bg-slate-900 p-1.5 shadow-inner">
