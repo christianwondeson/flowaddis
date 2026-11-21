@@ -45,6 +45,19 @@ export interface BookingReceiptDetails {
     status: 'Confirmed' | 'Pending';
     paymentMethod?: PaymentSuccessMethod | string;
     paymentReference?: string | null;
+    /** Booking details from checkout */
+    arrivalTime?: string | null;
+    recipientName?: string | null;
+    isBookingForSomeoneElse?: boolean;
+    isWorkTrip?: boolean;
+    needCrib?: boolean;
+    needExtraBed?: boolean;
+    specialRequests?: string | null;
+    addOns?: {
+        airportShuttle?: boolean;
+        rideHailing?: boolean;
+        carRental?: boolean;
+    } | null;
 }
 
 interface ReceiptProps {
@@ -205,11 +218,31 @@ export const Receipt: React.FC<ReceiptProps> = ({
                 y += 9;
             };
 
-            drawRow('Guest Full Name', booking.clientName || 'N/A');
+            if (booking.isBookingForSomeoneElse && booking.recipientName) {
+                drawRow('Staying Guest', booking.recipientName);
+                drawRow('Booked By', booking.clientName || 'N/A');
+            } else {
+                drawRow('Guest Full Name', booking.clientName || 'N/A');
+            }
             if (booking.email) drawRow('Guest Email', booking.email);
             if (booking.phone) drawRow('Guest Phone', booking.phone);
             drawRow('Stay / Service', booking.service || 'BookAddis Reservation');
             drawRow('Dates', stayLabel);
+            if (booking.arrivalTime) {
+                drawRow('Estimated Arrival', booking.arrivalTime);
+            }
+            if (booking.needCrib || booking.needExtraBed) {
+                const beds = [booking.needCrib && 'Crib (Free)', booking.needExtraBed && 'Extra bed'].filter(Boolean).join(', ');
+                drawRow('Bedding Requests', beds);
+            }
+            if (booking.addOns) {
+                const addOnList = [
+                    booking.addOns.airportShuttle && 'Airport Shuttle',
+                    booking.addOns.carRental && 'Rental Car (5% off)',
+                    booking.addOns.rideHailing && 'Pre-booked Taxi',
+                ].filter(Boolean).join(', ');
+                if (addOnList) drawRow('Add-ons', addOnList);
+            }
             if (!isReservation && booking.paymentReference) {
                 drawRow('Payment Reference', booking.paymentReference);
             }
@@ -616,10 +649,24 @@ export const Receipt: React.FC<ReceiptProps> = ({
 
                     {/* Key Details Rows */}
                     <div className="divide-y divide-slate-100 text-xs dark:divide-slate-800">
-                        <Row
-                            label={t('bookingUi.receipt.client')}
-                            value={booking.clientName}
-                        />
+                        {booking.isBookingForSomeoneElse && booking.recipientName ? (
+                            <>
+                                <Row
+                                    label="Staying Guest"
+                                    value={booking.recipientName}
+                                    icon={<Building2 className="h-3.5 w-3.5 text-slate-400" />}
+                                />
+                                <Row
+                                    label="Booked By"
+                                    value={booking.clientName}
+                                />
+                            </>
+                        ) : (
+                            <Row
+                                label={t('bookingUi.receipt.client')}
+                                value={booking.clientName}
+                            />
+                        )}
                         {booking.email ? (
                             <Row
                                 label={t('bookingUi.receipt.email')}
@@ -648,6 +695,37 @@ export const Receipt: React.FC<ReceiptProps> = ({
                             value={stayLabel}
                             icon={<CalendarDays className="h-3.5 w-3.5 text-slate-400" />}
                         />
+                        {booking.arrivalTime ? (
+                            <Row
+                                label="Estimated Arrival"
+                                value={`${booking.arrivalTime} (Addis Ababa Time)`}
+                                icon={<CalendarDays className="h-3.5 w-3.5 text-brand-primary" />}
+                            />
+                        ) : null}
+                        {(booking.needCrib || booking.needExtraBed) ? (
+                            <Row
+                                label="Beds & Cribs"
+                                value={[booking.needCrib && 'Crib (Free)', booking.needExtraBed && 'Extra bed (Requested)'].filter(Boolean).join(' · ')}
+                                icon={<Building2 className="h-3.5 w-3.5 text-slate-400" />}
+                            />
+                        ) : null}
+                        {booking.addOns && (booking.addOns.airportShuttle || booking.addOns.carRental || booking.addOns.rideHailing) ? (
+                            <Row
+                                label="Add-ons Requested"
+                                value={[
+                                    booking.addOns.airportShuttle && 'Airport Shuttle',
+                                    booking.addOns.carRental && 'Rental Car Voucher',
+                                    booking.addOns.rideHailing && 'Pre-booked Taxi',
+                                ].filter(Boolean).join(', ')}
+                                icon={<Building2 className="h-3.5 w-3.5 text-emerald-600" />}
+                            />
+                        ) : null}
+                        {booking.specialRequests ? (
+                            <Row
+                                label="Special Requests"
+                                value={booking.specialRequests}
+                            />
+                        ) : null}
                         <Row
                             label={t('bookingUi.receipt.paymentStatus')}
                             value={

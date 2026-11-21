@@ -64,6 +64,14 @@ function toDetail(row: CommissionReservationRow): HotelReservationDetail {
               ? String(row.booked_on)
               : undefined,
         payment_pref: row.payment_pref,
+        arrival_time: row.arrival_time,
+        need_crib: row.need_crib,
+        need_extra_bed: row.need_extra_bed,
+        is_booking_for_someone_else: row.is_booking_for_someone_else,
+        recipient_name: row.recipient_name,
+        is_work_trip: row.is_work_trip,
+        special_requests: row.special_requests,
+        add_ons: row.add_ons,
     };
 }
 

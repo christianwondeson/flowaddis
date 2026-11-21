@@ -32,6 +32,14 @@ export type CommissionReservationRow = {
     settlement_model?: string | null;
     payment_timing?: string | null;
     payment_pref?: string | null;
+    arrival_time?: string | null;
+    need_crib?: boolean;
+    need_extra_bed?: boolean;
+    is_booking_for_someone_else?: boolean;
+    recipient_name?: string | null;
+    is_work_trip?: boolean;
+    special_requests?: string | null;
+    add_ons?: Record<string, unknown> | null;
 };
 
 export function reservationStatusBadge(status?: string | null) {
@@ -147,12 +155,20 @@ export function reservationExpandPanel(
                     Guest contact
                 </p>
                 <p className="font-semibold text-brand-dark mt-1">
-                    {b.guest_name || '—'}
+                    {b.recipient_name ? `${b.recipient_name} (Guest)` : (b.guest_name || '—')}
                 </p>
+                {b.recipient_name && b.guest_name && (
+                    <p className="text-[11px] text-amber-700">Booked by: {b.guest_name}</p>
+                )}
                 <p className="text-xs text-slate-500 mt-0.5 break-all">
                     {b.guest_email || 'No email'}
                 </p>
                 <p className="text-xs text-slate-500">{b.guest_phone || 'No phone'}</p>
+                {b.arrival_time && (
+                    <p className="mt-1 text-[11px] font-semibold text-brand-primary">
+                        Arrival: {b.arrival_time}
+                    </p>
+                )}
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-3">
                 <p className="text-[11px] font-bold uppercase text-slate-500">

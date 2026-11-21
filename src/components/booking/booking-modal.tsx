@@ -327,6 +327,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     day_use: Boolean(extras.day_use),
                     payment_pref: extras.payment_pref || extras.paymentPref || null,
                     add_ons: extras.addOns || extras.add_ons || null,
+                    arrival_time: extras.arrivalTime || extras.arrival_time || null,
+                    arrivalTime: extras.arrivalTime || extras.arrival_time || null,
+                    is_booking_for_someone_else: Boolean(extras.isBookingForSomeoneElse || extras.is_booking_for_someone_else),
+                    isBookingForSomeoneElse: Boolean(extras.isBookingForSomeoneElse || extras.is_booking_for_someone_else),
+                    recipient_name: (extras.recipientName || extras.recipient_name || null) as string | null,
+                    recipientName: (extras.recipientName || extras.recipient_name || null) as string | null,
+                    is_work_trip: Boolean(extras.isWorkTrip || extras.is_work_trip),
+                    isWorkTrip: Boolean(extras.isWorkTrip || extras.is_work_trip),
+                    paperless_confirmation: Boolean(extras.paperlessConfirmation || extras.paperless_confirmation),
+                    paperlessConfirmation: Boolean(extras.paperlessConfirmation || extras.paperless_confirmation),
+                    need_crib: Boolean(extras.needCrib || extras.need_crib),
+                    needCrib: Boolean(extras.needCrib || extras.need_crib),
+                    need_extra_bed: Boolean(extras.needExtraBed || extras.need_extra_bed),
+                    needExtraBed: Boolean(extras.needExtraBed || extras.need_extra_bed),
+                    phone_country: (extras.phoneCountry || extras.phone_country || null) as string | null,
                     room_total: extras.room_total ?? null,
                     extras_total: extras.extras_total ?? null,
                     extras_lines: extras.extras_lines || null,
@@ -565,6 +580,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const userId = user?.id || 'guest-' + Math.random();
         const tripId = await checkoutTrip(userId);
 
+        let extrasData: Record<string, any> = {};
+        try {
+            const raw = sessionStorage.getItem('bookaddis_reserve_extras');
+            if (raw) extrasData = JSON.parse(raw);
+        } catch {
+            /* ignore */
+        }
+
         const newBooking = {
             id: result.bookingId || tripId,
             clientName: formData.name,
@@ -581,6 +604,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 result.method === 'pay_on_site'
                     ? null
                     : result.paymentReference || null,
+            arrivalTime: extrasData.arrivalTime || null,
+            recipientName: extrasData.recipientName || null,
+            isBookingForSomeoneElse: Boolean(extrasData.isBookingForSomeoneElse),
+            isWorkTrip: Boolean(extrasData.isWorkTrip),
+            needCrib: Boolean(extrasData.needCrib),
+            needExtraBed: Boolean(extrasData.needExtraBed),
+            specialRequests: extrasData.specialRequests || null,
+            addOns: extrasData.addOns || null,
         };
         setBookingData(newBooking);
         setStep('receipt');

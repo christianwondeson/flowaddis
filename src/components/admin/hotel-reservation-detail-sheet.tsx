@@ -98,6 +98,14 @@ export type HotelReservationDetail = {
         detail?: string;
     }> | null;
     payment_pref?: string | null;
+    arrival_time?: string | null;
+    need_crib?: boolean;
+    need_extra_bed?: boolean;
+    is_booking_for_someone_else?: boolean;
+    recipient_name?: string | null;
+    is_work_trip?: boolean;
+    paperless_confirmation?: boolean;
+    snapshot?: Record<string, unknown> | null;
     created_at?: string;
     guest_contact?: {
         name?: string | null;
@@ -596,14 +604,54 @@ export function HotelReservationDetailSheet({
                                 ? ` · ${booking.children} child${booking.children === 1 ? '' : 'ren'}`
                                 : ''}
                         </p>
+                        {(booking.arrival_time || (booking.snapshot as any)?.arrival_time) && (
+                            <div className="rounded-xl bg-teal-50 border border-teal-100 p-2.5 text-xs text-teal-900 mt-2 flex items-center justify-between">
+                                <span className="font-semibold">Estimated arrival time:</span>
+                                <span className="font-extrabold text-brand-primary">
+                                    {booking.arrival_time || (booking.snapshot as any)?.arrival_time} (EAT)
+                                </span>
+                            </div>
+                        )}
+                        {(booking.need_crib || booking.need_extra_bed || (booking.snapshot as any)?.need_crib || (booking.snapshot as any)?.need_extra_bed) && (
+                            <div className="rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-800 mt-2 space-y-1">
+                                <span className="font-bold text-[10px] uppercase tracking-wider text-slate-400">Bedding Requests:</span>
+                                <div className="flex flex-wrap gap-2 pt-0.5">
+                                    {(booking.need_crib || (booking.snapshot as any)?.need_crib) && (
+                                        <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                                            Crib requested (Free)
+                                        </span>
+                                    )}
+                                    {(booking.need_extra_bed || (booking.snapshot as any)?.need_extra_bed) && (
+                                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
+                                            Extra bed requested
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </Section>
 
                     <Section title="Guest">
                         <div className="rounded-xl border border-slate-200 p-3 text-sm space-y-2">
-                            <p className="font-semibold">
-                                {booking.guest_contact?.name ||
-                                    booking.guest_name || <EmptyValue />}
-                            </p>
+                            {((booking.is_booking_for_someone_else || (booking.snapshot as any)?.is_booking_for_someone_else) &&
+                            (booking.recipient_name || (booking.snapshot as any)?.recipient_name)) && (
+                                <div className="rounded-xl bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-950 mb-2">
+                                    <span className="font-bold">Booked on behalf of someone else</span>
+                                    <p className="mt-0.5">Staying Guest: <strong>{booking.recipient_name || (booking.snapshot as any)?.recipient_name}</strong></p>
+                                    <p className="text-[11px] text-amber-700">Booked by Account: {booking.guest_contact?.name || booking.guest_name}</p>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between">
+                                <p className="font-semibold">
+                                    {booking.guest_contact?.name ||
+                                        booking.guest_name || <EmptyValue />}
+                                </p>
+                                {(booking.is_work_trip || (booking.snapshot as any)?.is_work_trip) && (
+                                    <span className="rounded-md bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 border border-sky-200">
+                                        💼 Work Trip
+                                    </span>
+                                )}
+                            </div>
                             {(booking.guest_contact?.email ||
                                 booking.guest_email) && (
                                 <a
