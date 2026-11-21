@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
-import { BookingModal } from '@/components/booking/booking-modal';
 import { HotelSearchForm } from '@/components/hotels/hotel-search-form';
 import { HotelList } from '@/components/hotels/hotel-list';
 import { HotelFilters } from '@/components/hotels/hotel-filters';
@@ -49,9 +48,6 @@ function HotelsPageContent() {
     const initialAdults = Number(search.get('adults')) || 2;
     const initialChildren = Number(search.get('children')) || 0;
     const initialRooms = Number(search.get('rooms')) || 1;
-
-    const [isBookingOpen, setIsBookingOpen] = useState(false);
-    const [selectedHotel, setSelectedHotel] = useState<any>(null);
 
     // Search State
     const [destination, setDestination] = useState(initialQuery);
@@ -629,18 +625,6 @@ function HotelsPageContent() {
                         </div>
                     </div>
                 </div>
-
-                <BookingModal
-                    isOpen={isBookingOpen}
-                    onClose={() => setIsBookingOpen(false)}
-                    serviceName={selectedHotel ? selectedHotel.name : 'Hotel Booking'}
-                    price={selectedHotel?.price || 0}
-                    currencyCode={selectedHotel?.currency || 'ETB'}
-                    inventorySource={selectedHotel?.inventory_source || 'bookaddis_direct'}
-                    externalItemId={selectedHotel?.id}
-                    type="hotel"
-                    isLocal={true}
-                />
             </div>
         </AdContainer>
     );

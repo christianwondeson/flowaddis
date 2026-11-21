@@ -22,6 +22,48 @@ export async function POST(req: Request) {
         const body = await req.json();
         const nestBody = pickNestCreateSessionBody(body);
 
+        // Defensive normalization: Ensure hotel checkin and checkout dates are never dropped
+        if (body?.bookingType === 'hotel') {
+            const snap = (nestBody.external_snapshot || {}) as Record<string, unknown>;
+            const meta = (nestBody.metadata || {}) as Record<string, unknown>;
+            const rawBody = body as Record<string, unknown>;
+
+            const checkin =
+                meta.checkin ||
+                meta.checkIn ||
+                snap.checkIn ||
+                snap.checkin ||
+                rawBody.checkIn ||
+                rawBody.checkin;
+            const checkout =
+                meta.checkout ||
+                meta.checkOut ||
+                snap.checkOut ||
+                snap.checkout ||
+                rawBody.checkOut ||
+                rawBody.checkout;
+
+            if (checkin && checkout) {
+                nestBody.metadata = {
+                    ...meta,
+                    checkin: String(checkin).slice(0, 10),
+                    checkout: String(checkout).slice(0, 10),
+                    adults: meta.adults ?? snap.adults ?? snap.hotelAdults ?? rawBody.hotelAdults ?? 2,
+                    roomBlockId: meta.roomBlockId ?? snap.roomBlockId ?? rawBody.roomBlockId,
+                    roomBookQuantity: meta.roomBookQuantity ?? snap.roomBookQuantity ?? rawBody.roomBookQuantity ?? 1,
+                    roomTypeId: meta.roomTypeId ?? snap.roomTypeId ?? rawBody.roomTypeId,
+                    ratePlanId: meta.ratePlanId ?? snap.ratePlanId ?? rawBody.ratePlanId,
+                };
+                nestBody.external_snapshot = {
+                    ...snap,
+                    checkin: String(checkin).slice(0, 10),
+                    checkout: String(checkout).slice(0, 10),
+                    checkIn: String(checkin).slice(0, 10),
+                    checkOut: String(checkout).slice(0, 10),
+                };
+            }
+        }
+
         let backendUrl: string;
         try {
             backendUrl = getSafeBackendBaseUrl();

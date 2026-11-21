@@ -712,6 +712,15 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                         externalItemId,
                         currency: 'USD',
                         paymentChannel: 'stripe',
+                        metadata: {
+                            checkin: externalSnapshot?.checkIn ?? externalSnapshot?.checkin,
+                            checkout: externalSnapshot?.checkOut ?? externalSnapshot?.checkout,
+                            adults: externalSnapshot?.adults ?? externalSnapshot?.hotelAdults ?? '2',
+                            roomBlockId: externalSnapshot?.roomBlockId,
+                            roomBookQuantity: externalSnapshot?.roomBookQuantity,
+                            roomTypeId: externalSnapshot?.roomTypeId,
+                            ratePlanId: externalSnapshot?.ratePlanId,
+                        },
                         external_snapshot: externalSnapshot,
                     }),
                 });
@@ -915,12 +924,10 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 : 'border-gray-200 bg-white hover:border-gray-300 dark:border-slate-600 dark:bg-slate-800/80',
         );
 
-    const allowsPayAtProperty =
-        bookingType === 'hotel' ||
-        bookingType === 'shuttle' ||
-        bookingType === 'conference';
-    const localMethodCount =
-        localChannels.length + (allowsPayAtProperty ? 1 : 0);
+    // Pay-on-site is handled at the booking level via the dedicated 'Pay at hotel' preference.
+    // Online checkout methods (Local & International) only present real payment rails.
+    const allowsPayAtProperty = false;
+    const localMethodCount = localChannels.length;
     const localMethodsGrid =
         localMethodCount >= 2 ? 'grid-cols-2' : 'grid-cols-1';
 
@@ -1046,45 +1053,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                                 </button>
                         );
                     })}
-                    {allowsPayAtProperty && (
-                        <button
-                            type="button"
-                            onClick={() => selectMethod('pay_on_site')}
-                            className={methodCardClass(
-                                method === 'pay_on_site',
-                                'var(--brand-primary, #0d9488)',
-                            )}
-                            style={
-                                method === 'pay_on_site'
-                                    ? {
-                                          borderColor: 'var(--brand-primary, #0d9488)',
-                                          backgroundColor: 'rgba(13,148,136,0.08)',
-                                          ['--tw-ring-color' as string]:
-                                              'rgba(13,148,136,0.25)',
-                                      }
-                                    : undefined
-                            }
-                        >
-                            <div
-                                className={cn(
-                                    'flex h-12 w-12 items-center justify-center rounded-xl bg-white ring-1 ring-gray-100 sm:h-14 sm:w-14',
-                                    method === 'pay_on_site' ? 'shadow-md' : 'opacity-90',
-                                )}
-                            >
-                                <Landmark className="h-7 w-7 text-brand-primary" />
-                        </div>
-                            <span
-                                className={cn(
-                                    'block text-center text-xs font-bold uppercase tracking-wide sm:text-sm',
-                                    method === 'pay_on_site'
-                                        ? 'text-brand-primary'
-                                        : 'text-gray-600',
-                                )}
-                            >
-                                {t('bookingUi.payment.payOnSite')}
-                            </span>
-                        </button>
-                    )}
                 </div>
             ) : (
                 <div className={cn('grid gap-3', intlGridClass)}>
@@ -1165,43 +1133,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                                     </span>
                             </button>
                         )}
-
-                    {allowsPayAtProperty && (
-                        <button
-                            type="button"
-                            onClick={() => selectMethod('pay_on_site')}
-                            className={methodCardClass(method === 'pay_on_site', '#0d9488')}
-                            style={
-                                method === 'pay_on_site'
-                                    ? {
-                                          borderColor: 'var(--brand-primary, #0d9488)',
-                                          backgroundColor: 'rgba(13,148,136,0.08)',
-                                          ['--tw-ring-color' as string]:
-                                              'rgba(13,148,136,0.25)',
-                                      }
-                                    : undefined
-                            }
-                        >
-                            <div
-                                className={cn(
-                                    'flex h-12 w-12 items-center justify-center rounded-xl bg-white ring-1 ring-gray-100 sm:h-14 sm:w-14',
-                                    method === 'pay_on_site' ? 'shadow-md' : 'opacity-90',
-                                )}
-                            >
-                                <Landmark className="h-7 w-7 text-brand-primary" />
-                    </div>
-                            <span
-                                className={cn(
-                                    'block text-center text-xs font-bold uppercase tracking-wide sm:text-sm',
-                                    method === 'pay_on_site'
-                                        ? 'text-brand-primary'
-                                        : 'text-gray-600',
-                                )}
-                            >
-                                {t('bookingUi.payment.payOnSite')}
-                            </span>
-                        </button>
-                )}
             </div>
             )}
 

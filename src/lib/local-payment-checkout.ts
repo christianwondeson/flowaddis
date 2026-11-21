@@ -38,6 +38,12 @@ export function buildLocalCheckoutMetadata(params: {
     if (snap.roomBookQuantity != null && snap.roomBookQuantity !== '') {
         meta.roomBookQuantity = snap.roomBookQuantity;
     }
+    if (snap.roomTypeId != null && snap.roomTypeId !== '') {
+        meta.roomTypeId = snap.roomTypeId;
+    }
+    if (snap.ratePlanId != null && snap.ratePlanId !== '') {
+        meta.ratePlanId = snap.ratePlanId;
+    }
 
     return meta;
 }

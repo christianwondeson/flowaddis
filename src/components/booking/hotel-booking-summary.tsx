@@ -135,8 +135,16 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
     const [isPayAtPropertyLoading, setIsPayAtPropertyLoading] = useState(false);
     const [showOptionalPreferences, setShowOptionalPreferences] = useState(false);
 
-    const [checkIn, setCheckIn] = useState(draft.checkIn);
-    const [checkOut, setCheckOut] = useState(draft.checkOut);
+    const initialCheckIn = draft.checkIn || new Date().toISOString().slice(0, 10);
+    const initialCheckOut = draft.checkOut || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const [checkIn, setCheckIn] = useState(initialCheckIn);
+    const [checkOut, setCheckOut] = useState(initialCheckOut);
+
+    useEffect(() => {
+        if (draft.checkIn && draft.checkIn !== checkIn) setCheckIn(draft.checkIn);
+        if (draft.checkOut && draft.checkOut !== checkOut) setCheckOut(draft.checkOut);
+    }, [draft.checkIn, draft.checkOut]);
+
     const [editingDates, setEditingDates] = useState(false);
     const nights = nightsBetween(checkIn, checkOut);
 
@@ -361,6 +369,16 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
 
     const snapshotPayload = useMemo(
         () => ({
+            checkin: checkIn,
+            checkout: checkOut,
+            checkIn: checkIn,
+            checkOut: checkOut,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            roomBlockId: draft.roomBlockId,
+            roomBookQuantity: draft.roomQuantity || 1,
+            roomTypeId: draft.roomTypeId,
+            ratePlanId: draft.ratePlanId,
             mealPlan: normalizeMealPlan(mealPlan),
             stay_codes: buildStayCodes({ dayUse, earlyCheckIn, lateCheckOut }),
             rate_segment: rateSegmentFromBookingType(bookingType),
@@ -388,6 +406,12 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
             customerName: fullName,
         }),
         [
+            checkIn,
+            checkOut,
+            draft.roomBlockId,
+            draft.roomQuantity,
+            draft.roomTypeId,
+            draft.ratePlanId,
             mealPlan,
             dayUse,
             earlyCheckIn,
@@ -535,6 +559,17 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                     externalItemId: draft.hotelId,
                     currency: currency || 'ETB',
                     paymentChannel: 'pay_at_property',
+                    metadata: {
+                        checkin: checkIn,
+                        checkout: checkOut,
+                        checkIn: checkIn,
+                        checkOut: checkOut,
+                        adults: draft.adults || 2,
+                        roomBlockId: draft.roomBlockId,
+                        roomBookQuantity: draft.roomQuantity || 1,
+                        roomTypeId: draft.roomTypeId,
+                        ratePlanId: draft.ratePlanId,
+                    },
                     roomBlockId: draft.roomBlockId,
                     roomBookQuantity: draft.roomQuantity || 1,
                     hotelAdults: draft.adults || 2,
@@ -542,6 +577,10 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                     ratePlanId: draft.ratePlanId,
                     external_snapshot: {
                         ...snapshotPayload,
+                        checkin: checkIn,
+                        checkout: checkOut,
+                        checkIn: checkIn,
+                        checkOut: checkOut,
                         payment_timing: 'PAY_AT_PROPERTY',
                     },
                 }),
@@ -1238,6 +1277,10 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                                 }
                                                 externalSnapshot={{
                                                     ...snapshotPayload,
+                                                    checkin: checkIn,
+                                                    checkout: checkOut,
+                                                    checkIn: checkIn,
+                                                    checkOut: checkOut,
                                                     roomBlockId: draft.roomBlockId,
                                                     roomBookQuantity: draft.roomQuantity,
                                                     hotelAdults: draft.adults,

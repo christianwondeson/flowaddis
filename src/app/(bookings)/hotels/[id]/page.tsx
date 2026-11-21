@@ -11,7 +11,6 @@ import { HotelDetailReviews } from '@/components/hotels/hotel-detail-reviews';
 import { HotelDetailBookingSidebar } from '@/components/hotels/hotel-detail-booking-sidebar';
 import { useHotels } from '@/hooks/use-hotels';
 import axios from 'axios';
-import { BookingModal } from '@/components/booking/booking-modal';
 import { formatDateLocal } from '@/lib/date-utils';
 import { Preloader } from '@/components/ui/preloader';
 import { Button } from '@/components/ui/button';
@@ -40,13 +39,6 @@ function HotelDetailPageInner() {
         image: HOTEL_PLACEHOLDER,
         images: [HOTEL_PLACEHOLDER],
     });
-    const [isBookingOpen, setIsBookingOpen] = useState(false);
-    const [selectedPrice, setSelectedPrice] = useState<number>(0);
-    const [selectedServiceName, setSelectedServiceName] = useState<string>('');
-    const [selectedRoomBlockId, setSelectedRoomBlockId] = useState<string | undefined>(undefined);
-    const [selectedRoomQty, setSelectedRoomQty] = useState(1);
-    const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | undefined>(undefined);
-    const [selectedRatePlanId, setSelectedRatePlanId] = useState<string | undefined>(undefined);
     const [isGalleryLoading, setIsGalleryLoading] = useState<boolean>(true);
     const [facilities, setFacilities] = useState<any[]>([]);
     const [apiError, setApiError] = useState<{ message: string; isRateLimit?: boolean } | null>(null);
@@ -785,39 +777,6 @@ function HotelDetailPageInner() {
                     </div>
                 </div>
             </div>
-
-            <BookingModal
-                isOpen={isBookingOpen}
-                onClose={() => {
-                    setIsBookingOpen(false);
-                    setSelectedServiceName('');
-                    setSelectedRoomBlockId(undefined);
-                    setSelectedRoomQty(1);
-                    setSelectedRoomTypeId(undefined);
-                    setSelectedRatePlanId(undefined);
-                }}
-                serviceName={selectedServiceName || hotel.name}
-                price={selectedPrice || hotel.price}
-                currencyCode={hotel.currency || (isDirect ? 'ETB' : 'ETB')}
-                externalItemId={String(hotel.id || (Array.isArray(id) ? id[0] : id) || '')}
-                type="hotel"
-                initialCheckIn={checkInDate}
-                initialCheckOut={checkOutDate}
-                isLocal={true}
-                roomBlockId={selectedRoomBlockId}
-                roomBookQuantity={selectedRoomQty}
-                hotelAdults={adults}
-                inventorySource={
-                    hotel.inventory_source === 'bookaddis_direct' ||
-                    hotel.inventory_source === 'pms_synced'
-                        ? hotel.inventory_source
-                        : isDirect
-                          ? 'bookaddis_direct'
-                          : 'rapidapi'
-                }
-                roomTypeId={selectedRoomTypeId}
-                ratePlanId={selectedRatePlanId}
-            />
 
             {/* Mobile bottom bar  CTA only; room prices live in Available rooms */}
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 px-4 py-4 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>

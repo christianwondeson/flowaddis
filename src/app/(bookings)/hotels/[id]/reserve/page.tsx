@@ -24,8 +24,20 @@ function ReserveInner() {
             if (raw) {
                 const parsed = JSON.parse(raw) as HotelReserveDraft;
                 if (parsed?.hotelId && String(parsed.hotelId) === hotelId) {
+                    const fallbackCheckIn =
+                        parsed.checkIn ||
+                        sp.get('checkIn') ||
+                        sp.get('checkInDate') ||
+                        new Date().toISOString().slice(0, 10);
+                    const fallbackCheckOut =
+                        parsed.checkOut ||
+                        sp.get('checkOut') ||
+                        sp.get('checkOutDate') ||
+                        new Date(Date.now() + 86400000).toISOString().slice(0, 10);
                     return {
                         ...parsed,
+                        checkIn: fallbackCheckIn,
+                        checkOut: fallbackCheckOut,
                         currency: parsed.currency || (isUuid ? 'ETB' : 'ETB'),
                         inventorySource:
                             parsed.inventorySource || (isUuid ? 'bookaddis_direct' : undefined),
