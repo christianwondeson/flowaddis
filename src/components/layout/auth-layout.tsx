@@ -4,7 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Hotel, Plane, Globe, Luggage, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Hotel, Plane, Globe, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Logo } from '@/components/shared/logo';
 import { cn } from '@/lib/utils';
 
 export interface AuthLayoutProps {
@@ -66,8 +67,12 @@ export function AuthLayout({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-slate-900/40 backdrop-blur-[0.5px] z-10" />
 
-                {/* Top spacer to balance vertical flex layout */}
-                <div className="relative z-20 h-6" />
+                {/* Desktop Hero Top Logo */}
+                <div className="relative z-20 flex items-center justify-between">
+                    <Link href="/" className="inline-flex items-center gap-2">
+                        <Logo showText light size="md" priority />
+                    </Link>
+                </div>
 
                 {/* Main Headline & Value Props */}
                 <div className="relative z-20 my-auto py-8 space-y-6">
@@ -118,12 +123,7 @@ export function AuthLayout({
                 {/* Mobile Top Logo */}
                 <div className="lg:hidden mb-4 sm:mb-6 flex justify-center">
                     <Link href="/" className="inline-flex items-center gap-2">
-                        <span className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 shadow-md shadow-teal-500/30">
-                            <Luggage className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white" />
-                        </span>
-                        <span className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            Book<span className="text-teal-600 dark:text-teal-400">Addis</span>
-                        </span>
+                        <Logo showText size="md" priority />
                     </Link>
                 </div>
 
