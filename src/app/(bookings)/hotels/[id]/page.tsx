@@ -252,6 +252,7 @@ function HotelDetailPageInner() {
                     checkin: h.checkin ?? prev.checkin,
                     checkout: h.checkout ?? prev.checkout,
                     policies,
+                    promotions: h.promotions || h.media?.promotions || prev.promotions || [],
                     cancellation_policy:
                         policies.cancellation_policy || prev.cancellation_policy,
                     house_rules: Array.isArray(policies.house_rules)

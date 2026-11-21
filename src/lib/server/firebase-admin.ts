@@ -1,6 +1,14 @@
 import * as admin from 'firebase-admin';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { resolveFirestoreDatabaseId } from '@/lib/firestore-database-id';
+import dns from 'node:dns';
+
+// Ensure Node resolver prioritizes IPv4 over IPv6 to avoid 20-25s timeouts on unreachable IPv6 routes
+try {
+    dns.setDefaultResultOrder('ipv4first');
+} catch {
+    /* ignore in environments where not supported */
+}
 
 let app: admin.app.App | undefined;
 let firestoreDb: Firestore | undefined;

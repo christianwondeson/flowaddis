@@ -99,18 +99,25 @@ export async function POST(request: Request) {
 
         const auth = getAdminAuth();
 
-        // Ephemeral Auth user  no email on the Auth record (booking holds contact).
+        // Ephemeral Auth user — no email on the Auth record (booking holds contact).
         const uid = `guest_${randomBytes(16).toString('hex')}`;
-        await auth.createUser({
+
+        // Mint custom token immediately via local cryptographic RSA signature (0ms, offline-capable)
+        const customToken = await auth.createCustomToken(uid, {
+            checkoutGuest: true,
+            displayName: name || 'Guest',
+            guestEmail: email,
+            guestPhone: phone,
+        });
+
+        // Non-blocking best-effort creation for display name metadata in Firebase console
+        // (client signInWithCustomToken automatically provisions user record if not present)
+        auth.createUser({
             uid,
             displayName: name || 'Guest',
             disabled: false,
-        });
-
-        const customToken = await auth.createCustomToken(uid, {
-            checkoutGuest: true,
-            guestEmail: email,
-            guestPhone: phone,
+        }).catch((err) => {
+            console.warn('[checkout/guest-token] Background createUser skipped (client token sign-in will auto-provision):', err?.message || err);
         });
 
         return NextResponse.json({ customToken });

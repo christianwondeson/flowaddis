@@ -270,8 +270,10 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                 promotions,
                 checkIn,
                 checkOut,
+                roomTypeId: draft.roomTypeId,
+                facility: 'hotel_room',
             }),
-        [promotions, checkIn, checkOut],
+        [promotions, checkIn, checkOut, draft.roomTypeId],
     );
     const codePromo = useMemo(
         () =>
@@ -281,9 +283,11 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                       checkIn,
                       checkOut,
                       promoCode,
+                      roomTypeId: draft.roomTypeId,
+                      facility: 'hotel_room',
                   })
                 : { percent: 0, applied: null as HotelPromotion | null },
-        [promotions, checkIn, checkOut, promoCode],
+        [promotions, checkIn, checkOut, promoCode, draft.roomTypeId],
     );
     const appliedPromo =
         codePromo.percent > 0
@@ -974,7 +978,15 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                         </div>
                                         {appliedPromo.percent > 0 && (
                                             <div className="flex justify-between text-emerald-700 font-semibold pt-1 border-t border-slate-100">
-                                                <span>Promotion ({appliedPromo.applied?.name || `${appliedPromo.percent}% off`})</span>
+                                                <span>
+                                                    Promotion ({appliedPromo.applied?.name || `${appliedPromo.percent}% off`}
+                                                    {appliedPromo.applied?.applicable_room_ids &&
+                                                    !appliedPromo.applied.applicable_room_ids.includes('all') &&
+                                                    draft.roomName
+                                                        ? ` · ${appliedPromo.percent}% on ${draft.roomName}`
+                                                        : ''}
+                                                    )
+                                                </span>
                                                 <span>-{formatCurrency(roomList - roomAfterPromo, currency)}</span>
                                             </div>
                                         )}

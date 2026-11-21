@@ -60,6 +60,8 @@ export interface Hotel {
     };
     amenities: string[];
     description: string;
+    promotions?: any[];
+    media?: any;
 }
 
 export interface HotelFilters {

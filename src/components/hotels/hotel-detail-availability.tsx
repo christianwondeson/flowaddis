@@ -27,6 +27,7 @@ import type { Hotel as ListHotel } from '@/types';
 import { resolveStrapiFileUrl } from '@/lib/admin-cms-client';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { useEtbUsdRate } from '@/hooks/use-etb-usd-rate';
+import { normalizePromotions, resolveHotelPromotionDiscount } from '@/lib/hotel-promotions';
 
 /** Returns a display-safe room name; never returns 0 or "0". */
 function safeRoomName(val: unknown): string | null {
@@ -147,6 +148,10 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     const placeholder =
         APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER ||
         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
+    const hotelPromotions = useMemo(
+        () => normalizePromotions(hotel?.promotions || (hotel as any)?.media?.promotions),
+        [hotel],
+    );
 
     useEffect(() => {
         const fetchRooms = async () => {
@@ -388,6 +393,17 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                             const qty = selectedRooms[key] ?? 1;
                             /** Stay total from API for 1 room; multiply only by selected room count. */
                             const total = Number(offer.total_price) * qty;
+                            const promo = resolveHotelPromotionDiscount({
+                                promotions: hotelPromotions,
+                                checkIn: checkInDate,
+                                checkOut: checkOutDate,
+                                roomTypeId: offer.room_type_id,
+                                facility: 'hotel_room',
+                            });
+                            const discountedTotal =
+                                promo.percent > 0
+                                    ? Math.round(total * (1 - promo.percent / 100) * 100) / 100
+                                    : total;
                             const refundable = Boolean(offer.cancellation_policy?.refundable);
                             const photo =
                                 resolveStrapiFileUrl(offer.photos?.[0] || '') ||
@@ -460,6 +476,12 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                         <CreditCard className="w-3.5 h-3.5" />
                                                         {paymentLabel(offer.payment_timings)}
                                                     </span>
+                                                    {promo.percent > 0 ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1 font-bold">
+                                                            <Sparkles className="w-3.5 h-3.5" />
+                                                            {promo.applied?.name || 'Deal'} ({promo.percent}% off)
+                                                        </span>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                             <div className="sm:w-48 shrink-0 flex flex-col items-stretch sm:items-end gap-2 border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-4">
@@ -491,12 +513,23 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
                                                     </SelectContent>
                                                 </Select>
                                                 <div className="text-right">
-                                                    <div className="text-xl font-extrabold text-foreground">
-                                                        {formatCurrency(total, offer.currency)}
-                                                    </div>
+                                                    {promo.percent > 0 ? (
+                                                        <div>
+                                                            <div className="text-xs line-through text-muted-foreground font-medium">
+                                                                {formatCurrency(total, offer.currency)}
+                                                            </div>
+                                                            <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                                                                {formatCurrency(discountedTotal, offer.currency)}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-xl font-extrabold text-foreground">
+                                                            {formatCurrency(total, offer.currency)}
+                                                        </div>
+                                                    )}
                                                     <div className="text-[11px] text-muted-foreground">
                                                         {qty > 1
-                                                            ? `${formatCurrency(offer.total_price, offer.currency)} × ${qty} rooms`
+                                                            ? `${formatCurrency(promo.percent > 0 ? discountedTotal / qty : offer.total_price, offer.currency)} × ${qty} rooms`
                                                             : 'Hotel rate for stay'}
                                                     </div>
                                                 </div>

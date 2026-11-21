@@ -25,6 +25,12 @@ export type HotelPromotion = {
     valid_from?: string | null;
     valid_to?: string | null;
     description?: string;
+    /** Specific room type IDs this promo applies to. If empty or contains 'all', applies to all rooms. */
+    applicable_room_ids?: string[];
+    /** Friendly names of applicable rooms for display */
+    applicable_room_names?: string[];
+    /** Applicable channels or services e.g. ['hotel_room', 'airport_shuttle', 'conference'] */
+    facility_scope?: Array<'hotel_room' | 'airport_shuttle' | 'conference'>;
 };
 
 export const PROMOTION_TYPE_LABELS: Record<HotelPromotionType, string> = {
@@ -69,6 +75,15 @@ export function normalizePromotions(raw: unknown): HotelPromotion[] {
                 valid_to: typeof o.valid_to === 'string' ? o.valid_to : null,
                 description:
                     typeof o.description === 'string' ? o.description : undefined,
+                applicable_room_ids: Array.isArray(o.applicable_room_ids)
+                    ? o.applicable_room_ids.map(String)
+                    : ['all'],
+                applicable_room_names: Array.isArray(o.applicable_room_names)
+                    ? o.applicable_room_names.map(String)
+                    : [],
+                facility_scope: Array.isArray(o.facility_scope)
+                    ? (o.facility_scope as Array<'hotel_room' | 'airport_shuttle' | 'conference'>)
+                    : ['hotel_room'],
             };
         });
 }
@@ -104,6 +119,7 @@ function inValidityWindow(p: HotelPromotion, todayIso: string): boolean {
 
 /**
  * Pick best applicable automatic promo + optional promo code.
+ * Matches specific roomTypeId and facility scope if provided.
  * Returns percent off (0 if none).
  */
 export function resolveHotelPromotionDiscount(params: {
@@ -111,17 +127,40 @@ export function resolveHotelPromotionDiscount(params: {
     checkIn?: string;
     checkOut?: string;
     promoCode?: string;
+    roomTypeId?: string;
+    facility?: 'hotel_room' | 'airport_shuttle' | 'conference';
 }): {
     percent: number;
     applied: HotelPromotion | null;
     reason?: string;
 } {
-    const { promotions, checkIn, checkOut, promoCode } = params;
+    const { promotions, checkIn, checkOut, promoCode, roomTypeId, facility = 'hotel_room' } = params;
     const today = new Date().toISOString().slice(0, 10);
     const active = promotions.filter(
         (p) => p.active && inValidityWindow(p, today),
     );
     if (!active.length) return { percent: 0, applied: null };
+
+    // Filter by facility scope (e.g. hotel room vs shuttle vs conference)
+    const facilityEligible = active.filter((p) => {
+        if (!p.facility_scope || p.facility_scope.length === 0) return true;
+        return p.facility_scope.includes(facility);
+    });
+
+    // Filter by roomTypeId if specified (room-specific vs all-rooms)
+    const roomEligible = facilityEligible.filter((p) => {
+        if (!roomTypeId) return true;
+        if (
+            !p.applicable_room_ids ||
+            p.applicable_room_ids.length === 0 ||
+            p.applicable_room_ids.includes('all')
+        ) {
+            return true;
+        }
+        return p.applicable_room_ids.includes(roomTypeId);
+    });
+
+    if (!roomEligible.length) return { percent: 0, applied: null };
 
     const nights =
         checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
@@ -131,7 +170,7 @@ export function resolveHotelPromotionDiscount(params: {
 
     const code = promoCode?.trim().toUpperCase();
     if (code) {
-        const match = active.find(
+        const match = roomEligible.find(
             (p) =>
                 p.type === 'promo_code' &&
                 p.code &&
@@ -143,11 +182,11 @@ export function resolveHotelPromotionDiscount(params: {
         return {
             percent: 0,
             applied: null,
-            reason: 'Promo code not valid for this hotel',
+            reason: 'Promo code not valid for this room or dates',
         };
     }
 
-    for (const p of active) {
+    for (const p of roomEligible) {
         if (p.type === 'promo_code') continue;
         if (p.type === 'early_bird') {
             const need = p.book_window_days ?? 14;
