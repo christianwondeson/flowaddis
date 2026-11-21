@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { clsx } from 'clsx';
 import { X, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -223,30 +224,52 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-10000 flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-md">
+            <div
+                className={clsx(
+                    "fixed inset-0 z-10000 flex items-center justify-center bg-brand-dark/60 backdrop-blur-md",
+                    step === 'receipt' ? "p-3 sm:p-4" : "p-4"
+                )}
+            >
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-transparent dark:border-slate-700 w-full max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto scrollbar-hide overscroll-contain z-10001"
+                    className={clsx(
+                        "relative flex flex-col bg-white dark:bg-slate-900 shadow-2xl border border-transparent dark:border-slate-700 overflow-hidden z-10001",
+                        step === 'receipt'
+                            ? "w-full max-w-lg max-h-[96vh] rounded-2xl sm:rounded-3xl"
+                            : "w-full max-w-md sm:max-w-lg md:max-w-xl max-h-[90vh] rounded-3xl"
+                    )}
                 >
-                    <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
-                        <h2 className="text-xl font-bold text-brand-dark dark:text-foreground">
-                            {step === 'form'
-                                ? 'Complete Your Flight Booking'
-                                : step === 'payment'
-                                    ? 'Secure Payment'
-                                    : 'Booking Confirmed'}
-                        </h2>
+                    {step !== 'receipt' ? (
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-700">
+                            <h2 className="text-xl font-bold text-brand-dark dark:text-foreground">
+                                {step === 'form'
+                                    ? 'Complete Your Flight Booking'
+                                    : 'Secure Payment'}
+                            </h2>
+                            <button
+                                onClick={handleClose}
+                                className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    ) : (
                         <button
                             onClick={handleClose}
-                            className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            className="absolute top-3.5 right-3.5 z-30 rounded-full bg-slate-100/90 dark:bg-slate-800/90 p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors shadow-sm no-print"
+                            type="button"
+                            aria-label="Close"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="h-4 w-4" />
                         </button>
-                    </div>
+                    )}
 
-                    <div className="p-6">
+                    <div className={clsx(
+                        "min-h-0 flex-1 overflow-y-auto scrollbar-hide overscroll-contain",
+                        step === 'receipt' ? "p-3 sm:p-5" : "p-6"
+                    )}>
                         {step === 'form' && (
                             <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
                                 <div className="bg-brand-gray p-5 rounded-2xl border border-gray-100">

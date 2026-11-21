@@ -155,19 +155,21 @@ export const Header: React.FC = () => {
                                     {item.name}
                                 </Link>
                             ))}
-                            <Link
-                                href="/trips"
-                                className={clsx(
-                                    'flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium',
-                                    pathname === '/trips' || pathname === '/dashboard' || pathname?.startsWith('/dashboard/')
-                                        ? 'bg-teal-100 text-teal-600'
-                                        : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
-                                )}
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                <Briefcase className="w-5 h-5" />
-                                {t('nav.myTrips')}
-                            </Link>
+                            {user?.role !== 'hotel_admin' && user?.role !== 'hotel_staff' && (
+                                <Link
+                                    href="/trips"
+                                    className={clsx(
+                                        'flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium',
+                                        pathname === '/trips' || pathname === '/dashboard' || pathname?.startsWith('/dashboard/')
+                                            ? 'bg-teal-100 text-teal-600'
+                                            : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                                    )}
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <Briefcase className="w-5 h-5" />
+                                    {t('nav.myTrips')}
+                                </Link>
+                            )}
                             <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
                                 {user ? (
                                     <>

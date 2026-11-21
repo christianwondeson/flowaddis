@@ -184,7 +184,7 @@ export const Receipt: React.FC<ReceiptProps> = ({
     );
 
     return (
-        <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+        <div className="mx-auto flex w-full max-w-lg flex-col gap-3.5">
             <style jsx global>{`
                 @media print {
                     body * {
@@ -215,35 +215,17 @@ export const Receipt: React.FC<ReceiptProps> = ({
                 }
             `}</style>
 
-            {/* Status Confirmation Pill */}
-            <div
-                className={`mx-auto flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold no-print ${
-                    !isReservation
-                        ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200'
-                        : 'bg-teal-50 text-teal-800 ring-1 ring-teal-200'
-                }`}
-            >
-                <CheckCircle2
-                    className={`h-4 w-4 ${
-                        !isReservation ? 'text-emerald-600' : 'text-teal-600'
-                    }`}
-                />
-                {!isReservation
-                    ? t('bookingUi.receipt.bookingConfirmed')
-                    : t('bookingUi.receipt.reservationConfirmed')}
-            </div>
-
             {/* Printable Receipt Card */}
             <div
                 id="printable-receipt-card"
                 ref={receiptRef}
-                className="relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                className="relative w-full overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
             >
                 <div className="h-2 w-full bg-gradient-to-r from-brand-primary via-emerald-500 to-brand-primary" />
 
-                <div className="space-y-5 p-5 sm:p-6">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="space-y-4 p-5 sm:p-6">
+                    {/* Header with integrated verified status */}
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4 dark:border-slate-800">
                         <div>
                             <Logo size="md" />
                             <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
@@ -252,16 +234,34 @@ export const Receipt: React.FC<ReceiptProps> = ({
                                     : t('bookingUi.receipt.reservationDoc')}
                             </p>
                         </div>
-                        <div
-                            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${
-                                !isReservation
-                                    ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
-                                    : 'bg-amber-100 text-amber-900 ring-1 ring-amber-200'
-                            }`}
-                        >
-                            {!isReservation
-                                ? t('bookingUi.receipt.paidStatus')
-                                : t('bookingUi.receipt.unpaidStatus')}
+                        <div className="flex flex-col items-end gap-1.5">
+                            <div
+                                className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                    !isReservation
+                                        ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:ring-emerald-800'
+                                        : 'bg-teal-50 text-teal-800 ring-1 ring-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:ring-teal-800'
+                                }`}
+                            >
+                                <CheckCircle2
+                                    className={`h-3.5 w-3.5 ${
+                                        !isReservation ? 'text-emerald-600' : 'text-teal-600'
+                                    }`}
+                                />
+                                {!isReservation
+                                    ? t('bookingUi.receipt.bookingConfirmed')
+                                    : t('bookingUi.receipt.reservationConfirmed')}
+                            </div>
+                            <span
+                                className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                    !isReservation
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                        : 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-300'
+                                }`}
+                            >
+                                {!isReservation
+                                    ? t('bookingUi.receipt.paidStatus')
+                                    : t('bookingUi.receipt.unpaidStatus')}
+                            </span>
                         </div>
                     </div>
 

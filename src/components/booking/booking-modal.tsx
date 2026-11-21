@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { clsx } from 'clsx';
 import { X, ShoppingBag, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -603,7 +604,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return (
         <AnimatePresence>
             <div
-                className="fixed inset-0 z-[10000] flex items-end justify-center overflow-hidden bg-brand-dark/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
+                className={clsx(
+                    "fixed inset-0 z-[10000] flex justify-center overflow-hidden bg-brand-dark/60 p-0 backdrop-blur-md sm:p-4",
+                    step === 'receipt' ? "items-center p-3 sm:p-4" : "items-end sm:items-center"
+                )}
                 onClick={(e) => {
                     if (e.target === e.currentTarget) handleClose();
                 }}
@@ -612,27 +616,44 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     initial={{ opacity: 0, scale: 0.98, y: 16 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: 16 }}
-                    className="relative z-[10001] flex max-h-[min(92dvh,920px)] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-gray-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:max-w-lg sm:rounded-2xl md:max-w-xl"
+                    className={clsx(
+                        "relative z-[10001] flex flex-col overflow-hidden bg-white shadow-2xl dark:bg-slate-900",
+                        step === 'receipt'
+                            ? "w-full max-w-lg max-h-[96dvh] rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800"
+                            : "w-full max-w-md sm:max-w-lg md:max-w-xl max-h-[min(92dvh,920px)] rounded-t-2xl sm:rounded-2xl border border-gray-100 dark:border-slate-700"
+                    )}
                 >
-                    <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-slate-700 sm:px-6 sm:py-4">
-                        <h2 className="text-lg font-bold text-brand-dark dark:text-foreground sm:text-xl">
-                            {step === 'form'
-                                ? t('bookingUi.modalTitleForm')
-                                : step === 'payment'
-                                    ? t('bookingUi.modalTitlePayment')
-                                    : t('bookingUi.modalTitleReceipt')}
-                        </h2>
+                    {step !== 'receipt' ? (
+                        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-slate-700 sm:px-6 sm:py-4">
+                            <h2 className="text-lg font-bold text-brand-dark dark:text-foreground sm:text-xl">
+                                {step === 'form'
+                                    ? t('bookingUi.modalTitleForm')
+                                    : t('bookingUi.modalTitlePayment')}
+                            </h2>
+                            <button
+                                onClick={handleClose}
+                                className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                                type="button"
+                                aria-label="Close"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                    ) : (
                         <button
                             onClick={handleClose}
-                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                            className="absolute top-3.5 right-3.5 z-30 rounded-full bg-slate-100/90 dark:bg-slate-800/90 p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors shadow-sm no-print"
                             type="button"
-                            aria-label="Close"
+                            aria-label="Close modal"
                         >
-                            <X className="h-5 w-5" />
+                            <X className="h-4 w-4" />
                         </button>
-                    </div>
+                    )}
 
-                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide px-4 py-4 sm:px-6 sm:py-5">
+                    <div className={clsx(
+                        "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-hide",
+                        step === 'receipt' ? "p-3 sm:p-5" : "px-4 py-4 sm:px-6 sm:py-5"
+                    )}>
                         {step === 'form' && (
                             <form key={locale} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
                                 <div className="bg-brand-gray p-5 rounded-2xl border border-gray-100">

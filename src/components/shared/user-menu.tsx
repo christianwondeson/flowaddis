@@ -106,12 +106,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                     </DropdownMenuItem>
                 )}
 
-                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
-                    <Link href="/trips" className="flex items-center w-full gap-2">
-                        <Briefcase className="h-4 w-4 shrink-0" />
-                        <span>{t('userMenu.myTrips')}</span>
-                    </Link>
-                </DropdownMenuItem>
+                {/* Regular travel consumers see My Trips; Hotel admins do not need My Trips */}
+                {user?.role !== 'hotel_admin' && user?.role !== 'hotel_staff' && (
+                    <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
+                        <Link href="/trips" className="flex items-center w-full gap-2">
+                            <Briefcase className="h-4 w-4 shrink-0" />
+                            <span>{t('userMenu.myTrips')}</span>
+                        </Link>
+                    </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/profile" className="flex items-center w-full gap-2">

@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Briefcase, User } from "lucide-react";
+import { LayoutDashboard, Briefcase, User, Hotel } from "lucide-react";
 import { clsx } from "clsx";
+import { useAuth } from "@/components/providers/auth-provider";
 
-const links = [
+const customerLinks = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard, match: (p: string) => p === "/dashboard" },
     { href: "/trips", label: "Trips", icon: Briefcase, match: (p: string) => p === "/trips" || p.startsWith("/trips/") },
     { href: "/profile", label: "Profile", icon: User, match: (p: string) => p === "/profile" || p.startsWith("/profile/") },
+] as const;
+
+const hotelAdminLinks = [
+    { href: "/profile", label: "Profile", icon: User, match: (p: string) => p === "/profile" || p.startsWith("/profile/") },
+    { href: "/admin/hotel", label: "Hotel Portal", icon: Hotel, match: (p: string) => p.startsWith("/admin/hotel") },
 ] as const;
 
 /**
@@ -16,6 +22,9 @@ const links = [
  */
 export function AccountNav() {
     const pathname = usePathname() || "";
+    const { user } = useAuth();
+    const isHotelAdmin = user?.role === 'hotel_admin' || user?.role === 'hotel_staff';
+    const links = isHotelAdmin ? hotelAdminLinks : customerLinks;
 
     return (
         <nav
