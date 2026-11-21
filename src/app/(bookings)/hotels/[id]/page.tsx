@@ -93,7 +93,15 @@ function HotelDetailPageInner() {
             const name = usp.get('name');
             const image = usp.get('image');
             const location = usp.get('location');
-            const inventorySource = usp.get('inventory_source') || 'rapidapi';
+            const isIdUuid =
+                typeof rawId === 'string' &&
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
+            const inventorySource =
+                usp.get('inventory_source') || (isIdUuid ? 'bookaddis_direct' : 'rapidapi');
+            const isDirectStay =
+                inventorySource === 'bookaddis_direct' ||
+                inventorySource === 'pms_synced' ||
+                isIdUuid;
             const bookableParam = usp.get('bookable');
             const ci = usp.get('checkIn') || usp.get('checkin') || usp.get('checkInDate') || formatDateLocal(new Date(Date.now() + 86400000));
             const co = usp.get('checkOut') || usp.get('checkout') || usp.get('checkOutDate') || formatDateLocal(new Date(Date.now() + 172800000));
@@ -109,6 +117,7 @@ function HotelDetailPageInner() {
 
             setHotel((prev: any) => ({
                 ...prev,
+                id: rawId,
                 ...(name ? { name } : {}),
                 ...(image ? { image } : {}),
                 ...(location ? { location } : {}),
@@ -118,8 +127,7 @@ function HotelDetailPageInner() {
                         ? true
                         : bookableParam === '0'
                           ? false
-                          : inventorySource === 'bookaddis_direct' ||
-                            inventorySource === 'pms_synced',
+                          : isDirectStay,
             }));
         }
 

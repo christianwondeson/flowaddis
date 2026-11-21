@@ -140,7 +140,10 @@ export const HotelDetailAvailability: React.FC<HotelDetailAvailabilityProps> = (
     const [bedFilter, setBedFilter] = useState<'all' | '1' | '2'>('all');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const canReserve = isBookaddisBookableHotel(hotel as unknown as ListHotel);
+    const isDirectUuid =
+        typeof hotel.id === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hotel.id);
+    const canReserve = isDirectUuid || isBookaddisBookableHotel(hotel as unknown as ListHotel);
     const placeholder =
         APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER ||
         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
