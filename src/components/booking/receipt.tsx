@@ -95,12 +95,14 @@ export const Receipt: React.FC<ReceiptProps> = ({
             ? `${formatStayDate(booking.checkIn, locale)} → ${formatStayDate(booking.checkOut, locale)}`
             : booking.date || formatStayDate(booking.checkIn, locale);
 
-    // Official smartphone verification URL encoded in the QR code
-    const origin =
-        typeof window !== 'undefined' && window.location.origin
-            ? window.location.origin
-            : 'https://bookaddis.com';
-    const qrVerificationUrl = `${origin}/booking/success?bookingId=${encodeURIComponent(booking.id)}${isReservation ? '&type=reservation' : ''}${booking.paymentReference ? `&ref=${encodeURIComponent(booking.paymentReference)}` : ''}`;
+    // Canonical public verification base URL (always https://bookaddis.com or NEXT_PUBLIC_APP_URL, never localhost)
+    const siteBase = (
+        process.env.NEXT_PUBLIC_APP_URL ||
+        process.env.NEXT_PUBLIC_APP_ORIGIN ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        'https://bookaddis.com'
+    ).trim().replace(/\/$/, '');
+    const qrVerificationUrl = `${siteBase}/booking/success?bookingId=${encodeURIComponent(booking.id)}${isReservation ? '&type=reservation' : ''}${booking.paymentReference ? `&ref=${encodeURIComponent(booking.paymentReference)}` : ''}`;
 
     const handleCopyId = () => {
         if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -240,7 +242,7 @@ export const Receipt: React.FC<ReceiptProps> = ({
             pdf.setFontSize(9);
             pdf.setTextColor(148, 163, 184);
             pdf.text(
-                `Generated on ${generatedDate} · Verification URL: ${origin}/booking/success?bookingId=${booking.id}`,
+                `Generated on ${generatedDate} · Verification URL: ${siteBase}/booking/success?bookingId=${booking.id}`,
                 20,
                 y,
             );
