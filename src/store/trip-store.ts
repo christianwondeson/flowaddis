@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
 export interface TripItem {
@@ -83,11 +83,18 @@ export const useTripStore = create<TripState>()((set, get) => ({
             date: new Date().toISOString(),
         };
 
-        if (db) {
-            // Write to Firestore asynchronously in background without blocking UI
-            setDoc(doc(db, 'trips', tripId), newTrip).catch((error) => {
-                console.error('Error saving trip to Firestore:', error);
-            });
+        // Only sync to Firestore if actively signed into Firebase Auth with a matching, non-guest UID
+        if (db && typeof window !== 'undefined') {
+            try {
+                const currentAuthUid = auth?.currentUser?.uid;
+                if (currentAuthUid && currentAuthUid === userId && !userId.startsWith('guest')) {
+                    setDoc(doc(db, 'trips', tripId), newTrip).catch((error) => {
+                        console.warn('[TripStore] Background sync to Firestore skipped:', error?.message);
+                    });
+                }
+            } catch {
+                // Ignore background sync errors
+            }
         }
 
         clearTrip();

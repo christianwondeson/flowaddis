@@ -126,7 +126,26 @@ function HotelDetailPageInner() {
         if (data?.hotels) {
             const found = data.hotels.find((h: any) => h.id === id);
             if (found) {
-                setHotel(found);
+                setHotel((prev: any) => {
+                    // Do not clobber fully loaded detail photos, description, policies or amenities with list summary
+                    if (prev.images && prev.images.length > 1) {
+                        return {
+                            ...found,
+                            ...prev,
+                            images: prev.images,
+                            description: prev.description || found.description,
+                            amenities: prev.amenities?.length ? prev.amenities : found.amenities,
+                            inventory_source: prev.inventory_source || found.inventory_source,
+                        };
+                    }
+                    return {
+                        ...found,
+                        ...prev,
+                        images: prev.images?.length > 1
+                            ? prev.images
+                            : ((found as any).images || prev.images || [found.image || prev.image].filter(Boolean)),
+                    };
+                });
             }
         }
     }, [id, data]);
@@ -137,7 +156,9 @@ function HotelDetailPageInner() {
         setIsGalleryLoading(true);
         const hotelId = Array.isArray(id) ? id[0] : id;
         const placeholder = APP_CONSTANTS.ASSETS?.HOTEL_PLACEHOLDER || '/assets/images/addis-view.jpg';
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(hotelId);
+        const isUuid =
+            typeof hotelId === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(hotelId);
         const inventorySource =
             (typeof window !== 'undefined'
                 ? new URLSearchParams(window.location.search).get('inventory_source')
@@ -150,21 +171,47 @@ function HotelDetailPageInner() {
         // BookAddis Direct / PMS  load from Nest, skip RapidAPI scrapes
         if (isDirect && isUuid) {
             try {
-                const res = await axios.get(`/api/hotels/direct/${encodeURIComponent(hotelId)}`);
-                const h = res.data || {};
-                const mediaPhotos = Array.isArray(h.media?.photos)
-                    ? h.media.photos
+                const ci = checkInDate || formatDateLocal(new Date(Date.now() + 86400000));
+                const co = checkOutDate || formatDateLocal(new Date(Date.now() + 172800000));
+                const [directRes, availRes] = await Promise.allSettled([
+                    axios.get(`/api/hotels/direct/${encodeURIComponent(hotelId)}`),
+                    axios.get(
+                        `/api/hotels/direct-availability/${encodeURIComponent(hotelId)}?checkIn=${encodeURIComponent(ci)}&checkOut=${encodeURIComponent(co)}`,
+                    ),
+                ]);
+
+                const h = directRes.status === 'fulfilled' ? directRes.value.data || {} : {};
+                let parsedMedia = h.media;
+                if (typeof parsedMedia === 'string') {
+                    try {
+                        parsedMedia = JSON.parse(parsedMedia);
+                    } catch {}
+                }
+                const mediaPhotos = Array.isArray(parsedMedia?.photos)
+                    ? parsedMedia.photos
                           .map((p: any) => resolveStrapiFileUrl(p?.url) || p?.url)
                           .filter((u: string) => typeof u === 'string' && u.length > 0)
                     : [];
-                const cover =
-                    resolveStrapiFileUrl(h.image) || h.image || null;
-                const images =
-                    mediaPhotos.length > 0
-                        ? mediaPhotos
-                        : cover
-                          ? [cover]
-                          : [placeholder];
+
+                const availData = availRes.status === 'fulfilled' ? availRes.value.data || {} : {};
+                const roomPhotos = Array.isArray(availData.offers)
+                    ? availData.offers.flatMap((o: any) =>
+                          Array.isArray(o.photos)
+                              ? o.photos.map((p: string) => resolveStrapiFileUrl(p) || p)
+                              : [],
+                      )
+                    : [];
+
+                const cover = resolveStrapiFileUrl(h.image) || h.image || null;
+                const rawCombined = Array.from(
+                    new Set([
+                        cover,
+                        ...mediaPhotos,
+                        ...roomPhotos,
+                    ].filter((u): u is string => typeof u === 'string' && u.length > 0)),
+                );
+
+                const images = rawCombined.length > 0 ? rawCombined : [placeholder];
                 const amenityLabels = Array.isArray(h.amenities)
                     ? h.amenities
                     : [];

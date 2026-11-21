@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
-import html2canvas from 'html2canvas';
+import { QRCodeCanvas } from 'qrcode.react';
 import jsPDF from 'jspdf';
 import { Button } from '@/components/ui/button';
 import {
@@ -149,8 +148,9 @@ export const Receipt: React.FC<ReceiptProps> = ({
             pdf.setDrawColor(226, 232, 240);
             pdf.line(20, 36, 190, 36);
 
+            // Left side: Booking ID & Amount
             pdf.setFillColor(248, 250, 252);
-            pdf.roundedRect(20, 42, 170, 22, 3, 3, 'F');
+            pdf.roundedRect(20, 42, 118, 22, 3, 3, 'F');
             pdf.setFontSize(9);
             pdf.setTextColor(148, 163, 184);
             pdf.text('BOOKING IDENTIFIER (RESERVATION ID)', 25, 49);
@@ -159,7 +159,7 @@ export const Receipt: React.FC<ReceiptProps> = ({
             pdf.text(booking.id, 25, 58);
 
             pdf.setFillColor(241, 245, 249);
-            pdf.roundedRect(20, 68, 170, 24, 3, 3, 'F');
+            pdf.roundedRect(20, 68, 118, 24, 3, 3, 'F');
             pdf.setFontSize(9);
             pdf.setTextColor(100, 116, 139);
             pdf.text(
@@ -170,6 +170,24 @@ export const Receipt: React.FC<ReceiptProps> = ({
             pdf.setFontSize(18);
             pdf.setTextColor(15, 23, 42);
             pdf.text(amountLabel, 25, 86);
+
+            // Right side: Official Scannable QR Code Card
+            pdf.setFillColor(255, 255, 255);
+            pdf.setDrawColor(226, 232, 240);
+            pdf.roundedRect(144, 42, 46, 50, 3, 3, 'FD');
+
+            const qrCanvas = document.getElementById('receipt-qr-code') as HTMLCanvasElement | null;
+            if (qrCanvas) {
+                try {
+                    const qrDataUrl = qrCanvas.toDataURL('image/png');
+                    pdf.addImage(qrDataUrl, 'PNG', 147, 44, 40, 40);
+                    pdf.setFontSize(7);
+                    pdf.setTextColor(148, 163, 184);
+                    pdf.text('SCAN TO VERIFY', 167, 88, { align: 'center' });
+                } catch {
+                    // Continue even if QR image capture fails
+                }
+            }
 
             let y = 104;
             const drawRow = (label: string, val: string) => {
@@ -233,36 +251,13 @@ export const Receipt: React.FC<ReceiptProps> = ({
         }
     };
 
-    const handleDownload = async () => {
+    const handleDownload = () => {
         if (!receiptRef.current) return;
         setIsDownloading(true);
         try {
-            const canvas = await html2canvas(receiptRef.current, {
-                scale: 2,
-                backgroundColor: '#ffffff',
-                useCORS: false,
-                allowTaint: false,
-                logging: false,
-                scrollX: 0,
-                scrollY: 0,
-            });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-            });
-            const imgWidth = 210;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, 295));
-            const prefix = isReservation ? 'Reservation' : 'Receipt';
-            pdf.save(`BookAddis-${prefix}-${booking.id}.pdf`);
-        } catch (error) {
-            console.warn(
-                'html2canvas failed, seamlessly generating vector PDF voucher:',
-                error,
-            );
             generateDirectPdf();
+        } catch (error) {
+            console.error('Failed to generate PDF voucher:', error);
         } finally {
             setIsDownloading(false);
         }
@@ -285,7 +280,20 @@ export const Receipt: React.FC<ReceiptProps> = ({
             return;
         }
 
-        const cardContent = receiptRef.current.innerHTML;
+        // Swap canvas elements with data URL img tags so iframe print engine renders QR code cleanly
+        const qrCanvas = receiptRef.current.querySelector('canvas') as HTMLCanvasElement | null;
+        let cardContent = receiptRef.current.innerHTML;
+        if (qrCanvas) {
+            try {
+                const qrDataUrl = qrCanvas.toDataURL('image/png');
+                cardContent = cardContent.replace(
+                    /<canvas[^>]*><\/canvas>/gi,
+                    `<img src="${qrDataUrl}" width="120" height="120" style="display:block;margin:0 auto;" />`,
+                );
+            } catch {
+                // Keep default content
+            }
+        }
 
         doc.open();
         doc.write(`
@@ -669,7 +677,8 @@ export const Receipt: React.FC<ReceiptProps> = ({
                     {/* Official Digital QR Verification Box */}
                     <div className="flex flex-col items-center border-t border-slate-100 pt-4 dark:border-slate-800">
                         <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
-                            <QRCodeSVG
+                            <QRCodeCanvas
+                                id="receipt-qr-code"
                                 value={qrVerificationUrl}
                                 size={120}
                                 level="M"

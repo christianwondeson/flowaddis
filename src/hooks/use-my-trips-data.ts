@@ -71,7 +71,12 @@ export function useMyTripsData(
             };
 
             const loadFirestoreTrips = async () => {
-                if (!db) {
+                if (
+                    !db ||
+                    !userId ||
+                    userId.startsWith('guest') ||
+                    auth?.currentUser?.uid !== userId
+                ) {
                     setFirestoreTrips([]);
                     return;
                 }
@@ -86,7 +91,7 @@ export function useMyTripsData(
                     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                     if (!cancelled) setFirestoreTrips(list);
                 } catch (e) {
-                    console.error('Failed to load Firestore trips', e);
+                    console.warn('[useMyTripsData] Skipped or failed Firestore trips query:', e);
                     if (!cancelled) setFirestoreTrips([]);
                 }
             };
