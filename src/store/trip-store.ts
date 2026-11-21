@@ -84,11 +84,10 @@ export const useTripStore = create<TripState>()((set, get) => ({
         };
 
         if (db) {
-            try {
-                await setDoc(doc(db, 'trips', tripId), newTrip);
-            } catch (error) {
+            // Write to Firestore asynchronously in background without blocking UI
+            setDoc(doc(db, 'trips', tripId), newTrip).catch((error) => {
                 console.error('Error saving trip to Firestore:', error);
-            }
+            });
         }
 
         clearTrip();
