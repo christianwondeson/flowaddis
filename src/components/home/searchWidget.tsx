@@ -20,8 +20,9 @@ import {
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LocationInput } from '@/components/search/location-input';
-import dynamic from 'next/dynamic';
-import { CabinClass } from '@/components/search/traveler-cabin-selector';
+import { CabinClass, TravelerCabinSelector } from '@/components/search/traveler-cabin-selector';
+import { GuestSelector } from '@/components/search/guest-selector';
+import { FlightRouteSelect } from '@/components/search/flight-route-select';
 import { useRouter } from 'next/navigation';
 import { Popover } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -29,18 +30,6 @@ import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateRangeS
 import { cn } from '@/lib/utils';
 import { Counter } from '@/components/shared/counter';
 import { RideLogo, FeresLogo, YangoLogo, MeterTaxiLogo } from '@/components/shuttles/ride-partner-logos';
-
-const GuestSelector = dynamic(() => import('@/components/search/guest-selector').then((m) => m.GuestSelector), {
-  ssr: false,
-});
-const TravelerCabinSelector = dynamic(
-  () => import('@/components/search/traveler-cabin-selector').then((m) => m.TravelerCabinSelector),
-  { ssr: false },
-);
-const FlightRouteSelect = dynamic(
-  () => import('@/components/search/flight-route-select').then((m) => m.FlightRouteSelect),
-  { ssr: false },
-);
 
 type TabType = 'flights' | 'hotels' | 'conferences' | 'shuttles';
 
@@ -68,6 +57,122 @@ function formatTimeDisplay(time: string) {
   d.setHours(h, m, 0, 0);
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
+
+interface DualDatePopoverProps {
+  checkIn: string;
+  checkOut: string;
+  onCheckIn: (d: Date) => void;
+  onCheckOut: (d: Date) => void;
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  labels?: [string, string];
+}
+
+const DualDatePopover = React.memo(function DualDatePopover({
+  checkIn,
+  checkOut,
+  onCheckIn,
+  onCheckOut,
+  open,
+  setOpen,
+  labels = ['Check-in', 'Check-out'],
+}: DualDatePopoverProps) {
+  const minDate = React.useMemo(() => new Date(), []);
+  const checkInDate = React.useMemo(() => (checkIn ? parseDateLocal(checkIn) : undefined), [checkIn]);
+  const checkOutDate = React.useMemo(() => (checkOut ? parseDateLocal(checkOut) : undefined), [checkOut]);
+
+  return (
+    <Popover
+      align="center"
+      isOpen={open}
+      onOpenChange={setOpen}
+      trigger={
+        <div className="w-full">
+          <label className={FIELD_LABEL}>Dates</label>
+          <div className={FIELD_TRIGGER}>
+            <CalendarIcon className={FIELD_ICON} aria-hidden />
+            <span className={FIELD_VALUE}>{formatDateRangeShort(checkIn, checkOut)}</span>
+          </div>
+        </div>
+      }
+      content={
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1 sm:p-2 min-w-[280px] sm:min-w-[520px]">
+          <div>
+            <label className={cn(FIELD_LABEL, 'mb-2')}>{labels[0]}</label>
+            <Calendar
+              selected={checkInDate}
+              onSelect={(date) => {
+                onCheckIn(date);
+                if (checkOut && parseDateLocal(checkOut) <= date) {
+                  onCheckOut(new Date(date.getTime() + 86400000));
+                }
+              }}
+              minDate={minDate}
+            />
+          </div>
+          <div>
+            <label className={cn(FIELD_LABEL, 'mb-2')}>{labels[1]}</label>
+            <Calendar
+              selected={checkOutDate}
+              onSelect={onCheckOut}
+              minDate={checkInDate || minDate}
+            />
+          </div>
+        </div>
+      }
+    />
+  );
+});
+
+interface SingleDatePopoverProps {
+  label: string;
+  value: string;
+  onSelect: (d: Date) => void;
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  minDate?: Date;
+}
+
+const SingleDatePopover = React.memo(function SingleDatePopover({
+  label,
+  value,
+  onSelect,
+  open,
+  setOpen,
+  minDate,
+}: SingleDatePopoverProps) {
+  const defaultMin = React.useMemo(() => new Date(), []);
+  const selectedDate = React.useMemo(() => (value ? parseDateLocal(value) : undefined), [value]);
+
+  return (
+    <Popover
+      align="center"
+      isOpen={open}
+      onOpenChange={setOpen}
+      trigger={
+        <div className="w-full">
+          <label className={FIELD_LABEL}>{label}</label>
+          <div className={FIELD_TRIGGER}>
+            <CalendarIcon className={FIELD_ICON} aria-hidden />
+            <span className={FIELD_VALUE}>{value ? formatDateEnglishStr(value) : 'Select date'}</span>
+          </div>
+        </div>
+      }
+      content={
+        <div className="p-1">
+          <Calendar
+            selected={selectedDate}
+            onSelect={(date) => {
+              onSelect(date);
+              setOpen(false);
+            }}
+            minDate={minDate ?? defaultMin}
+          />
+        </div>
+      }
+    />
+  );
+});
 
 export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => void }) {
   const router = useRouter();
@@ -224,92 +329,6 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
         </>
       )}
     </Button>
-  );
-
-  const dualDatePopover = (
-    checkIn: string,
-    checkOut: string,
-    onCheckIn: (d: Date) => void,
-    onCheckOut: (d: Date) => void,
-    open: boolean,
-    setOpen: (v: boolean) => void,
-    labels: [string, string] = ['Check-in', 'Check-out'],
-  ) => (
-    <Popover
-      align="center"
-      isOpen={open}
-      onOpenChange={setOpen}
-      trigger={
-        <div className="w-full">
-          <label className={FIELD_LABEL}>Dates</label>
-          <div className={FIELD_TRIGGER}>
-            <CalendarIcon className={FIELD_ICON} aria-hidden />
-            <span className={FIELD_VALUE}>{formatDateRangeShort(checkIn, checkOut)}</span>
-          </div>
-        </div>
-      }
-      content={
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1 sm:p-2 min-w-[280px] sm:min-w-[520px]">
-          <div>
-            <label className={cn(FIELD_LABEL, 'mb-2')}>{labels[0]}</label>
-            <Calendar
-              selected={checkIn ? parseDateLocal(checkIn) : undefined}
-              onSelect={(date) => {
-                onCheckIn(date);
-                if (checkOut && parseDateLocal(checkOut) <= date) {
-                  onCheckOut(new Date(date.getTime() + 86400000));
-                }
-              }}
-              minDate={new Date()}
-            />
-          </div>
-          <div>
-            <label className={cn(FIELD_LABEL, 'mb-2')}>{labels[1]}</label>
-            <Calendar
-              selected={checkOut ? parseDateLocal(checkOut) : undefined}
-              onSelect={onCheckOut}
-              minDate={checkIn ? parseDateLocal(checkIn) : new Date()}
-            />
-          </div>
-        </div>
-      }
-    />
-  );
-
-  const singleDatePopover = (
-    label: string,
-    value: string,
-    onSelect: (d: Date) => void,
-    open: boolean,
-    setOpen: (v: boolean) => void,
-    minDate?: Date,
-  ) => (
-    <Popover
-      align="center"
-      isOpen={open}
-      onOpenChange={setOpen}
-      trigger={
-        <div className="w-full">
-          <label className={FIELD_LABEL}>{label}</label>
-          <div className={FIELD_TRIGGER}>
-            <CalendarIcon className={FIELD_ICON} aria-hidden />
-            <span className={FIELD_VALUE}>{value ? formatDateEnglishStr(value) : 'Select date'}</span>
-          </div>
-        </div>
-      }
-      content={
-        <div className="p-1">
-          <Calendar
-            selected={value ? parseDateLocal(value) : undefined}
-            onSelect={(date) => {
-              onSelect(date);
-              setOpen(false);
-            }}
-            minDate={minDate ?? new Date()}
-          />
-        </div>
-      }
-    />
   );
 
   const renderSearchFields = () => {
@@ -475,23 +494,25 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                     />
                   </div>
                   <div className="sm:col-span-2 lg:col-span-3">
-                    {flightType === 'ROUNDTRIP'
-                      ? dualDatePopover(
-                          flightDate,
-                          flightReturnDate,
-                          (date) => setFlightDate(formatDateLocal(date)),
-                          (date) => setFlightReturnDate(formatDateLocal(date)),
-                          flightDatesOpen,
-                          setFlightDatesOpen,
-                          ['Departure', 'Return'],
-                        )
-                      : singleDatePopover(
-                          'Departure',
-                          flightDate,
-                          (date) => setFlightDate(formatDateLocal(date)),
-                          flightDatesOpen,
-                          setFlightDatesOpen,
-                        )}
+                    {flightType === 'ROUNDTRIP' ? (
+                      <DualDatePopover
+                        checkIn={flightDate}
+                        checkOut={flightReturnDate}
+                        onCheckIn={(date) => setFlightDate(formatDateLocal(date))}
+                        onCheckOut={(date) => setFlightReturnDate(formatDateLocal(date))}
+                        open={flightDatesOpen}
+                        setOpen={setFlightDatesOpen}
+                        labels={['Departure', 'Return']}
+                      />
+                    ) : (
+                      <SingleDatePopover
+                        label="Departure"
+                        value={flightDate}
+                        onSelect={(date) => setFlightDate(formatDateLocal(date))}
+                        open={flightDatesOpen}
+                        setOpen={setFlightDatesOpen}
+                      />
+                    )}
                   </div>
                   <div className="sm:col-span-2 lg:col-span-3">
                     <label className={FIELD_LABEL}>Travelers & class</label>
@@ -542,14 +563,14 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 />
               </div>
               <div className="sm:col-span-1 lg:col-span-3">
-                {dualDatePopover(
-                  hotelCheckIn,
-                  hotelCheckOut,
-                  (date) => setHotelCheckIn(formatDateLocal(date)),
-                  (date) => setHotelCheckOut(formatDateLocal(date)),
-                  hotelDatesOpen,
-                  setHotelDatesOpen,
-                )}
+                <DualDatePopover
+                  checkIn={hotelCheckIn}
+                  checkOut={hotelCheckOut}
+                  onCheckIn={(date) => setHotelCheckIn(formatDateLocal(date))}
+                  onCheckOut={(date) => setHotelCheckOut(formatDateLocal(date))}
+                  open={hotelDatesOpen}
+                  setOpen={setHotelDatesOpen}
+                />
               </div>
               <div className="sm:col-span-1 lg:col-span-2">
                 <label className={FIELD_LABEL}>Guests</label>
@@ -598,13 +619,13 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                 />
               </div>
               <div className="sm:col-span-1 lg:col-span-4">
-                {singleDatePopover(
-                  'Event date',
-                  confDate,
-                  (date) => setConfDate(formatDateLocal(date)),
-                  confDateOpen,
-                  setConfDateOpen,
-                )}
+                <SingleDatePopover
+                  label="Event date"
+                  value={confDate}
+                  onSelect={(date) => setConfDate(formatDateLocal(date))}
+                  open={confDateOpen}
+                  setOpen={setConfDateOpen}
+                />
               </div>
               <div className="sm:col-span-1 lg:col-span-3">
                 <label className={FIELD_LABEL}>Attendees</label>
@@ -695,13 +716,13 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                   </div>
                 </div>
                 <div className="lg:col-span-3">
-                  {singleDatePopover(
-                    'Date',
-                    shuttleDate,
-                    (date) => setShuttleDate(formatDateLocal(date)),
-                    shuttleDateOpen,
-                    setShuttleDateOpen,
-                  )}
+                  <SingleDatePopover
+                    label="Date"
+                    value={shuttleDate}
+                    onSelect={(date) => setShuttleDate(formatDateLocal(date))}
+                    open={shuttleDateOpen}
+                    setOpen={setShuttleDateOpen}
+                  />
                 </div>
                 <div className="lg:col-span-3">
                   <label className={FIELD_LABEL} htmlFor="shuttle-time">

@@ -568,6 +568,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             id: result.bookingId || tripId,
             clientName: formData.name,
             email,
+            phone: formData.phone,
             service: serviceName,
             checkIn: formData.checkIn,
             checkOut: formData.checkOut,
@@ -575,7 +576,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             currency: settledCurrency,
             status: 'Confirmed' as const,
             paymentMethod: result.method,
-            paymentReference: result.paymentReference || null,
+            paymentReference:
+                result.method === 'pay_on_site'
+                    ? null
+                    : result.paymentReference || null,
         };
         setBookingData(newBooking);
         setStep('receipt');

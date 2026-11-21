@@ -187,13 +187,17 @@ export const FlightBookingModal: React.FC<FlightBookingModalProps> = ({
             id: result.bookingId || tripId,
             clientName: formData.name,
             email,
+            phone: formData.phone,
             service: serviceName,
             date: new Date().toLocaleDateString(),
             amount: settledAmount,
             currency: settledCurrency,
             status: 'Confirmed' as const,
             paymentMethod: result.method,
-            paymentReference: result.paymentReference || null,
+            paymentReference:
+                result.method === 'pay_on_site'
+                    ? null
+                    : result.paymentReference || null,
         };
         setBookingData(newBooking);
         setStep('receipt');
