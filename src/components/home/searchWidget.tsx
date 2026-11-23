@@ -29,7 +29,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { formatDateLocal, parseDateLocal, formatDateEnglishStr, formatDateRangeShort } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
 import { Counter } from '@/components/shared/counter';
-import { RideLogo, FeresLogo, YangoLogo, MeterTaxiLogo } from '@/components/shuttles/ride-partner-logos';
+import { RideLogo, FeresLogo, YangoLogo } from '@/components/shuttles/ride-partner-logos';
 
 type TabType = 'flights' | 'hotels' | 'conferences' | 'shuttles';
 
@@ -751,9 +751,9 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
             <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <span className="font-semibold text-gray-600 dark:text-slate-400">
-                  Trusted ride & transit partners:
+                  Trusted ride-hailing partners:
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <Link href="/shuttles?mode=rides" title="RIDE - Call 8294">
                     <RideLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
                   </Link>
@@ -761,10 +761,7 @@ export function SearchWidget({ onTabChange }: { onTabChange?: (tab: TabType) => 
                     <FeresLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
                   </Link>
                   <Link href="/shuttles?mode=rides" title="Yango - Book via app">
-                    <YangoLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
-                  </Link>
-                  <Link href="/shuttles?mode=rides" title="Meter Taxi - Call 6303">
-                    <MeterTaxiLogo className="h-6 sm:h-7 w-auto hover:opacity-90 transition-opacity" />
+                    <YangoLogo className="h-5 sm:h-6 w-auto hover:opacity-90 transition-opacity" />
                   </Link>
                 </div>
               </div>

@@ -51,7 +51,22 @@ export async function GET(request: Request) {
             );
             if (!nestRes.ok) return [];
             const nestJson = await nestRes.json();
-            return Array.isArray(nestJson?.hotels) ? nestJson.hotels : [];
+            const rawHotels = Array.isArray(nestJson?.hotels) ? nestJson.hotels : [];
+            return rawHotels.map((h: any) => {
+                const discount = h.discountPercentage || 15;
+                const price = Number(h.price) || 0;
+                const originalPrice =
+                    h.originalPrice ||
+                    (price > 0 ? Math.round(price / (1 - discount / 100)) : undefined);
+                const badges = Array.isArray(h.badges) ? [...h.badges] : [];
+                if (!badges.includes('Direct Deal')) badges.push('Direct Deal');
+                return {
+                    ...h,
+                    discountPercentage: discount,
+                    originalPrice,
+                    badges,
+                };
+            });
         } catch (e) {
             console.warn('BookAddis inventory search unavailable:', (e as Error)?.message);
             return [];

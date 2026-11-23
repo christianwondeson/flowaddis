@@ -34,7 +34,6 @@ import {
     RideLogo,
     FeresLogo,
     YangoLogo,
-    MeterTaxiLogo,
 } from '@/components/shuttles/ride-partner-logos';
 import { RidePartnersSection } from '@/components/shuttles/ride-partners-section';
 import { cn } from '@/lib/utils';
@@ -162,10 +161,7 @@ function ShuttlesPageContent() {
                                 <FeresLogo className="h-7 sm:h-8 w-auto drop-shadow-xs" />
                             </div>
                             <div className="transition-transform hover:scale-105 shrink-0" title="Yango - Book via App">
-                                <YangoLogo className="h-7 sm:h-8 w-auto drop-shadow-xs" />
-                            </div>
-                            <div className="transition-transform hover:scale-105 shrink-0" title="Meter Taxi - Dial 6303">
-                                <MeterTaxiLogo className="h-7 sm:h-8 w-auto drop-shadow-xs" />
+                                <YangoLogo className="h-6 sm:h-7 w-auto drop-shadow-xs" />
                             </div>
                         </div>
                     </div>
@@ -364,10 +360,12 @@ function ShuttlesPageContent() {
                                         <Phone className="w-3.5 h-3.5" /> Call FERES (6090)
                                     </a>
                                     <a
-                                        href="tel:6303"
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-xs"
+                                        href="https://yango.com/en_et/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs"
                                     >
-                                        <Phone className="w-3.5 h-3.5" /> Meter Taxi (6303)
+                                        <Car className="w-3.5 h-3.5" /> Yango App
                                     </a>
                                 </div>
                             </div>

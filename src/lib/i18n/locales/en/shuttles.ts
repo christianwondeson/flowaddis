@@ -15,7 +15,7 @@ export const shuttlesEn = {
         bookingAlert: 'Booking {type}',
         allTransport: 'All transit options',
         hotelShuttles: 'Hotel Fleet Shuttles',
-        instantRides: 'Meter Taxi & Rides (RIDE · FERES · Yango · Taxi)',
+        instantRides: 'Ride-Hailing (RIDE · FERES · Yango)',
         ridePartnersTitle: 'Addis Ababa Ride-Hailing Partners',
         trustedPartners: 'Trusted Transit Partners',
         popularDestinations: 'Popular destinations',
@@ -27,7 +27,7 @@ export const shuttlesEn = {
         sarbet: 'Sarbet',
         bishoftu: 'Bishoftu',
         noMatchTitle: 'No hotel shuttles match your filters',
-        noMatchSubtitle: 'Need an immediate ride right now? You can dial RIDE (8294), FERES (6090), Meter Taxi (6303), or launch the Yango app for instant dispatch.',
+        noMatchSubtitle: 'Need an immediate ride right now? You can dial RIDE (8294), FERES (6090), or launch the Yango app for instant dispatch.',
         clearFilters: 'Clear filters',
     },
 } as const;

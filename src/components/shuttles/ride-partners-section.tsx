@@ -9,17 +9,15 @@ import {
     ShieldCheck,
     Car,
     Navigation,
-    Info,
     CheckCircle2,
     Sparkles,
 } from 'lucide-react';
-import { RideLogo, FeresLogo, YangoLogo, MeterTaxiLogo } from './ride-partner-logos';
-import { Button } from '@/components/ui/button';
+import { RideLogo, FeresLogo, YangoLogo } from './ride-partner-logos';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export type RidePartner = {
-    id: 'ride' | 'feres' | 'yango' | 'meter_taxi';
+    id: 'ride' | 'feres' | 'yango';
     name: string;
     amharicName: string;
     tagline: string;
@@ -112,29 +110,6 @@ export const RIDE_PARTNERS: RidePartner[] = [
         badgeBg: 'bg-[#EB1537]',
         badgeText: 'text-white',
     },
-    {
-        id: 'meter_taxi',
-        name: 'Addis Meter Taxi',
-        amharicName: 'የአዲስ አበባ ሜትር ታክሲ',
-        tagline: 'Official city-certified metered taxis & airport cabs',
-        description:
-            'The official yellow and green meter taxi fleet operated under the Addis Ababa Transport Bureau regulations. Regulated rates per kilometer and minute.',
-        phone: 'tel:6303',
-        displayPhone: '6303',
-        webUrl: 'tel:6303',
-        averageEta: '5–10 mins',
-        airportFareRange: '350 – 700 ETB',
-        popularPickups: 'Bole Airport Taxi Terminal, Meskel Square, Piazza',
-        features: [
-            'Official metered fares',
-            'Stationed at Bole Arrival exits',
-            'Traditional yellow top identification',
-            'Cash & Telebirr accepted',
-        ],
-        accentColor: 'border-sky-400 bg-sky-50/40 dark:bg-sky-950/20',
-        badgeBg: 'bg-[#FFCC00]',
-        badgeText: 'text-[#003366]',
-    },
 ];
 
 const AIRPORT_ESTIMATES = [
@@ -162,10 +137,10 @@ export function RidePartnersSection({
                         <span>Instant Transit Network</span>
                     </div>
                     <h2 className="text-lg sm:text-2xl font-black text-brand-dark dark:text-slate-100 tracking-tight">
-                        Meter Taxi & On-Demand Ride Partners
+                        On-Demand Ride-Hailing Partners
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl">
-                        Need an immediate ride right now? Connect with Addis Ababa’s trusted transport networks: <strong>RIDE</strong>, <strong>FERES</strong>, <strong>Yango</strong>, and certified <strong>Meter Taxis</strong>.
+                        Need an immediate ride right now? Connect with Addis Ababa’s top transport networks: <strong>RIDE</strong>, <strong>FERES</strong>, and <strong>Yango</strong>.
                     </p>
                 </div>
 
@@ -181,7 +156,7 @@ export function RidePartnersSection({
                                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900',
                         )}
                     >
-                        Taxi Options
+                        Ride Options
                     </button>
                     <button
                         type="button"
@@ -210,9 +185,9 @@ export function RidePartnersSection({
                 </div>
             </div>
 
-            {/* TAB 1: RIDE, FERES, YANGO & METER TAXI CARDS */}
+            {/* TAB 1: RIDE, FERES & YANGO CARDS */}
             {activeTab === 'cards' && (
-                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                     {RIDE_PARTNERS.map((partner) => (
                         <Card
                             key={partner.id}
@@ -223,11 +198,10 @@ export function RidePartnersSection({
                         >
                             {/* Brand Header */}
                             <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
-                                <div>
+                                <div className="h-9 flex items-center">
                                     {partner.id === 'ride' && <RideLogo className="h-8 sm:h-9 w-auto" />}
                                     {partner.id === 'feres' && <FeresLogo className="h-8 sm:h-9 w-auto" />}
-                                    {partner.id === 'yango' && <YangoLogo className="h-8 sm:h-9 w-auto" />}
-                                    {partner.id === 'meter_taxi' && <MeterTaxiLogo className="h-8 sm:h-9 w-auto" />}
+                                    {partner.id === 'yango' && <YangoLogo className="h-7 sm:h-8 w-auto" />}
                                 </div>
                                 <div className="text-right shrink-0">
                                     <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200/60">
@@ -323,11 +297,10 @@ export function RidePartnersSection({
                                 Regulated & app-estimated rates across Addis Ababa. Actual fare may vary with traffic.
                             </p>
                         </div>
-                        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                             <RideLogo className="h-6 w-auto shrink-0" />
                             <FeresLogo className="h-6 w-auto shrink-0" />
-                            <YangoLogo className="h-6 w-auto shrink-0" />
-                            <MeterTaxiLogo className="h-6 w-auto shrink-0" />
+                            <YangoLogo className="h-5 w-auto shrink-0" />
                         </div>
                     </div>
 
@@ -397,8 +370,8 @@ export function RidePartnersSection({
                                 FERES (6090)
                             </a>
                             <span>·</span>
-                            <a href="tel:6303" className="font-bold text-[#003366] hover:underline">
-                                Meter Taxi (6303)
+                            <a href="https://yango.com/en_et/" target="_blank" rel="noopener noreferrer" className="font-bold text-[#EB1537] hover:underline">
+                                Yango App
                             </a>
                         </div>
                     </div>
@@ -430,10 +403,10 @@ export function RidePartnersSection({
                         <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 space-y-1.5">
                             <h4 className="font-bold text-xs sm:text-sm text-brand-dark dark:text-slate-100 flex items-center gap-1.5">
                                 <Car className="w-4 h-4 text-emerald-600" />
-                                <span>RIDE, FERES & Meter Taxi</span>
+                                <span>RIDE & FERES Hotlines</span>
                             </h4>
                             <p className="text-slate-600 dark:text-slate-300">
-                                Dial <strong>8294</strong> (RIDE), <strong>6090</strong> (FERES), or <strong>6303</strong> (Meter Taxi) once you collect luggage. Vehicles meet at the arrival parking lanes outside Terminal 2.
+                                Dial <strong>8294</strong> (RIDE) or <strong>6090</strong> (FERES) once you collect luggage. Vehicles meet at the arrival parking lanes outside Terminal 2.
                             </p>
                             <span className="inline-block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                                 Fast dispatch (typically 3–5 min)

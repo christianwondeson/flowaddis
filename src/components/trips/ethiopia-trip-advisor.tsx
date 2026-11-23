@@ -412,7 +412,7 @@ export function EthiopiaTripAdvisorSection({ className }: { className?: string }
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-amber-200/40">
                         <strong className="block text-brand-dark dark:text-slate-100 mb-0.5">3. Local City Transit</strong>
-                        <span>Book hotel shuttles via BookAddis or dial RIDE (8294), FERES (6090), or Meter Taxi (6303) for rapid point-to-point dispatch.</span>
+                        <span>Book hotel shuttles via BookAddis or dial RIDE (8294) or FERES (6090), or use the Yango app for rapid point-to-point dispatch.</span>
                     </div>
                 </div>
             </Card>

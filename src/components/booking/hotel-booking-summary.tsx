@@ -11,6 +11,7 @@ import {
     ShieldCheck,
     Wifi,
     Car,
+    Bus,
     Plane,
     Utensils,
     Sparkles,
@@ -175,6 +176,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
     const [needExtraBed, setNeedExtraBed] = useState(false);
     const [showCribPolicy, setShowCribPolicy] = useState(false);
     const [showConditionsModal, setShowConditionsModal] = useState(false);
+    const [showPriceMatchModal, setShowPriceMatchModal] = useState(false);
 
     const currentCountryConfig = useMemo(
         () => getCountryConfig(phoneCountry),
@@ -801,9 +803,9 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+            <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 min-w-0 w-full max-w-full overflow-hidden">
                 {/* 2-Column Booking.com Layout: Left Sidebar + Right Main Form */}
-                <div className="grid gap-6 lg:grid-cols-[370px_minmax(0,1fr)] items-start">
+                <div className="grid gap-6 lg:grid-cols-[370px_minmax(0,1fr)] items-start min-w-0 w-full max-w-full">
                     {/* LEFT COLUMN: Hotel Card, Stay Details, Price Breakdown & Urgency */}
                     <aside className="space-y-4 order-2 lg:order-1 lg:sticky lg:top-32">
                         {/* 1. Hotel Overview Card */}
@@ -1069,7 +1071,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                     </aside>
 
                     {/* RIGHT COLUMN: Step 2 Form OR Step 3 Finish Booking */}
-                    <div className="space-y-5 order-1 lg:order-2">
+                    <div className="space-y-5 order-1 lg:order-2 min-w-0 w-full max-w-full overflow-hidden">
                         {/* ======================================================== */}
                         {/* STEP 3 FINISHED: OFFICIAL CONFIRMATION RECEIPT VOUCHER */}
                         {/* ======================================================== */}
@@ -1098,7 +1100,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                             /* ======================================================== */
                             /* STEP 3: FINISH BOOKING & PAYMENT SETTLEMENT */
                             /* ======================================================== */
-                            <div className="space-y-5 animate-in fade-in-50">
+                            <div className="space-y-5 animate-in fade-in-50 min-w-0 w-full max-w-full">
                                 {/* 1. Review Your Details Card */}
                                 <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
                                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1170,24 +1172,24 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                     </div>
 
                                     {/* Payment Method Segment Tabs */}
-                                    <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="grid gap-3 sm:grid-cols-2 min-w-0 w-full max-w-full">
                                         <button
                                             type="button"
                                             onClick={() => setPaymentPref('pay_at_property')}
                                             className={cn(
-                                                'rounded-xl p-4 text-left transition-all relative border',
+                                                'rounded-xl p-4 text-left transition-all relative border min-w-0 w-full',
                                                 paymentPref === 'pay_at_property'
                                                     ? 'border-2 border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/20 shadow-sm'
                                                     : 'border-slate-200 hover:border-slate-300 bg-white',
                                             )}
                                         >
-                                            <div className="flex items-center justify-between">
+                                            <div className="flex items-center justify-between gap-1 flex-wrap">
                                                 <span className="text-sm font-extrabold text-brand-dark">Pay at Hotel</span>
-                                                <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                                                <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800 shrink-0">
                                                     Pay on Arrival
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-slate-500 mt-1">
+                                            <p className="text-xs text-slate-500 mt-1 break-words">
                                                 No payment today. Settle upon check-in at the front desk with cash or cards.
                                             </p>
                                             <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700">
@@ -1200,19 +1202,19 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                             type="button"
                                             onClick={() => setPaymentPref('pay_now')}
                                             className={cn(
-                                                'rounded-xl p-4 text-left transition-all relative border',
+                                                'rounded-xl p-4 text-left transition-all relative border min-w-0 w-full',
                                                 paymentPref === 'pay_now'
                                                     ? 'border-2 border-brand-primary bg-brand-primary/5 ring-1 ring-brand-primary/20 shadow-sm'
                                                     : 'border-slate-200 hover:border-slate-300 bg-white',
                                             )}
                                         >
-                                            <div className="flex items-center justify-between">
+                                            <div className="flex items-center justify-between gap-1 flex-wrap">
                                                 <span className="text-sm font-extrabold text-brand-dark">Pay Online Now</span>
-                                                <span className="rounded bg-teal-100 px-2 py-0.5 text-[10px] font-extrabold text-teal-800">
+                                                <span className="rounded bg-teal-100 px-2 py-0.5 text-[10px] font-extrabold text-teal-800 shrink-0">
                                                     Instant Confirmation
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-slate-500 mt-1">
+                                            <p className="text-xs text-slate-500 mt-1 break-words">
                                                 Prepay securely via CBE Birr, Telebirr, Visa, or Mastercard.
                                             </p>
                                             <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-brand-primary">
@@ -1224,13 +1226,13 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
 
                                     {/* Action Area based on Payment Method Choice */}
                                     {paymentPref === 'pay_at_property' ? (
-                                        <div className="space-y-4 pt-2 border-t border-slate-100">
-                                            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 space-y-1">
+                                        <div className="space-y-4 pt-2 border-t border-slate-100 min-w-0 w-full max-w-full">
+                                            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 space-y-1 break-words">
                                                 <p className="font-bold flex items-center gap-1.5 text-sm">
                                                     <Building2 className="w-4 h-4 text-amber-700 shrink-0" />
                                                     <span>No payment required today</span>
                                                 </p>
-                                                <p className="text-amber-800 leading-relaxed">
+                                                <p className="text-amber-800 leading-relaxed break-words">
                                                     Your room will be reserved immediately under your name at {draft.hotelName}. You will pay{' '}
                                                     <strong>{formatCurrency(total, currency)}</strong> directly to the hotel upon arrival.
                                                 </p>
@@ -1240,22 +1242,22 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                                 type="button"
                                                 disabled={isPayAtPropertyLoading}
                                                 onClick={handleConfirmPayAtProperty}
-                                                className="min-h-[50px] w-full text-base font-extrabold rounded-xl bg-brand-primary text-white hover:bg-teal-700 shadow-md transition-all flex items-center justify-center gap-2"
+                                                className="min-h-[50px] w-full max-w-full text-sm sm:text-base font-extrabold rounded-xl bg-brand-primary text-white hover:bg-teal-700 shadow-md transition-all flex items-center justify-center gap-2 px-4 whitespace-normal text-center"
                                             >
                                                 {isPayAtPropertyLoading ? (
                                                     <>
-                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                        <Loader2 className="w-5 h-5 animate-spin shrink-0" />
                                                         <span>Confirming reservation...</span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <CheckCircle2 className="w-5 h-5" />
+                                                        <CheckCircle2 className="w-5 h-5 shrink-0" />
                                                         <span>Complete Reservation (Pay at Hotel)</span>
                                                     </>
                                                 )}
                                             </Button>
 
-                                            <p className="text-center text-[11px] text-slate-400">
+                                            <p className="text-center text-[11px] text-slate-400 break-words">
                                                 By clicking &ldquo;Complete Reservation&rdquo;, you agree to {draft.hotelName}&apos;s booking terms and conditions.
                                             </p>
                                         </div>
@@ -1533,10 +1535,165 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                                 />
                                             </div>
                                         )}
+
+                                        {/* Are you traveling for work? */}
+                                        <div className="pt-3 border-t border-slate-100 space-y-2">
+                                            <Label className="text-xs font-bold text-slate-700">Are you traveling for work? (optional)</Label>
+                                            <div className="flex gap-4 text-xs font-semibold text-slate-800">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="isWorkTrip"
+                                                        value="yes"
+                                                        checked={isWorkTrip === 'yes'}
+                                                        onChange={() => setIsWorkTrip('yes')}
+                                                        className="h-4 w-4 accent-brand-primary"
+                                                    />
+                                                    <span>Yes</span>
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="isWorkTrip"
+                                                        value="no"
+                                                        checked={isWorkTrip === 'no'}
+                                                        onChange={() => setIsWorkTrip('no')}
+                                                        className="h-4 w-4 accent-brand-primary"
+                                                    />
+                                                    <span>No</span>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </section>
 
-                                {/* 3. Your Arrival Time Card */}
+                                {/* 3. Good to know Card */}
+                                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2.5">
+                                    <h3 className="font-bold text-slate-900 text-sm">Good to know:</h3>
+                                    <div className="flex items-start gap-2.5 text-xs text-slate-700">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                        <span>No payment needed now. You&apos;ll pay at the property.</span>
+                                    </div>
+                                    <div className="flex items-start gap-2.5 text-xs text-slate-700">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                        <span>Congrats! You picked the best rate at {draft.hotelName}. Don&apos;t miss out, book now!</span>
+                                    </div>
+                                </div>
+
+                                {/* 4. Selected Room Card */}
+                                <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-3">
+                                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                        <h3 className="font-extrabold text-brand-dark text-base">{draft.roomName}</h3>
+                                        <span className="text-[11px] font-semibold text-slate-500">Non-Smoking</span>
+                                    </div>
+                                    <div className="space-y-1.5 text-xs text-slate-600">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-slate-800">Guests:</span>
+                                            <span>{draft.adults} {draft.adults === 1 ? 'adult' : 'adults'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-slate-800">Main guest:</span>
+                                            <span>{fullName.trim() || 'Primary guest'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-emerald-700 font-semibold pt-1">
+                                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                            <span>Free cancellation up to 24h before check-in</span>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* 5. Add to your stay Card */}
+                                <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-3">
+                                    <h3 className="font-extrabold text-brand-dark text-base">Add to your stay</h3>
+                                    <div className="space-y-2.5">
+                                        {/* Shuttle */}
+                                        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/50 cursor-pointer transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 h-4 w-4 rounded accent-brand-primary shrink-0"
+                                                checked={wantShuttle}
+                                                onChange={(e) => setWantShuttle(e.target.checked)}
+                                            />
+                                            <div className="flex-1 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-slate-900">
+                                                        I&apos;m interested in requesting a free airport shuttle
+                                                    </span>
+                                                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                                                        FREE
+                                                    </span>
+                                                </div>
+                                                <p className="text-slate-500 mt-0.5">
+                                                    We&apos;ll tell your accommodations you&apos;re interested so they can provide details.
+                                                </p>
+                                            </div>
+                                            <Bus className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                                        </label>
+
+                                        {/* Rental Car Discount */}
+                                        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/50 cursor-pointer transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 h-4 w-4 rounded accent-brand-primary shrink-0"
+                                                checked={wantCar}
+                                                onChange={(e) => setWantCar(e.target.checked)}
+                                            />
+                                            <div className="flex-1 text-xs">
+                                                <span className="font-bold text-slate-900">
+                                                    Get 5% off a rental car — with free cancellation available
+                                                </span>
+                                                <p className="text-slate-500 mt-0.5">
+                                                    Save 5% on all rental cars — we&apos;ll show you car rental options in your booking confirmation.
+                                                </p>
+                                            </div>
+                                            <Car className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                                        </label>
+
+                                        {/* Taxi / Ride partner option */}
+                                        <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50/50 cursor-pointer transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 h-4 w-4 rounded accent-brand-primary shrink-0"
+                                                checked={wantRide}
+                                                onChange={(e) => setWantRide(e.target.checked)}
+                                            />
+                                            <div className="flex-1 text-xs">
+                                                <span className="font-bold text-slate-900">
+                                                    Want to book a taxi or shuttle ride in advance?
+                                                </span>
+                                                <p className="text-slate-500 mt-0.5">
+                                                    Avoid surprises — get from the airport to your accommodations without any hassle. We&apos;ll add ride options (RIDE, FERES, Yango) to your confirmation.
+                                                </p>
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase text-slate-400 border border-slate-300 rounded px-1.5 py-0.5 shrink-0 mt-0.5">
+                                                TAXI
+                                            </span>
+                                        </label>
+                                    </div>
+                                </section>
+
+                                {/* 6. Special Requests Card */}
+                                <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-3">
+                                    <h3 className="font-extrabold text-brand-dark text-base">Special requests</h3>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                        Special requests can&apos;t be guaranteed, but the property will do its best to meet your needs. You can always make a special request after your booking is complete.
+                                    </p>
+                                    <div className="space-y-1 pt-1">
+                                        <Label className="text-xs font-bold text-slate-700">
+                                            Please write your requests in English. (optional)
+                                        </Label>
+                                        <textarea
+                                            className="w-full min-h-[90px] rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
+                                            maxLength={1000}
+                                            value={specialRequests}
+                                            onChange={(e) => setSpecialRequests(e.target.value)}
+                                            placeholder="e.g. Quiet room, upper floor, late arrival..."
+                                        />
+                                        <p className="text-[11px] text-slate-400 text-right">{specialRequests.length}/1000</p>
+                                    </div>
+                                </section>
+
+                                {/* 7. Your Arrival Time Card */}
                                 <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-3">
                                     <h3 className="font-extrabold text-brand-dark text-base">Your arrival time</h3>
                                     <div className="flex items-start gap-2.5 text-xs text-slate-700">
@@ -1568,192 +1725,103 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                     </div>
                                 </section>
 
-                                {/* 4. Streamlined Preferences & Add-ons Accordion */}
+                                {/* 8. Cribs and Extra Beds Card */}
                                 <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowOptionalPreferences((v) => !v)}
-                                        className="w-full flex items-center justify-between text-left"
-                                    >
-                                        <div>
-                                            <h3 className="font-extrabold text-brand-dark text-base">
-                                                Special requests & optional add-ons
-                                            </h3>
-                                            <p className="text-xs text-slate-500 mt-0.5">
-                                                Cribs, extra beds, free airport shuttle, work travel, meal plans
-                                            </p>
-                                        </div>
-                                        <span className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-                                            {showOptionalPreferences ? (
-                                                <ChevronUp className="w-5 h-5" />
-                                            ) : (
-                                                <ChevronDown className="w-5 h-5" />
-                                            )}
-                                        </span>
-                                    </button>
+                                    <h3 className="font-extrabold text-brand-dark text-base">Cribs and extra beds</h3>
+                                    <div className="space-y-1 text-xs text-slate-500">
+                                        <p>• Requests are subject to availability</p>
+                                        <p>• Requests need to be confirmed by the property</p>
+                                        <p>• Requests not labeled &ldquo;Free&rdquo; could incur extra charges</p>
+                                    </div>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowCribPolicy(true)}
+                                            className="text-xs font-semibold text-brand-primary hover:underline cursor-pointer"
+                                        >
+                                            Read full crib and extra bed policy
+                                        </button>
+                                    </div>
 
-                                    {showOptionalPreferences && (
-                                        <div className="space-y-4 pt-3 border-t border-slate-100 animate-in fade-in-50">
-                                            {/* Are you traveling for work? */}
-                                            <div className="space-y-2">
-                                                <Label className="text-xs font-bold text-slate-700">Are you traveling for work? (optional)</Label>
-                                                <div className="flex gap-4 text-xs font-semibold text-slate-800">
-                                                    <label className="flex items-center gap-2 cursor-pointer">
-                                                        <input
-                                                            type="radio"
-                                                            name="isWorkTrip"
-                                                            value="yes"
-                                                            checked={isWorkTrip === 'yes'}
-                                                            onChange={() => setIsWorkTrip('yes')}
-                                                            className="h-4 w-4 accent-brand-primary"
-                                                        />
-                                                        <span>Yes</span>
-                                                    </label>
-                                                    <label className="flex items-center gap-2 cursor-pointer">
-                                                        <input
-                                                            type="radio"
-                                                            name="isWorkTrip"
-                                                            value="no"
-                                                            checked={isWorkTrip === 'no'}
-                                                            onChange={() => setIsWorkTrip('no')}
-                                                            className="h-4 w-4 accent-brand-primary"
-                                                        />
-                                                        <span>No</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            {/* Special requests */}
-                                            <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                                                <Label className="text-xs font-bold text-slate-700">
-                                                    Special requests (optional)
-                                                </Label>
-                                                <p className="text-xs text-slate-500 leading-relaxed">
-                                                    Special requests cannot be guaranteed, but the property will do its best to meet your needs.
-                                                </p>
-                                                <textarea
-                                                    className="w-full min-h-[80px] rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/30"
-                                                    maxLength={1000}
-                                                    value={specialRequests}
-                                                    onChange={(e) => setSpecialRequests(e.target.value)}
-                                                    placeholder="Please write your requests in English..."
+                                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                                        <p className="text-xs font-bold text-slate-800">
+                                            Add to your {draft.roomName}:
+                                        </p>
+                                        <div className="space-y-2 text-xs font-medium text-slate-800">
+                                            <label className="flex items-center gap-2.5 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded accent-brand-primary"
+                                                    checked={needCrib}
+                                                    onChange={(e) => setNeedCrib(e.target.checked)}
                                                 />
-                                                <p className="text-xs text-slate-400 text-right">{specialRequests.length}/1000</p>
-                                            </div>
-
-                                            {/* Cribs & Extra Beds */}
-                                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                                                <p className="text-xs font-bold text-slate-800">Cribs and extra beds</p>
-                                                <div className="space-y-2 text-xs font-medium text-slate-800">
-                                                    <label className="flex items-center gap-2.5 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4 rounded accent-brand-primary"
-                                                            checked={needCrib}
-                                                            onChange={(e) => setNeedCrib(e.target.checked)}
-                                                        />
-                                                        <span className="font-semibold text-slate-900">Crib</span>
-                                                        <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                                                            Free
-                                                        </span>
-                                                    </label>
-                                                    <label className="flex items-center gap-2.5 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4 rounded accent-brand-primary"
-                                                            checked={needExtraBed}
-                                                            onChange={(e) => setNeedExtraBed(e.target.checked)}
-                                                        />
-                                                        <span className="font-semibold text-slate-900">Extra rollaway bed</span>
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            {/* Shuttle & Addons */}
-                                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                                                <p className="text-xs font-bold text-slate-800">Add to your stay</p>
-                                                <label className="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200 hover:border-slate-300 bg-white cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="mt-0.5 h-4 w-4 rounded accent-brand-primary"
-                                                        checked={wantShuttle}
-                                                        onChange={(e) => setWantShuttle(e.target.checked)}
-                                                    />
-                                                    <div className="text-xs">
-                                                        <span className="font-bold text-slate-900">Airport shuttle request</span>
-                                                        <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                                                            FREE
-                                                        </span>
-                                                        <p className="text-slate-500 mt-0.5">We&apos;ll notify the hotel front desk to arrange pickup.</p>
-                                                    </div>
-                                                </label>
-                                            </div>
-
-                                            {/* Meal Plan */}
-                                            <div className="pt-2 border-t border-slate-100">
-                                                <Label className="text-xs font-bold text-slate-700">Meal Plan</Label>
-                                                <select
-                                                    className={cn(fieldClass, 'mt-1')}
-                                                    value={mealPlan}
-                                                    onChange={(e) => setMealPlan(normalizeMealPlan(e.target.value))}
-                                                >
-                                                    {MEAL_PLAN_OPTIONS.map((opt) => (
-                                                        <option key={opt.code} value={opt.code}>
-                                                            {opt.label} — {opt.description}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* Promo & Referral Codes */}
-                                            <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-slate-100">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs font-bold text-slate-700">Promo Code</Label>
-                                                    <Input
-                                                        className={fieldClass}
-                                                        value={promoCode}
-                                                        onChange={(e) => setPromoCode(e.target.value)}
-                                                        placeholder="Discount code"
-                                                    />
-                                                    {codePromo.reason && <p className="text-xs text-amber-700">{codePromo.reason}</p>}
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs font-bold text-slate-700">Referral Code</Label>
-                                                    <Input
-                                                        className={fieldClass}
-                                                        value={referralCode}
-                                                        onChange={(e) => setReferralCode(e.target.value)}
-                                                        placeholder="Referral code"
-                                                    />
-                                                </div>
-                                            </div>
+                                                <span className="font-semibold text-slate-900">Crib</span>
+                                                <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                                                    Free
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center gap-2.5 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded accent-brand-primary"
+                                                    checked={needExtraBed}
+                                                    onChange={(e) => setNeedExtraBed(e.target.checked)}
+                                                />
+                                                <span className="font-semibold text-slate-900">Extra rollaway bed</span>
+                                            </label>
                                         </div>
-                                    )}
+                                    </div>
                                 </section>
 
-                                {/* 5. Good to know Callouts */}
-                                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2.5">
-                                    <h3 className="font-bold text-slate-900 text-sm">Good to know:</h3>
-                                    <div className="flex items-start gap-2.5 text-xs text-slate-700">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                        <span>
-                                            No payment needed now. You can choose to pay when you stay at the hotel in Step 3!
-                                        </span>
-                                    </div>
-                                    <div className="flex items-start gap-2.5 text-xs text-slate-700">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                        <span>
-                                            Congrats! You picked the best rate at {draft.hotelName}. Don&apos;t miss out, lock it in now.
-                                        </span>
-                                    </div>
-                                </div>
+                                {/* 9. Optional Meal Plan & Promo Codes Card */}
+                                <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-3">
+                                    <h3 className="font-extrabold text-brand-dark text-base">Meal plan & promotion</h3>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <Label className="text-xs font-bold text-slate-700">Meal Plan</Label>
+                                            <select
+                                                className={cn(fieldClass, 'mt-1')}
+                                                value={mealPlan}
+                                                onChange={(e) => setMealPlan(normalizeMealPlan(e.target.value))}
+                                            >
+                                                {MEAL_PLAN_OPTIONS.map((opt) => (
+                                                    <option key={opt.code} value={opt.code}>
+                                                        {opt.label} — {opt.description}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
 
-                                {/* 6. Bottom Action & CTA Bar */}
+                                        <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-slate-100">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs font-bold text-slate-700">Promo Code</Label>
+                                                <Input
+                                                    className={fieldClass}
+                                                    value={promoCode}
+                                                    onChange={(e) => setPromoCode(e.target.value)}
+                                                    placeholder="Discount code"
+                                                />
+                                                {codePromo.reason && <p className="text-xs text-amber-700">{codePromo.reason}</p>}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs font-bold text-slate-700">Referral Code</Label>
+                                                <Input
+                                                    className={fieldClass}
+                                                    value={referralCode}
+                                                    onChange={(e) => setReferralCode(e.target.value)}
+                                                    placeholder="Referral code"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* 10. Bottom Action & CTA Bar */}
                                 <div className="pt-2 space-y-3">
                                     <div className="flex items-center justify-between gap-4">
                                         <button
                                             type="button"
-                                            onClick={() => toast.info('We Price Match: If you find this exact room at a lower public price elsewhere, we will refund the difference.')}
+                                            onClick={() => setShowPriceMatchModal(true)}
                                             className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-primary hover:underline cursor-pointer shrink-0"
                                         >
                                             <Tag className="w-3.5 h-3.5" />
@@ -1795,7 +1863,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                 <Link href="/privacy" className="hover:underline">Privacy Notice</Link>
                             </div>
                             <p className="text-[11px] text-slate-400">
-                                Copyright © 1996–2026 BookAddis.com™. All rights reserved.
+                                Copyright © 2024–{new Date().getFullYear()} BookAddis.com™. All rights reserved.
                             </p>
                         </footer>
                     </div>
@@ -1843,6 +1911,102 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                 onClick={() => setShowConditionsModal(false)}
                             >
                                 Got it
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Price Match Guarantee Modal */}
+            {showPriceMatchModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in-50">
+                    <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div className="flex items-center gap-2">
+                                <Tag className="w-5 h-5 text-brand-primary" />
+                                <h3 className="text-base font-bold text-brand-dark">We Price Match</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowPriceMatchModal(false)}
+                                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3 text-xs text-slate-600 leading-relaxed">
+                            <p className="font-bold text-sm text-slate-900">
+                                Found this reservation cheaper elsewhere? We&apos;ll match the price.
+                            </p>
+                            <p>
+                                At BookAddis.com, we are committed to providing you with the best available hotel rates across Ethiopia. If you find a lower publicly available rate for the identical reservation before your check-in, we will match it or refund the difference!
+                            </p>
+                            <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 space-y-2">
+                                <h4 className="font-bold text-slate-900 text-xs">Requirements for Price Matching:</h4>
+                                <ul className="space-y-1 list-disc list-inside text-[11px] text-slate-600">
+                                    <li>Same hotel accommodation: <strong>{draft.hotelName}</strong></li>
+                                    <li>Same room category: <strong>{draft.roomName}</strong></li>
+                                    <li>Same dates of stay and number of guests</li>
+                                    <li>Same cancellation policy and booking conditions</li>
+                                </ul>
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                                Simply contact our customer support with the link or screenshot of the cheaper active offer before checking in.
+                            </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <Link
+                                href="/support"
+                                className="text-xs font-bold text-brand-primary hover:underline"
+                            >
+                                Contact Customer Support
+                            </Link>
+                            <Button
+                                type="button"
+                                className="bg-brand-primary text-white hover:bg-teal-700 text-xs font-bold px-5 py-2 rounded-xl"
+                                onClick={() => setShowPriceMatchModal(false)}
+                            >
+                                Understood
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Crib and Extra Bed Policy Modal */}
+            {showCribPolicy && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in-50">
+                    <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 className="text-base font-bold text-brand-dark">Cribs & Extra Bed Policy</h3>
+                            <button
+                                type="button"
+                                onClick={() => setShowCribPolicy(false)}
+                                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+                            <p>
+                                • Baby cribs/infant cots are provided free of charge by most partner hotels upon advance request, subject to availability at check-in.
+                            </p>
+                            <p>
+                                • Extra rollaway beds for older children or adults may incur a supplementary charge payable directly to the hotel front desk.
+                            </p>
+                            <p>
+                                • Your request will be transmitted directly to the front desk team upon booking confirmation.
+                            </p>
+                        </div>
+                        <div className="pt-2 border-t border-slate-100 text-right">
+                            <Button
+                                type="button"
+                                className="bg-brand-primary text-white hover:bg-teal-700 text-xs font-bold px-4 py-2 rounded-xl"
+                                onClick={() => setShowCribPolicy(false)}
+                            >
+                                Close
                             </Button>
                         </div>
                     </div>
