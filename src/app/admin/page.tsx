@@ -16,6 +16,10 @@ import {
     CheckCircle,
     XCircle,
     AlertCircle,
+    BarChart3,
+    Car,
+    Copy,
+    Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -134,6 +138,8 @@ function changeLabel(pct: number) {
 
 export default function AdminDashboard() {
     const [timeRange, setTimeRange] = useState<RangeKey>('30days');
+    const [graphMetric, setGraphMetric] = useState<'both' | 'bookings' | 'revenue'>('both');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -143,6 +149,14 @@ export default function AdminDashboard() {
         hotels_with_unpaid: number;
         currency: string;
     } | null>(null);
+
+    const handleCopy = (id: string, text: string) => {
+        try {
+            navigator.clipboard.writeText(text);
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        } catch {}
+    };
 
     const load = useCallback(async (range: RangeKey) => {
         setLoading(true);
@@ -196,6 +210,14 @@ export default function AdminDashboard() {
     const monthlyData = data?.monthly_trend ?? [];
     const maxBookings = Math.max(1, ...monthlyData.map((d) => d.bookings));
     const maxRevenue = Math.max(1, ...monthlyData.map((d) => d.revenue));
+    const totalGraphBookings = monthlyData.reduce((acc, d) => acc + (d.bookings || 0), 0);
+    const totalGraphRevenue = monthlyData.reduce((acc, d) => acc + (d.revenue || 0), 0);
+    const avgGraphTicket = totalGraphBookings > 0 ? Math.round(totalGraphRevenue / totalGraphBookings) : 0;
+    const peakMonth = monthlyData.reduce(
+        (max, d) => ((d.bookings || 0) > (max?.bookings || 0) ? d : max),
+        monthlyData[0],
+    );
+
     const bookingStats = (data?.booking_breakdown && data.booking_breakdown.length > 0)
         ? data.booking_breakdown
         : [
@@ -399,90 +421,278 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-brand-dark">
-                                        Booking Trends
-                                    </h2>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Monthly volume & paid revenue
-                                    </p>
+                        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-lg font-extrabold text-brand-dark">
+                                                Booking & Revenue Analytics
+                                            </h2>
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-primary/10 text-brand-primary">
+                                                <BarChart3 className="w-3.5 h-3.5" />
+                                                Live Ledger
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-0.5">
+                                            Monthly booking counts & confirmed revenue volume
+                                        </p>
+                                    </div>
+
+                                    {/* Metric switcher tabs */}
+                                    <div className="flex items-center bg-gray-100/90 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => setGraphMetric('both')}
+                                            className={`px-3 py-1.5 rounded-lg transition-all ${
+                                                graphMetric === 'both'
+                                                    ? 'bg-white text-brand-dark shadow-xs font-bold'
+                                                    : 'text-gray-600 hover:text-gray-900'
+                                            }`}
+                                        >
+                                            Dual View
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setGraphMetric('bookings')}
+                                            className={`px-3 py-1.5 rounded-lg transition-all ${
+                                                graphMetric === 'bookings'
+                                                    ? 'bg-white text-teal-800 shadow-xs font-bold'
+                                                    : 'text-gray-600 hover:text-gray-900'
+                                            }`}
+                                        >
+                                            Bookings
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setGraphMetric('revenue')}
+                                            className={`px-3 py-1.5 rounded-lg transition-all ${
+                                                graphMetric === 'revenue'
+                                                    ? 'bg-white text-emerald-800 shadow-xs font-bold'
+                                                    : 'text-gray-600 hover:text-gray-900'
+                                            }`}
+                                        >
+                                            Revenue
+                                        </button>
+                                    </div>
                                 </div>
-                                <TrendingUp className="w-5 h-5 text-brand-primary" />
+
+                                {/* KPI summary ribbon */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 p-3 bg-gray-50/80 rounded-xl border border-gray-100 text-xs">
+                                    <div>
+                                        <span className="text-gray-400 block font-medium">Total Bookings</span>
+                                        <span className="font-bold text-sm text-teal-900">{totalGraphBookings} completed</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 block font-medium">Paid Volume</span>
+                                        <span className="font-bold text-sm text-emerald-900">{formatMoney(totalGraphRevenue, cards?.currency || 'ETB')}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 block font-medium">Avg Order Value</span>
+                                        <span className="font-bold text-sm text-gray-800">{formatMoney(avgGraphTicket, cards?.currency || 'ETB')}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 block font-medium">Peak Month</span>
+                                        <span className="font-bold text-sm text-purple-900">
+                                            {peakMonth?.month || '—'} ({peakMonth?.bookings || 0} bkgs)
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="h-64 flex items-end justify-between gap-1 sm:gap-2">
-                                {monthlyData.map((row) => {
-                                    const hasData = row.bookings > 0 || row.revenue > 0;
-                                    const hBook = (row.bookings / maxBookings) * 100;
-                                    const hRev = (row.revenue / maxRevenue) * 100;
-                                    const barH = hasData
-                                        ? Math.max(hBook, hRev * 0.85, 12)
-                                        : 6;
-                                    return (
-                                        <div
-                                            key={row.ym}
-                                            className="flex-1 flex flex-col items-center group"
-                                        >
-                                            <div className="w-full h-full flex flex-col justify-end relative">
-                                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg pointer-events-none">
-                                                    <div className="font-bold">
-                                                        {row.bookings} bookings
+                            {/* Chart Canvas with Y-axis guidelines */}
+                            <div className="relative h-64 pt-6 pb-2">
+                                {/* Horizontal gridlines */}
+                                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-gray-300">
+                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
+                                        <span>{graphMetric === 'bookings' ? `${maxBookings} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue) : '100%'}</span>
+                                    </div>
+                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
+                                        <span>{graphMetric === 'bookings' ? `${Math.round(maxBookings * 0.75)} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue * 0.75) : '75%'}</span>
+                                    </div>
+                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
+                                        <span>{graphMetric === 'bookings' ? `${Math.round(maxBookings * 0.5)} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue * 0.5) : '50%'}</span>
+                                    </div>
+                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
+                                        <span>{graphMetric === 'bookings' ? `${Math.round(maxBookings * 0.25)} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue * 0.25) : '25%'}</span>
+                                    </div>
+                                    <div className="border-b border-gray-200 w-full flex justify-between pr-2">
+                                        <span>0</span>
+                                    </div>
+                                </div>
+
+                                {/* Bars container */}
+                                <div className="h-full flex items-end justify-between gap-2 sm:gap-4 relative z-10 pl-6">
+                                    {monthlyData.map((row) => {
+                                        const hBook = maxBookings > 0 ? (row.bookings / maxBookings) * 100 : 0;
+                                        const hRev = maxRevenue > 0 ? (row.revenue / maxRevenue) * 100 : 0;
+                                        const bookBarH = row.bookings > 0 ? Math.max(hBook, 12) : 4;
+                                        const revBarH = row.revenue > 0 ? Math.max(hRev, 12) : 4;
+
+                                        return (
+                                            <div
+                                                key={row.ym}
+                                                className="flex-1 flex flex-col items-center h-full justify-end group relative"
+                                            >
+                                                {/* Floating Tooltip */}
+                                                <div className="absolute -top-18 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 shadow-xl pointer-events-none">
+                                                    <div className="font-bold text-gray-200 mb-0.5">
+                                                        {row.month} ({row.ym})
                                                     </div>
-                                                    <div className="text-gray-300">
-                                                        {formatMoney(row.revenue)}
+                                                    <div className="flex items-center gap-1.5 text-teal-300">
+                                                        <span className="w-2 h-2 rounded-full bg-teal-400 inline-block" />
+                                                        <strong>{row.bookings}</strong> bookings
                                                     </div>
+                                                    <div className="flex items-center gap-1.5 text-emerald-300">
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                                                        <strong>{formatMoney(row.revenue, cards?.currency || 'ETB')}</strong> paid
+                                                    </div>
+                                                    {row.bookings > 0 ? (
+                                                        <div className="text-[10px] text-gray-400 mt-1 border-t border-gray-700 pt-0.5">
+                                                            Avg: {formatMoney(Math.round(row.revenue / row.bookings), cards?.currency || 'ETB')}
+                                                        </div>
+                                                    ) : null}
                                                 </div>
-                                                <div
-                                                    className={`w-full rounded-t-lg transition-all duration-500 ${
-                                                        hasData
-                                                            ? 'bg-gradient-to-t from-brand-primary to-brand-secondary group-hover:from-brand-secondary group-hover:to-brand-primary shadow-sm'
-                                                            : 'bg-slate-100 group-hover:bg-slate-200'
-                                                    }`}
-                                                    style={{ height: `${barH}%` }}
-                                                />
+
+                                                {/* Bars depending on graphMetric */}
+                                                <div className="w-full flex items-end justify-center gap-1.5 h-full relative">
+                                                    {(graphMetric === 'both' || graphMetric === 'bookings') ? (
+                                                        <div className="flex-1 max-w-[28px] flex flex-col items-center justify-end h-full">
+                                                            {/* Exact Booking Number above bar */}
+                                                            <span className={`text-[10px] font-bold mb-1 transition-opacity ${
+                                                                row.bookings > 0 ? 'text-teal-800' : 'text-gray-300 opacity-60'
+                                                            }`}>
+                                                                {row.bookings}
+                                                            </span>
+                                                            <div
+                                                                className={`w-full rounded-t-md transition-all duration-500 shadow-xs ${
+                                                                    row.bookings > 0
+                                                                        ? 'bg-gradient-to-t from-teal-600 to-teal-400 group-hover:from-teal-500 group-hover:to-teal-300'
+                                                                        : 'bg-gray-100 group-hover:bg-gray-200'
+                                                                }`}
+                                                                style={{ height: `${bookBarH}%` }}
+                                                            />
+                                                        </div>
+                                                    ) : null}
+
+                                                    {(graphMetric === 'both' || graphMetric === 'revenue') ? (
+                                                        <div className="flex-1 max-w-[28px] flex flex-col items-center justify-end h-full">
+                                                            {/* Revenue compact label above bar in single-view */}
+                                                            {graphMetric === 'revenue' ? (
+                                                                <span className={`text-[10px] font-bold mb-1 transition-opacity ${
+                                                                    row.revenue > 0 ? 'text-emerald-800' : 'text-gray-300 opacity-60'
+                                                                }`}>
+                                                                    {row.revenue > 0 ? formatCompact(row.revenue) : '0'}
+                                                                </span>
+                                                            ) : null}
+                                                            <div
+                                                                className={`w-full rounded-t-md transition-all duration-500 shadow-xs ${
+                                                                    row.revenue > 0
+                                                                        ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 group-hover:from-emerald-500 group-hover:to-emerald-300'
+                                                                        : 'bg-gray-100 group-hover:bg-gray-200'
+                                                                }`}
+                                                                style={{ height: `${revBarH}%` }}
+                                                            />
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+
+                                                {/* X-axis Month Label */}
+                                                <div className="text-[11px] text-gray-500 text-center mt-2.5 font-bold group-hover:text-brand-dark transition-colors">
+                                                    {row.month}
+                                                </div>
                                             </div>
-                                            <div className="text-[10px] sm:text-xs text-gray-400 text-center mt-2 font-medium">
-                                                {row.month}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-2 text-xs">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-teal-600 to-teal-400" />
+                                        <span className="font-semibold text-gray-700">Bookings (Number of reservations)</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-emerald-600 to-emerald-400" />
+                                        <span className="font-semibold text-gray-700">Paid Revenue ({cards?.currency || 'ETB'})</span>
+                                    </div>
+                                </div>
+                                <span className="text-gray-400 text-[11px] font-medium hidden sm:inline">
+                                    {monthlyData.length} months rolling window
+                                </span>
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-extrabold text-brand-dark mb-6">
-                                Booking Breakdown
-                            </h2>
-                            {bookingStats.length === 0 ? (
-                                <p className="text-sm text-gray-500">No bookings in this range.</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {bookingStats.map((item, idx) => (
-                                        <div key={item.type}>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm font-medium text-gray-700">
-                                                    {item.type}
-                                                </span>
-                                                <span className="text-sm font-bold text-gray-900">
-                                                    {item.count}
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                                <div
-                                                    className={`${BREAKDOWN_COLORS[idx % BREAKDOWN_COLORS.length]} h-full rounded-full transition-all duration-500`}
-                                                    style={{ width: `${item.percentage}%` }}
-                                                />
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {item.percentage}% of total
-                                            </div>
-                                        </div>
-                                    ))}
+                        {/* Booking Breakdown */}
+                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-extrabold text-brand-dark">
+                                        Booking Breakdown
+                                    </h2>
+                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                                        By Service
+                                    </span>
                                 </div>
-                            )}
+                                <p className="text-sm text-gray-500 mb-6">
+                                    Distribution of completed reservations by hospitality & travel category
+                                </p>
+
+                                {bookingStats.length === 0 ? (
+                                    <div className="py-12 text-center text-sm text-gray-400">
+                                        No bookings recorded in this time range.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {bookingStats.map((item, idx) => {
+                                            const getCategoryIcon = (type: string) => {
+                                                const t = type.toLowerCase();
+                                                if (t.includes('hotel')) return <Building2 className="w-4 h-4 text-teal-600" />;
+                                                if (t.includes('flight')) return <Plane className="w-4 h-4 text-sky-600" />;
+                                                if (t.includes('conference') || t.includes('event')) return <Users className="w-4 h-4 text-purple-600" />;
+                                                if (t.includes('shuttle') || t.includes('car')) return <Car className="w-4 h-4 text-amber-600" />;
+                                                return <BarChart3 className="w-4 h-4 text-gray-600" />;
+                                            };
+
+                                            return (
+                                                <div key={item.type} className="p-3 bg-gray-50/70 rounded-xl border border-gray-100">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            {getCategoryIcon(item.type)}
+                                                            <span className="text-sm font-bold text-gray-800">
+                                                                {item.type}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-900 shadow-2xs">
+                                                                {item.count} {item.count === 1 ? 'booking' : 'bookings'}
+                                                            </span>
+                                                            <span className="text-xs font-extrabold text-teal-700 min-w-9 text-right">
+                                                                {item.percentage}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200/80 rounded-full h-2 overflow-hidden">
+                                                        <div
+                                                            className={`${BREAKDOWN_COLORS[idx % BREAKDOWN_COLORS.length]} h-full rounded-full transition-all duration-500`}
+                                                            style={{ width: `${Math.max(item.percentage, item.count > 0 ? 4 : 0)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                                <span>Platform wide totals</span>
+                                <span className="font-bold text-gray-700">
+                                    {bookingStats.reduce((sum, b) => sum + (b.count || 0), 0)} total reservations
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -704,27 +914,46 @@ export default function AdminDashboard() {
                                         recentBookings.map((booking) => (
                                             <tr
                                                 key={booking.id}
-                                                className="hover:bg-gray-50 transition-colors"
+                                                className="hover:bg-gray-50/80 transition-colors"
                                             >
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm font-mono font-medium text-brand-primary">
-                                                        {booking.payment_reference ||
-                                                            booking.id.slice(0, 8)}
-                                                    </span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-sm font-mono font-bold text-teal-900">
+                                                            {booking.payment_reference ||
+                                                                booking.id.slice(0, 8)}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCopy(booking.id, booking.payment_reference || booking.id)}
+                                                            className="p-1 rounded-md text-gray-400 hover:text-teal-700 hover:bg-teal-50 transition-colors"
+                                                            title="Copy reference"
+                                                        >
+                                                            {copiedId === booking.id ? (
+                                                                <Check className="w-3.5 h-3.5 text-teal-600" />
+                                                            ) : (
+                                                                <Copy className="w-3.5 h-3.5" />
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm font-medium text-gray-900">
-                                                        {booking.user}
-                                                    </span>
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-7 h-7 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-xs font-bold text-teal-800 shrink-0">
+                                                            {(booking.user || 'G').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-gray-900">
+                                                            {booking.user}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-600">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
                                                         {booking.type}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-600">
-                                                        {booking.destination}
+                                                    <span className="text-sm font-medium text-gray-700">
+                                                        {booking.destination || 'Addis Ababa Stay'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -737,14 +966,14 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(booking.status)}`}
                                                     >
                                                         {getStatusIcon(booking.status)}
                                                         {booking.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm text-gray-500">
+                                                    <span className="text-xs text-gray-500 font-medium">
                                                         {relativeTime(booking.created_at)}
                                                     </span>
                                                 </td>
