@@ -271,6 +271,9 @@ export function HotelPartnerRequestForm() {
 
             {step === 0 && (
                 <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2 text-xs bg-amber-50 text-amber-900 border border-amber-200 p-3 rounded-xl leading-relaxed">
+                        <strong>Hotel Partner Legal Verification:</strong> Ethiopian TIN, trade registration, and KYC documents are solely required for commercial hoteliers and accommodation providers to register and receive direct guest payouts. Regular travelers booking stays do not need a TIN.
+                    </div>
                     <div className="space-y-2 sm:col-span-2">
                         <Label>Legal business name</Label>
                         <Input
@@ -288,8 +291,8 @@ export function HotelPartnerRequestForm() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label>TIN</Label>
-                        <Input value={tin} onChange={(e) => setTin(e.target.value)} />
+                        <Label>Ethiopian Taxpayer ID (TIN) *</Label>
+                        <Input value={tin} onChange={(e) => setTin(e.target.value)} placeholder="10-digit TIN" />
                     </div>
                     <div className="space-y-2">
                         <Label>Business registration no.</Label>

@@ -9,7 +9,8 @@ import { useAuth } from "@/components/providers/auth-provider";
 const customerLinks = [
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard, match: (p: string) => p === "/dashboard" },
     { href: "/trips", label: "Trips", icon: Briefcase, match: (p: string) => p === "/trips" || p.startsWith("/trips/") },
-    { href: "/profile", label: "Profile", icon: User, match: (p: string) => p === "/profile" || p.startsWith("/profile/") },
+    { href: "/profile", label: "Guest Profile", icon: User, match: (p: string) => p === "/profile" },
+    { href: "/profile?tab=partner", label: "List Your Hotel", icon: Hotel, match: (p: string) => p.includes("tab=partner") || p.startsWith("/partner") },
 ] as const;
 
 const hotelAdminLinks = [

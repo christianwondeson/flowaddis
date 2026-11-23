@@ -28,11 +28,14 @@ import {
     ArrowRight,
     AlertTriangle,
     Check,
+    Copy,
+    Share2,
 } from 'lucide-react';
 import {
     normalizePromotions,
     PROMOTION_TYPE_LABELS,
     evaluatePromotion,
+    generatePromoCode,
     type HotelPromotion,
     type HotelPromotionType,
 } from '@/lib/hotel-promotions';
@@ -517,9 +520,38 @@ export default function HotelPromotionsPage() {
                                                         {p.discount_percent}% OFF
                                                     </span>
                                                     {p.code && (
-                                                        <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-mono font-bold text-amber-900 border border-amber-300">
-                                                            CODE: {p.code}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-mono font-bold text-amber-900 border border-amber-300">
+                                                                CODE: {p.code}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (p.code) {
+                                                                        void navigator.clipboard.writeText(p.code);
+                                                                        toast.success(`Copied promo code: ${p.code}`);
+                                                                    }
+                                                                }}
+                                                                className="p-1 rounded-md hover:bg-amber-100 text-amber-800 transition-colors"
+                                                                title="Copy Promo Code"
+                                                            >
+                                                                <Copy className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (p.code && typeof window !== 'undefined') {
+                                                                        const link = `${window.location.origin}/hotels/${hotelId}?promo=${encodeURIComponent(p.code)}`;
+                                                                        void navigator.clipboard.writeText(link);
+                                                                        toast.success(`Copied booking link with promo code: ${p.code}`);
+                                                                    }
+                                                                }}
+                                                                className="p-1 rounded-md hover:bg-blue-100 text-blue-700 transition-colors"
+                                                                title="Copy Guest Booking Link with Promo Code"
+                                                            >
+                                                                <Share2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
                                                     )}
                                                     <span
                                                         className={cn(
@@ -749,19 +781,94 @@ export default function HotelPromotionsPage() {
                             </div>
 
                             {form.type === 'promo_code' && (
-                                <div className="space-y-1.5 sm:col-span-2">
-                                    <Label className="font-bold">Promo Code (Uppercase)</Label>
-                                    <Input
-                                        value={form.code || ''}
-                                        onChange={(e) =>
-                                            setForm((f) => ({
-                                                ...f,
-                                                code: e.target.value.toUpperCase(),
-                                            }))
-                                        }
-                                        placeholder="SUMMER15"
-                                        className="font-mono uppercase font-bold"
-                                    />
+                                <div className="space-y-2.5 sm:col-span-2 bg-amber-50/50 border border-amber-200/80 p-4 rounded-xl">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                        <Label className="font-bold text-slate-800 flex items-center gap-1.5">
+                                            <Tag className="w-4 h-4 text-amber-600" />
+                                            Promo Code (Uppercase Voucher) *
+                                        </Label>
+                                        <div className="flex items-center gap-1.5">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const newCode = generatePromoCode({
+                                                        prefix: 'HOTEL',
+                                                        discount: form.discount_percent || 15,
+                                                        style: 'standard',
+                                                    });
+                                                    setForm((f) => ({ ...f, code: newCode }));
+                                                    toast.success(`Generated promo code: ${newCode}`);
+                                                }}
+                                                className="h-7 text-xs gap-1 border-amber-300 bg-white hover:bg-amber-100/60 font-semibold text-amber-900"
+                                            >
+                                                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                                                Auto-Generate
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const newCode = generatePromoCode({
+                                                        prefix: 'PROMO',
+                                                        discount: form.discount_percent || 15,
+                                                        style: 'voucher',
+                                                    });
+                                                    setForm((f) => ({ ...f, code: newCode }));
+                                                    toast.success(`Generated voucher code: ${newCode}`);
+                                                }}
+                                                className="h-7 text-xs gap-1 border-amber-300 bg-white hover:bg-amber-100/60 font-semibold text-amber-900"
+                                            >
+                                                Voucher Style
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative">
+                                        <Input
+                                            value={form.code || ''}
+                                            onChange={(e) =>
+                                                setForm((f) => ({
+                                                    ...f,
+                                                    code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''),
+                                                }))
+                                            }
+                                            placeholder="e.g. WELCOME15 or HOTEL-8X2F"
+                                            className="font-mono uppercase font-bold tracking-wider text-base h-11 bg-white border-amber-300"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Quick preset chips */}
+                                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                        <span className="text-[11px] font-semibold text-slate-500 mr-1">Quick presets:</span>
+                                        {['WELCOME10', 'STAY15', 'VIP20', 'WEEKEND25', 'HOLIDAY12'].map((preset) => (
+                                            <button
+                                                key={preset}
+                                                type="button"
+                                                onClick={() => {
+                                                    setForm((f) => ({
+                                                        ...f,
+                                                        code: preset,
+                                                        discount_percent: parseInt(preset.replace(/\D/g, ''), 10) || f.discount_percent,
+                                                    }));
+                                                }}
+                                                className="text-xs px-2 py-0.5 rounded border border-amber-200 bg-white hover:bg-amber-100 text-amber-900 font-mono font-medium transition-colors"
+                                            >
+                                                {preset}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Duplicate detection warning */}
+                                    {form.code && items.some((i) => i.code?.toUpperCase() === form.code?.trim().toUpperCase()) && (
+                                        <div className="flex items-center gap-1.5 text-xs text-amber-700 font-semibold mt-1">
+                                            <AlertTriangle className="w-3.5 h-3.5" />
+                                            This code is already assigned to an existing active promotion for this hotel.
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

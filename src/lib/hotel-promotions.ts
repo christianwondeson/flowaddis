@@ -40,6 +40,38 @@ export const PROMOTION_TYPE_LABELS: Record<HotelPromotionType, string> = {
     long_stay: 'Long stay',
 };
 
+/**
+ * Smart promo code generator for hotel extranets and campaigns.
+ * Outputs clean, uppercase, unambiguous codes.
+ */
+export function generatePromoCode(options?: {
+    prefix?: string;
+    discount?: number;
+    style?: 'standard' | 'voucher' | 'seasonal';
+}): string {
+    const rawPrefix = (options?.prefix || 'ADDIS').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const prefix = rawPrefix.slice(0, 6) || 'PROMO';
+    const disc = options?.discount ? Math.min(90, Math.max(1, Math.round(options.discount))) : 15;
+
+    if (options?.style === 'voucher') {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let rand = '';
+        for (let i = 0; i < 4; i++) {
+            rand += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `${prefix}-${rand}`;
+    }
+
+    if (options?.style === 'seasonal') {
+        const seasons = ['WELCOME', 'VIP', 'SUMMER', 'WEEKEND', 'STAY', 'DEAL'];
+        const chosen = seasons[Math.floor(Math.random() * seasons.length)];
+        return `${chosen}${disc}`;
+    }
+
+    // Standard e.g. MOMONA15 or ADDIS20
+    return `${prefix}${disc}`;
+}
+
 export function normalizePromotions(raw: unknown): HotelPromotion[] {
     if (!Array.isArray(raw)) return [];
     return raw
@@ -170,6 +202,18 @@ export function resolveHotelPromotionDiscount(params: {
 
     const code = promoCode?.trim().toUpperCase();
     if (code) {
+        const allMatchingCode = promotions.filter(
+            (p) => p.type === 'promo_code' && p.code && p.code.toUpperCase() === code,
+        );
+
+        if (allMatchingCode.length === 0) {
+            return {
+                percent: 0,
+                applied: null,
+                reason: 'Invalid promo code',
+            };
+        }
+
         const match = roomEligible.find(
             (p) =>
                 p.type === 'promo_code' &&
@@ -179,6 +223,22 @@ export function resolveHotelPromotionDiscount(params: {
         if (match) {
             return { percent: match.discount_percent, applied: match };
         }
+
+        const candidate = allMatchingCode[0];
+        if (!candidate.active) {
+            return { percent: 0, applied: null, reason: 'This promo code is currently inactive' };
+        }
+        if (!inValidityWindow(candidate, today)) {
+            return { percent: 0, applied: null, reason: 'This promo code has expired or is not active yet' };
+        }
+        if (candidate.facility_scope && !candidate.facility_scope.includes(facility)) {
+            return { percent: 0, applied: null, reason: `This promo code is only valid for ${candidate.facility_scope.join(', ')}` };
+        }
+        if (roomTypeId && candidate.applicable_room_ids && !candidate.applicable_room_ids.includes('all') && !candidate.applicable_room_ids.includes(roomTypeId)) {
+            const roomsStr = candidate.applicable_room_names?.join(', ') || 'selected room types';
+            return { percent: 0, applied: null, reason: `This promo code is only valid for: ${roomsStr}` };
+        }
+
         return {
             percent: 0,
             applied: null,

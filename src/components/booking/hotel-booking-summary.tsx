@@ -208,6 +208,17 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
     const [hotelMedia, setHotelMedia] = useState<Record<string, unknown> | null>(null);
     const [hotelData, setHotelData] = useState<any>(null);
 
+    // Auto-populate promo code from URL if guest arrived via marketing/shareable link
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const sp = new URLSearchParams(window.location.search);
+            const urlCode = sp.get('promo') || sp.get('promoCode') || sp.get('code');
+            if (urlCode && !promoCode) {
+                setPromoCode(urlCode.trim().toUpperCase());
+            }
+        }
+    }, [promoCode]);
+
     useEffect(() => {
         if (!draft.hotelId) return;
         let cancelled = false;
@@ -1798,9 +1809,14 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                                 <Input
                                                     className={fieldClass}
                                                     value={promoCode}
-                                                    onChange={(e) => setPromoCode(e.target.value)}
-                                                    placeholder="Discount code"
+                                                    onChange={(e) => setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+                                                    placeholder="e.g. WELCOME15"
                                                 />
+                                                {codePromo.percent > 0 && (
+                                                    <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                                                        ✓ Code applied: {codePromo.percent}% discount!
+                                                    </p>
+                                                )}
                                                 {codePromo.reason && <p className="text-xs text-amber-700">{codePromo.reason}</p>}
                                             </div>
                                             <div className="space-y-1">
