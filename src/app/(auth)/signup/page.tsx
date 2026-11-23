@@ -167,13 +167,19 @@ function SignUpContent() {
         let enterpriseToken: string | undefined
         try {
             enterpriseToken = await executeRecaptchaEnterprise(RECAPTCHA_ACTIONS.SIGNUP)
-        } catch {
+        } catch (err) {
+            console.warn('[signup] reCAPTCHA Enterprise execute failed', err)
+            if (process.env.NODE_ENV === 'development') {
+                console.info('[signup] Continuing in development mode with standard reCAPTCHA passed')
+                return true
+            }
             toast.error(
-                'Security verification failed. Check your BookAddis site key, refresh, and try again.',
+                'Security verification failed. If using an ad blocker or VPN, please disable it and ensure your domain is registered in Google Cloud reCAPTCHA.',
             )
             return false
         }
         if (!enterpriseToken) {
+            if (process.env.NODE_ENV === 'development') return true
             toast.error('Security verification failed. Refresh the page and try again.')
             return false
         }

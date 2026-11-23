@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { Bus, ShieldCheck } from 'lucide-react';
+import { Bus, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,8 +57,96 @@ const emptyForm = (): Omit<HotelShuttle, 'id'> => ({
     status: 'active',
 });
 
+const REALISTIC_HOTEL_SHUTTLE_PRESETS = [
+    {
+        label: "Bole T2 Int'l ⇄ Hotel (HiAce)",
+        name: "Bole International Airport (T2) ⇄ Hotel Lobby",
+        from: "Bole International Airport (ADD) Terminal 2 Arrivals",
+        to: "Hotel Lobby",
+        vehicle_type: "Van",
+        plate_number: "ET-3-A12345",
+        capacity: "6",
+        price: "1500",
+        currency: "ETB" as const,
+        driver_name: "Dawit Kebede",
+        driver_phone: "+251 911 234 567",
+        meet_and_greet: true,
+        gps_tracked: true,
+        child_seat: false,
+        notes: "Driver holds personalized hotel name board at Terminal 2 exit.",
+    },
+    {
+        label: "Bole T1 Domestic ⇄ Hotel (Sedan)",
+        name: "Bole Domestic Airport (T1) ⇄ Hotel Lobby",
+        from: "Bole Domestic Terminal (T1) Arrivals",
+        to: "Hotel Lobby",
+        vehicle_type: "Sedan",
+        plate_number: "ET-3-B54321",
+        capacity: "3",
+        price: "1000",
+        currency: "ETB" as const,
+        driver_name: "Alemayehu Tadesse",
+        driver_phone: "+251 922 345 678",
+        meet_and_greet: true,
+        gps_tracked: true,
+        child_seat: false,
+        notes: "Direct hotel shuttle for domestic flight arrivals.",
+    },
+    {
+        label: "Hotel ⇄ UNECA Conference",
+        name: "Hotel ⇄ UNECA Conference Centre Link",
+        from: "Hotel Main Gate",
+        to: "UNECA Conference Centre (Menelik II Ave)",
+        vehicle_type: "Minibus",
+        plate_number: "ET-3-C98765",
+        capacity: "18",
+        price: "800",
+        currency: "ETB" as const,
+        driver_name: "Yonas Bekele",
+        driver_phone: "+251 933 456 789",
+        meet_and_greet: false,
+        gps_tracked: true,
+        child_seat: false,
+        notes: "Hourly shuttle during UNECA summit hours.",
+    },
+    {
+        label: "Hotel ⇄ African Union (AU) HQ",
+        name: "Hotel ⇄ African Union (AU) Headquarters",
+        from: "Hotel Main Gate",
+        to: "African Union Headquarters (Roosevelt St)",
+        vehicle_type: "Minibus",
+        plate_number: "ET-3-C45678",
+        capacity: "18",
+        price: "800",
+        currency: "ETB" as const,
+        driver_name: "Solomon Haile",
+        driver_phone: "+251 944 567 890",
+        meet_and_greet: false,
+        gps_tracked: true,
+        child_seat: false,
+        notes: "Express transfer for AU delegates.",
+    },
+    {
+        label: "Hotel ⇄ Entoto Park Excursion",
+        name: "Hotel ⇄ Entoto Natural Park VIP Tour",
+        from: "Hotel Concierge Desk",
+        to: "Entoto Natural Park & Viewpoint",
+        vehicle_type: "SUV",
+        plate_number: "ET-3-D11223",
+        capacity: "4",
+        price: "3500",
+        currency: "ETB" as const,
+        driver_name: "Henok Girma",
+        driver_phone: "+251 955 678 901",
+        meet_and_greet: true,
+        gps_tracked: true,
+        child_seat: true,
+        notes: "Includes round-trip and 3 hours scenic wait at Entoto Park.",
+    },
+];
+
 /**
- * Hotel-owned shuttle fleet  persisted on hotel.media.shuttles (Nest),
+ * Hotel-owned shuttle fleet — persisted on hotel.media.shuttles (Nest),
  * with plate / insurance / photo for guest trust & ops security.
  */
 export default function HotelShuttlesPage() {
@@ -160,6 +248,50 @@ export default function HotelShuttlesPage() {
                 onSubmit={addRoute}
                 className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm grid gap-4 sm:grid-cols-2"
             >
+                <div className="sm:col-span-2 space-y-2 bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            Ethiopian Hotel Shuttle Presets
+                        </span>
+                        <span className="text-[11px] text-slate-500">1-click autofill</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                        {REALISTIC_HOTEL_SHUTTLE_PRESETS.map((p) => (
+                            <button
+                                key={p.label}
+                                type="button"
+                                onClick={() => {
+                                    setForm({
+                                        name: p.name,
+                                        from: p.from,
+                                        to: p.to,
+                                        vehicle_type: p.vehicle_type,
+                                        plate_number: p.plate_number,
+                                        capacity: p.capacity,
+                                        price: p.price,
+                                        currency: p.currency,
+                                        driver_name: p.driver_name,
+                                        driver_phone: p.driver_phone,
+                                        meet_and_greet: p.meet_and_greet,
+                                        gps_tracked: p.gps_tracked,
+                                        child_seat: p.child_seat,
+                                        notes: p.notes,
+                                        status: 'active',
+                                        image_url: null,
+                                        insurance_ref: '',
+                                        permit_ref: '',
+                                    });
+                                    toast.info(`Filled preset: ${p.label}`);
+                                }}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 font-medium text-slate-700 transition-colors"
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="space-y-2 sm:col-span-2">
                     <Label>Route name</Label>
                     <Input

@@ -40,6 +40,9 @@ export type ChatMessage = {
     senderRole: string;
     body: string;
     createdAt?: unknown;
+    editedAt?: unknown;
+    isEdited?: boolean;
+    isDeleted?: boolean;
 };
 
 function threadsCol(hotelId: string) {
@@ -274,6 +277,9 @@ export function listenMessages(
                     senderRole: String(data.senderRole || 'user'),
                     body: String(data.body || ''),
                     createdAt: data.createdAt,
+                    editedAt: data.editedAt,
+                    isEdited: Boolean(data.isEdited || data.editedAt),
+                    isDeleted: Boolean(data.isDeleted),
                 });
             });
             onData(rows);
@@ -308,6 +314,43 @@ export async function sendChatMessage(params: {
         });
     } catch (e) {
         throw firestoreChatError(e, 'Message could not be sent.');
+    }
+}
+
+export async function editChatMessage(params: {
+    hotelId: string;
+    threadId: string;
+    messageId: string;
+    body: string;
+}): Promise<void> {
+    const text = params.body.trim();
+    if (!text) return;
+    try {
+        const msgRef = doc(messagesCol(params.hotelId, params.threadId), params.messageId);
+        await updateDoc(msgRef, {
+            body: text,
+            editedAt: serverTimestamp(),
+            isEdited: true,
+        });
+    } catch (e) {
+        throw firestoreChatError(e, 'Message could not be edited.');
+    }
+}
+
+export async function deleteChatMessage(params: {
+    hotelId: string;
+    threadId: string;
+    messageId: string;
+}): Promise<void> {
+    try {
+        const msgRef = doc(messagesCol(params.hotelId, params.threadId), params.messageId);
+        await updateDoc(msgRef, {
+            body: 'This message was deleted',
+            isDeleted: true,
+            deletedAt: serverTimestamp(),
+        });
+    } catch (e) {
+        throw firestoreChatError(e, 'Message could not be deleted.');
     }
 }
 
