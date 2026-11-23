@@ -7,6 +7,26 @@ import {
   fetchEtbPerUsd,
 } from '@/lib/currency-utils';
 
+function normalizeHotelName(name: string): string {
+    return (name || '')
+        .toLowerCase()
+        .replace(/\b(hotel|resort|spa|apartments?|suites?|and|&|the|addis|ababa)\b/gi, '')
+        .replace(/[^a-z0-9]/g, '');
+}
+
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query') || 'Addis Ababa';
@@ -443,6 +463,73 @@ export async function GET(request: Request) {
 
         if (!wantsRapidApi) {
             hotels = [];
+        } else if (directHotels.length > 0 && hotels.length > 0) {
+            // Deduplicate: If RapidAPI returns a hotel that also exists in BookAddis Direct
+            // (e.g. Momona Hotel), discard the duplicate RapidAPI card and enrich Direct hotel with extra facilities.
+            const directRapidIds = new Set<string>();
+            const directByName = new Map<string, any>();
+
+            for (const dh of directHotels) {
+                const rapidId = dh.external_refs?.rapidapi_id || dh.rapidapi_id;
+                if (rapidId) {
+                    directRapidIds.add(String(rapidId));
+                }
+                const norm = normalizeHotelName(dh.name);
+                if (norm) {
+                    directByName.set(norm, dh);
+                }
+            }
+
+            const uniquePartnerHotels: any[] = [];
+            for (const rh of hotels) {
+                const rhIdStr = String(rh.id || '');
+                let matchedDirect: any = null;
+
+                if (directRapidIds.has(rhIdStr)) {
+                    matchedDirect = directHotels.find(
+                        (dh) => String(dh.external_refs?.rapidapi_id || dh.rapidapi_id) === rhIdStr,
+                    );
+                } else {
+                    const normRh = normalizeHotelName(rh.name);
+                    if (normRh && directByName.has(normRh)) {
+                        const candidate = directByName.get(normRh);
+                        if (
+                            candidate.latitude && candidate.longitude &&
+                            rh.coordinates?.lat && rh.coordinates?.lng
+                        ) {
+                            const dist = calculateDistanceKm(
+                                Number(candidate.latitude),
+                                Number(candidate.longitude),
+                                Number(rh.coordinates.lat),
+                                Number(rh.coordinates.lng),
+                            );
+                            if (dist <= 0.8) {
+                                matchedDirect = candidate;
+                            }
+                        } else {
+                            matchedDirect = candidate;
+                        }
+                    }
+                }
+
+                if (matchedDirect) {
+                    // Enrich Direct hotel with supplementary partner facilities
+                    if (Array.isArray(rh.amenities) && rh.amenities.length > 0) {
+                        const directAmenities = new Set(matchedDirect.amenities || []);
+                        for (const a of rh.amenities) {
+                            if (!directAmenities.has(a)) {
+                                matchedDirect.amenities = [...(matchedDirect.amenities || []), a];
+                                directAmenities.add(a);
+                            }
+                        }
+                    }
+                    // Drop partner duplicate so guest sees only the authoritative BookAddis Direct card
+                    continue;
+                }
+
+                uniquePartnerHotels.push(rh);
+            }
+            hotels = uniquePartnerHotels;
         }
 
         // Direct inventory first, then partner (RapidAPI) listings.

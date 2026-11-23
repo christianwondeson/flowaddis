@@ -33,9 +33,21 @@ export const HotelDetailGallery: React.FC<HotelDetailGalleryProps> = ({
 }) => {
     const PLACEHOLDER_IMG = placeholderImage || DEFAULT_PLACEHOLDER;
     const safeImages = useMemo(() => {
-        const list = (images || [])
-            .filter((url): url is string => typeof url === 'string' && url.length > 0)
-            .map((u) => normalizeUrl(u, PLACEHOLDER_IMG));
+        const seen = new Set<string>();
+        const list: string[] = [];
+        for (const raw of images || []) {
+            if (typeof raw !== 'string' || !raw.trim()) continue;
+            const normalized = normalizeUrl(raw, PLACEHOLDER_IMG);
+            const key = normalized
+                .replace(/^https?:\/\//i, '')
+                .split('?')[0]
+                .replace(/\/+$/, '')
+                .toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                list.push(normalized);
+            }
+        }
         return list.length ? list : [PLACEHOLDER_IMG];
     }, [images, PLACEHOLDER_IMG]);
 

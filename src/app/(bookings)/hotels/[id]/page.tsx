@@ -127,12 +127,12 @@ function HotelDetailPageInner() {
             const found = data.hotels.find((h: any) => h.id === id);
             if (found) {
                 setHotel((prev: any) => {
-                    // Do not clobber fully loaded detail photos, description, policies or amenities with list summary
-                    if (prev.images && prev.images.length > 1) {
+                    // Direct hotel detail from Nest has complete photos & pricing — never clobber
+                    if (prev.bookable || prev.inventory_source === 'bookaddis_direct' || (prev.images && prev.images.length > 0)) {
                         return {
                             ...found,
                             ...prev,
-                            images: prev.images,
+                            images: prev.images?.length ? prev.images : ((found as any).images || [found.image].filter(Boolean)),
                             description: prev.description || found.description,
                             amenities: prev.amenities?.length ? prev.amenities : found.amenities,
                             inventory_source: prev.inventory_source || found.inventory_source,
@@ -141,9 +141,7 @@ function HotelDetailPageInner() {
                     return {
                         ...found,
                         ...prev,
-                        images: prev.images?.length > 1
-                            ? prev.images
-                            : ((found as any).images || prev.images || [found.image || prev.image].filter(Boolean)),
+                        images: ((found as any).images || prev.images || [found.image || prev.image].filter(Boolean)),
                     };
                 });
             }
@@ -187,9 +185,14 @@ function HotelDetailPageInner() {
                         parsedMedia = JSON.parse(parsedMedia);
                     } catch {}
                 }
+
+                // Canonicalize and deduplicate Strapi photos uploaded by Hotel Admin
                 const mediaPhotos = Array.isArray(parsedMedia?.photos)
                     ? parsedMedia.photos
-                          .map((p: any) => resolveStrapiFileUrl(p?.url) || p?.url)
+                          .map((p: any) => {
+                              const u = typeof p === 'string' ? p : p?.url;
+                              return resolveStrapiFileUrl(u) || u;
+                          })
                           .filter((u: string) => typeof u === 'string' && u.length > 0)
                     : [];
 
@@ -202,19 +205,73 @@ function HotelDetailPageInner() {
                       )
                     : [];
 
-                const cover = resolveStrapiFileUrl(h.image) || h.image || null;
-                const rawCombined = Array.from(
-                    new Set([
-                        cover,
-                        ...mediaPhotos,
-                        ...roomPhotos,
-                    ].filter((u): u is string => typeof u === 'string' && u.length > 0)),
-                );
+                // If hotel has a RapidAPI link, fetch supplementary partner photos and facilities in parallel
+                const rapidId = h.external_refs?.rapidapi_id || h.rapidapi_id;
+                let rapidPhotos: string[] = [];
+                let rapidFacilities: string[] = [];
+                if (rapidId) {
+                    try {
+                        const [rapidPhotoRes, rapidDetailRes] = await Promise.allSettled([
+                            axios.get(`/api/hotels/photos?hotelId=${encodeURIComponent(rapidId)}`),
+                            axios.get(`/api/hotels/data?hotelId=${encodeURIComponent(rapidId)}`),
+                        ]);
+                        if (rapidPhotoRes.status === 'fulfilled') {
+                            const raw = Array.isArray(rapidPhotoRes.value.data)
+                                ? rapidPhotoRes.value.data
+                                : rapidPhotoRes.value.data?.photos || [];
+                            rapidPhotos = raw
+                                .map((p: any) => p?.url_max || p?.url_1440 || p?.photo_url || p?.url)
+                                .filter((u: any): u is string => typeof u === 'string' && u.startsWith('http'));
+                        }
+                        if (rapidDetailRes.status === 'fulfilled') {
+                            const d = rapidDetailRes.value.data?.data || rapidDetailRes.value.data || {};
+                            if (Array.isArray(d?.facilities)) {
+                                rapidFacilities = d.facilities
+                                    .map((f: any) => f?.name || f)
+                                    .filter((f: any): f is string => typeof f === 'string' && f.length > 0);
+                            }
+                        }
+                    } catch {
+                        // Supplementary RapidAPI assets are optional — do not fail direct load
+                    }
+                }
 
-                const images = rawCombined.length > 0 ? rawCombined : [placeholder];
+                const cover = resolveStrapiFileUrl(h.image) || h.image || null;
+                const seenImageKeys = new Set<string>();
+                const images: string[] = [];
+                const addUniqueImage = (rawUrl?: string | null) => {
+                    if (!rawUrl || typeof rawUrl !== 'string') return;
+                    const canonical = resolveStrapiFileUrl(rawUrl) || rawUrl.trim();
+                    if (!canonical) return;
+                    const key = canonical
+                        .replace(/^https?:\/\//i, '')
+                        .split('?')[0]
+                        .replace(/\/+$/, '')
+                        .toLowerCase();
+                    if (!seenImageKeys.has(key)) {
+                        seenImageKeys.add(key);
+                        images.push(canonical);
+                    }
+                };
+
+                // Authoritative Strapi hotel admin uploads are primary and placed first
+                addUniqueImage(cover);
+                for (const p of mediaPhotos) addUniqueImage(p);
+                for (const p of roomPhotos) addUniqueImage(p);
+                // Supplementary RapidAPI photos appended only if unique
+                for (const p of rapidPhotos) addUniqueImage(p);
+
+                if (images.length === 0) images.push(placeholder);
+
                 const amenityLabels = Array.isArray(h.amenities)
                     ? h.amenities
                     : [];
+                const combinedAmenities = Array.from(
+                    new Set([
+                        ...amenityLabels,
+                        ...rapidFacilities,
+                    ]),
+                );
                 const facilityGroups = Array.isArray(h.facility_groups)
                     ? h.facility_groups
                     : [];
@@ -235,8 +292,8 @@ function HotelDetailPageInner() {
                     default_currency: h.default_currency || h.currency || (isDirect ? 'ETB' : 'USD'),
                     image: images[0],
                     images,
-                    amenities: amenityLabels.length
-                        ? amenityLabels
+                    amenities: combinedAmenities.length
+                        ? combinedAmenities
                         : prev.amenities || [],
                     description: h.description || prev.description,
                     inventory_source: h.inventory_source || inventorySource,
