@@ -209,3 +209,5 @@ export function resolveHotelPromotionDiscount(params: {
         ? { percent: best.discount_percent, applied: best }
         : { percent: 0, applied: null };
 }
+
+export const evaluatePromotion = resolveHotelPromotionDiscount;

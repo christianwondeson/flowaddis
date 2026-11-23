@@ -9,8 +9,8 @@ export async function GET(
     try {
         const resolved = await Promise.resolve(context.params);
         const hotelId = resolved?.id;
-        if (!hotelId) {
-            return NextResponse.json({ error: 'Missing hotel id' }, { status: 400 });
+        if (!hotelId || hotelId === 'undefined' || hotelId === 'null') {
+            return NextResponse.json({ error: 'Hotel not found' }, { status: 404 });
         }
         const backend = getSafeBackendBaseUrl();
         const res = await fetch(

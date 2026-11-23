@@ -144,11 +144,11 @@ function ShuttlesPageContent() {
                                     ✓
                                 </span>
                                 <h2 className="text-xs sm:text-base font-extrabold text-brand-dark dark:text-slate-100">
-                                    Addis Ababa Transit & Meter Taxi Network
+                                    Addis Ababa Airport & City Ride Network
                                 </h2>
                             </div>
                             <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300">
-                                Pre-book verified <strong>Hotel Shuttles</strong> or connect with Ethiopia’s top ride-hailing & meter taxi networks: <strong>RIDE (8294)</strong>, <strong>FERES (6090)</strong>, <strong>Yango</strong>, and <strong>Meter Taxi</strong>.
+                                Pre-book verified <strong>Hotel Shuttles</strong> or connect with Ethiopia’s top ride-hailing networks: <strong>RIDE (8294)</strong>, <strong>FERES (6090)</strong>, and <strong>Yango</strong>.
                             </p>
                         </div>
 

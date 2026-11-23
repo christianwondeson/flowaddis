@@ -81,7 +81,13 @@ export async function assertHotelPortalAccess(
         throw new HotelPortalAuthError('Hotel portal access required', 403);
     }
 
-    if (hotelId) {
+    const isUuid =
+        typeof hotelId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            hotelId,
+        );
+
+    if (hotelId && isUuid) {
         try {
             const backend = getSafeBackendBaseUrl();
             const probe = await fetch(
