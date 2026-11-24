@@ -701,7 +701,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
         <div className="min-h-screen bg-[#f5f5f5] pb-16 pt-14 md:pt-16 text-slate-800">
             {/* Top Navigation Bar with Interactive 3-Step Stepper */}
             <header className="sticky top-14 md:top-16 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
                     {confirmedReceipt ? (
                         <Link
                             href="/hotels"
@@ -814,9 +814,9 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 min-w-0 w-full max-w-full overflow-hidden">
+            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0">
                 {/* 2-Column Booking.com Layout: Left Sidebar + Right Main Form */}
-                <div className="grid gap-6 lg:grid-cols-[370px_minmax(0,1fr)] items-start min-w-0 w-full max-w-full">
+                <div className="grid gap-6 lg:gap-8 lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)] items-start min-w-0">
                     {/* LEFT COLUMN: Hotel Card, Stay Details, Price Breakdown & Urgency */}
                     <aside className="space-y-4 order-2 lg:order-1 lg:sticky lg:top-32">
                         {/* 1. Hotel Overview Card */}
@@ -1082,7 +1082,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                     </aside>
 
                     {/* RIGHT COLUMN: Step 2 Form OR Step 3 Finish Booking */}
-                    <div className="space-y-5 order-1 lg:order-2 min-w-0 w-full max-w-full overflow-hidden">
+                    <div className="space-y-5 order-1 lg:order-2 min-w-0">
                         {/* ======================================================== */}
                         {/* STEP 3 FINISHED: OFFICIAL CONFIRMATION RECEIPT VOUCHER */}
                         {/* ======================================================== */}
@@ -1111,7 +1111,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                             /* ======================================================== */
                             /* STEP 3: FINISH BOOKING & PAYMENT SETTLEMENT */
                             /* ======================================================== */
-                            <div className="space-y-5 animate-in fade-in-50 min-w-0 w-full max-w-full">
+                            <div className="space-y-5 animate-in fade-in-50 min-w-0">
                                 {/* 1. Review Your Details Card */}
                                 <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
                                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1183,7 +1183,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                     </div>
 
                                     {/* Payment Method Segment Tabs */}
-                                    <div className="grid gap-3 sm:grid-cols-2 min-w-0 w-full max-w-full">
+                                    <div className="grid gap-3 sm:grid-cols-2 min-w-0">
                                         <button
                                             type="button"
                                             onClick={() => setPaymentPref('pay_at_property')}
@@ -1237,7 +1237,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
 
                                     {/* Action Area based on Payment Method Choice */}
                                     {paymentPref === 'pay_at_property' ? (
-                                        <div className="space-y-4 pt-2 border-t border-slate-100 min-w-0 w-full max-w-full">
+                                        <div className="space-y-4 pt-2 border-t border-slate-100 min-w-0">
                                             <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-xs text-amber-900 space-y-1 break-words">
                                                 <p className="font-bold flex items-center gap-1.5 text-sm">
                                                     <Building2 className="w-4 h-4 text-amber-700 shrink-0" />
@@ -1253,7 +1253,7 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                                 type="button"
                                                 disabled={isPayAtPropertyLoading}
                                                 onClick={handleConfirmPayAtProperty}
-                                                className="min-h-[50px] w-full max-w-full text-sm sm:text-base font-extrabold rounded-xl bg-brand-primary text-white hover:bg-teal-700 shadow-md transition-all flex items-center justify-center gap-2 px-4 whitespace-normal text-center"
+                                                className="min-h-[50px] w-full text-sm sm:text-base font-extrabold rounded-xl bg-brand-primary text-white hover:bg-teal-700 shadow-md transition-all flex items-center justify-center gap-2 px-4 whitespace-normal text-center"
                                             >
                                                 {isPayAtPropertyLoading ? (
                                                     <>
