@@ -139,58 +139,58 @@ function SignInContent() {
         e.preventDefault()
         if (!validateForm()) return
 
-        const methods = await getSignInMethodsForEmail(email)
-        if (isGoogleOnlySignIn(methods)) {
-            setGoogleOnlyAccount(true)
-            toast.error("This account uses Google Sign-In. Use the Google button below  your Gmail password does not sign in here.")
+        // 1. Give instant feedback immediately so user knows click was registered
+        setSubmitting(true)
+
+        if (googleOnlyAccount) {
+            setSubmitting(false)
+            toast.error("This account uses Google Sign-In. Use the Google button below — your Gmail password does not sign in here.")
             return
         }
 
         if (!recaptchaSolved) {
+            setSubmitting(false)
             toast.error("Please verify that you are not a robot.")
             return
         }
 
-        if (getRecaptchaEnterpriseSiteKey()) {
-            let enterpriseToken: string | undefined
-            try {
-                enterpriseToken = await executeRecaptchaEnterprise(RECAPTCHA_ACTIONS.LOGIN)
-            } catch (err) {
-                console.warn("[signin] reCAPTCHA Enterprise execute failed", err)
-                if (process.env.NODE_ENV === 'development') {
-                    console.info("[signin] Continuing in development mode with standard reCAPTCHA passed")
-                } else {
-                    toast.error(
-                        "Security verification failed. If using an ad blocker or VPN, please disable it and ensure your domain is registered in Google Cloud reCAPTCHA.",
-                    )
-                    return
-                }
-            }
-            if (enterpriseToken) {
-                const accountId = email.trim().toLowerCase()
-                const verified = await verifyRecaptchaEnterpriseWithApi(
-                    enterpriseToken,
-                    RECAPTCHA_ACTIONS.LOGIN,
-                    { email: accountId, accountId },
-                )
-                if (!verified.ok) {
-                    console.error("[signin] reCAPTCHA verify API rejected", verified)
-                    const reason = verified.reason || "Verification failed. Please try again."
-                    const lowScore = /score below threshold/i.test(reason)
-                    toast.error(
-                        lowScore
-                            ? "Google scored this sign-in as risky (extensions, VPN, or automation). Disable ad blockers, try a normal window or Incognito, then retry."
-                            : reason,
-                    )
-                    return
-                }
-            }
-        }
-
         const accountId = email.trim().toLowerCase()
-        setSubmitting(true)
+
         try {
-            await configurePersistence()
+            // 2. Concurrently execute Enterprise reCAPTCHA token generation and session persistence
+            const enterpriseKey = getRecaptchaEnterpriseSiteKey()
+            if (enterpriseKey) {
+                const [enterpriseToken] = await Promise.all([
+                    executeRecaptchaEnterprise(RECAPTCHA_ACTIONS.LOGIN).catch((err) => {
+                        console.warn("[signin] reCAPTCHA Enterprise execute failed", err)
+                        return undefined
+                    }),
+                    configurePersistence(),
+                ])
+
+                if (enterpriseToken) {
+                    const verified = await verifyRecaptchaEnterpriseWithApi(
+                        enterpriseToken,
+                        RECAPTCHA_ACTIONS.LOGIN,
+                        { email: accountId, accountId },
+                    )
+                    if (!verified.ok) {
+                        console.error("[signin] reCAPTCHA verify API rejected", verified)
+                        const reason = verified.reason || "Verification failed. Please try again."
+                        const lowScore = /score below threshold/i.test(reason)
+                        toast.error(
+                            lowScore
+                                ? "Google scored this sign-in as risky. Disable ad blockers, try a normal window or Incognito, then retry."
+                                : reason,
+                        )
+                        setSubmitting(false)
+                        return
+                    }
+                }
+            } else {
+                await configurePersistence()
+            }
+
             const role = await login(email, password)
             void annotateRecaptchaAssessmentWithApi({
                 annotation: "LEGITIMATE",
@@ -245,8 +245,8 @@ function SignInContent() {
         }
     }
 
-    // If user is already authenticated with an established session, redirect seamlessly
-    if (user && !mfaResolver && !submitting) {
+    // If user is already authenticated with an established session from a prior visit, redirect seamlessly
+    if (user && !mfaResolver && !submitting && !routing) {
         return (
             <Preloader
                 fullScreen
@@ -359,13 +359,18 @@ function SignInContent() {
                 {/* Sign In Button */}
                 <button
                     type="submit"
-                    disabled={submitting || !recaptchaSolved}
+                    disabled={submitting || routing || !recaptchaSolved}
                     className="group flex w-full items-center justify-center gap-2 rounded-xl h-11 sm:h-12 min-h-[46px] sm:min-h-[48px] text-sm sm:text-base font-bold text-white shadow-lg bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/35 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
-                    {submitting ? (
+                    {routing ? (
                         <>
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Signing in…
+                            <span>Redirecting to your account…</span>
+                        </>
+                    ) : submitting ? (
+                        <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Signing in…</span>
                         </>
                     ) : (
                         <>

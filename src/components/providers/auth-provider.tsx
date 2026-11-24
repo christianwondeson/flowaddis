@@ -212,7 +212,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         async (firebaseUser: FirebaseUser, loginEmail?: string): Promise<UserRole> => {
             if (loginEmail) clearEmailLoginGuard(loginEmail);
             const token = await firebaseUser.getIdToken();
-            const sessRes = await postSessionCookie(token);
+
+            // Parallelize session cookie setup and user doc fetching for fast authentication
+            const sessPromise = postSessionCookie(token);
+            const userDocPromise = db
+                ? (async () => {
+                      await queryClient.cancelQueries({
+                          queryKey: queryKeys.user.profile(firebaseUser.uid),
+                      });
+                      return getUserDocSnapshotPreferServer(
+                          doc(db, 'users', firebaseUser.uid),
+                      );
+                  })().catch((e: unknown) => {
+                      console.warn('[auth] userDoc snapshot failed, falling back:', e);
+                      return null;
+                  })
+                : Promise.resolve(null);
+
+            const [sessRes, userDoc] = await Promise.all([sessPromise, userDocPromise]);
+
             if (sessRes.status === 429) {
                 await signOut(auth!);
                 throw new Error(
@@ -224,14 +242,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error('Could not complete sign-in securely. Please try again.');
             }
 
-            if (db) {
+            if (db && userDoc) {
                 try {
-                    await queryClient.cancelQueries({
-                        queryKey: queryKeys.user.profile(firebaseUser.uid),
-                    });
-                    const userDoc = await getUserDocSnapshotPreferServer(
-                        doc(db, 'users', firebaseUser.uid),
-                    );
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         const role: UserRole = parseUserRole(userData.role);
