@@ -39,14 +39,18 @@ service cloud.firestore {
     function canAccessThread(hotelId, threadId) {
       let path = threadPath(hotelId, threadId);
       let data = exists(path) ? get(path).data : {};
-      return exists(path) && (
+      return signedIn() && (
         isAdmin() ||
         isHotelStaff() ||
-        data.get('guestUid', '') == request.auth.uid ||
-        (
-          'participantUids' in data &&
-          request.auth.uid in data.participantUids
-        )
+        threadId == ('guest_' + request.auth.uid) ||
+        threadId == ('support_' + request.auth.uid) ||
+        (exists(path) && (
+          data.get('guestUid', '') == request.auth.uid ||
+          (
+            'participantUids' in data &&
+            request.auth.uid in data.participantUids
+          )
+        ))
       );
     }
 
@@ -77,6 +81,9 @@ service cloud.firestore {
       allow read: if signedIn() && (
         isAdmin() ||
         isHotelStaff() ||
+        threadId == ('guest_' + request.auth.uid) ||
+        threadId == ('support_' + request.auth.uid) ||
+        (resource != null && resource.data.guestUid == request.auth.uid) ||
         (resource != null && resource.data.get('guestUid', '') == request.auth.uid) ||
         (resource != null && 'participantUids' in resource.data && request.auth.uid in resource.data.participantUids)
       );
@@ -98,9 +105,13 @@ service cloud.firestore {
       );
 
       match /messages/{messageId} {
-        allow read: if canAccessThread(hotelId, threadId)
-          || isAdmin()
-          || isHotelStaff();
+        allow read: if signedIn() && (
+          isAdmin() ||
+          isHotelStaff() ||
+          threadId == ('guest_' + request.auth.uid) ||
+          threadId == ('support_' + request.auth.uid) ||
+          canAccessThread(hotelId, threadId)
+        );
 
         allow create: if signedIn()
           && request.resource.data.senderUid == request.auth.uid
@@ -110,10 +121,16 @@ service cloud.firestore {
           && (
             isAdmin() ||
             isHotelStaff() ||
+            threadId == ('guest_' + request.auth.uid) ||
+            threadId == ('support_' + request.auth.uid) ||
             canAccessThread(hotelId, threadId)
           );
 
-        allow update, delete: if false;
+        allow update, delete: if signedIn() && (
+          isAdmin() ||
+          isHotelStaff() ||
+          (resource != null && resource.data.senderUid == request.auth.uid)
+        );
       }
     }
 

@@ -81,12 +81,12 @@ function firestoreChatError(err: unknown, fallback: string): Error {
     const msg = err instanceof Error ? err.message : String(err);
     if (/permission|insufficient/i.test(msg)) {
         return new Error(
-            `${fallback} Your Firestore users/{uid}.role must be admin, hotel_admin, or hotel_staff, and firestore.rules must be deployed to the flowaddis-db database.`,
+            `${fallback} Access denied. Please ensure you are signed in with the correct account (guest of this reservation, hotel staff, or admin).`,
         );
     }
     if (/blocked|ERR_BLOCKED|Failed to fetch|unavailable|network/i.test(msg)) {
         return new Error(
-            'Chat could not reach Firestore (network or browser extension). Try another browser profile or allow *.googleapis.com / *.firebaseio.com.',
+            'Chat could not reach Firestore (network or browser extension). If using an ad blocker, allow *.googleapis.com / *.firebaseio.com.',
         );
     }
     return err instanceof Error ? err : new Error(msg || fallback);

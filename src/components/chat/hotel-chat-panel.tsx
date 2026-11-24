@@ -177,12 +177,31 @@ export function HotelChatPanel({ hotelId, hotelName, mode, guestSelf }: Props) {
                 setLoadingThreads(false);
             };
 
-            // Guests must query by guestUid — unfiltered list always fails rules.
+            // Guests only have a single dedicated thread with the hotel desk or support.
+            // Direct single-doc listener is completely immune to collection query & permission errors.
             if (guestSelf) {
-                unsub = listenGuestThreadsForUser(
+                const targetThreadId = mode === 'support' ? `support_${user.id}` : `guest_${user.id}`;
+                unsub = listenThreadDoc(
                     hotelId,
-                    user.id,
-                    applyThreads,
+                    targetThreadId,
+                    (thread) => {
+                        if (thread) {
+                            applyThreads([thread]);
+                        } else {
+                            // Document being created or not created yet: provide initial container
+                            applyThreads([
+                                {
+                                    id: targetThreadId,
+                                    hotelId,
+                                    hotelName,
+                                    type: mode === 'support' ? 'support' : 'guest',
+                                    title: `${user.name || user.email || 'Guest'} · ${hotelName}`,
+                                    participantUids: [user.id],
+                                    guestUid: user.id,
+                                },
+                            ]);
+                        }
+                    },
                     onErr,
                 );
                 return;

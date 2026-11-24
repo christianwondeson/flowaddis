@@ -26,6 +26,7 @@ import {
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions"
 import { getSignInMethodsForEmail, isGoogleOnlySignIn } from "@/lib/auth/sign-in-methods"
 import { Preloader } from "@/components/ui/preloader"
+import { auth } from "@/lib/firebase"
 
 function SignInContent() {
     const [email, setEmail] = useState("")
@@ -45,6 +46,31 @@ function SignInContent() {
 
     const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
     const [mfaEmail, setMfaEmail] = useState("")
+    const [tabIsolated, setTabIsolated] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return (
+                sessionStorage.getItem('bookaddis_tab_isolated') === 'true' ||
+                searchParams.get('session') === 'tab'
+            );
+        }
+        return false;
+    });
+
+    const configurePersistence = async () => {
+        if (!auth) return;
+        try {
+            const { setPersistence, browserSessionPersistence, browserLocalPersistence } = await import('firebase/auth');
+            if (tabIsolated) {
+                await setPersistence(auth, browserSessionPersistence);
+                sessionStorage.setItem('bookaddis_tab_isolated', 'true');
+            } else {
+                await setPersistence(auth, browserLocalPersistence);
+                sessionStorage.removeItem('bookaddis_tab_isolated');
+            }
+        } catch (e) {
+            console.warn('[signin] configurePersistence failed', e);
+        }
+    };
     /** Prevents useEffect from overriding pushAfterLogin with stale role=user before Firestore loads */
     const skipSessionRedirectRef = useRef(false)
 
@@ -164,6 +190,7 @@ function SignInContent() {
         const accountId = email.trim().toLowerCase()
         setSubmitting(true)
         try {
+            await configurePersistence()
             const role = await login(email, password)
             void annotateRecaptchaAssessmentWithApi({
                 annotation: "LEGITIMATE",
@@ -200,6 +227,7 @@ function SignInContent() {
     const handleGoogleSignIn = async () => {
         setSubmitting(true)
         try {
+            await configurePersistence()
             // Google OAuth uses Firebase signInWithPopup  no Enterprise execute needed.
             // A separate action (e.g. google_signin) is rejected by policy-based reCAPTCHA keys.
             const role = await loginWithGoogle()
@@ -302,11 +330,20 @@ function SignInContent() {
                     />
                 </FormField>
 
-                {/* Forgot Password Link */}
-                <div className="flex justify-end">
+                {/* Forgot Password Link and Tab Session Isolation */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 select-none">
+                        <input
+                            type="checkbox"
+                            checked={tabIsolated}
+                            onChange={(e) => setTabIsolated(e.target.checked)}
+                            className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                        />
+                        <span>Isolate session to this tab (Multi-account)</span>
+                    </label>
                     <Link
                         href={`/forgot-password?redirect=${encodeURIComponent(from)}`}
-                        className="py-0.5 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors"
+                        className="py-0.5 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors shrink-0"
                     >
                         Forgot password?
                     </Link>

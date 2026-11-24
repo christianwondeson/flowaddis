@@ -33,9 +33,17 @@ if (typeof window !== "undefined") {
     } catch {}
     auth = getAuth(app);
 
-    // Explicitly set persistence to local (default but good to be explicit)
-    import('firebase/auth').then(({ setPersistence, browserLocalPersistence }) => {
-        if (auth) setPersistence(auth, browserLocalPersistence);
+    // Set persistence: browserSessionPersistence if tab isolation is enabled, otherwise browserLocalPersistence
+    import('firebase/auth').then(({ setPersistence, browserLocalPersistence, browserSessionPersistence }) => {
+        if (!auth) return;
+        const useSessionOnly = typeof window !== 'undefined' && (
+            sessionStorage.getItem('bookaddis_tab_isolated') === 'true' ||
+            new URLSearchParams(window.location.search).get('session') === 'tab'
+        );
+        const persistence = useSessionOnly ? browserSessionPersistence : browserLocalPersistence;
+        setPersistence(auth, persistence).catch((e) => {
+            console.warn('[Firebase] setPersistence failed:', e);
+        });
     });
 
     // Initialize Firestore using either a named database (if provided) or the default database
