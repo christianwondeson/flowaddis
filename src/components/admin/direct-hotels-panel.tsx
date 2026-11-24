@@ -6,8 +6,9 @@ import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Building2, ExternalLink, RefreshCw } from 'lucide-react';
+import { Building2, ExternalLink, RefreshCw, Plus } from 'lucide-react';
 import { AdminLoader } from '@/components/ui/admin-loader';
+import { RegisterDirectHotelModal } from './register-direct-hotel-modal';
 import {
     getHotelVerification,
     hotelVerificationReady,
@@ -71,6 +72,7 @@ export function DirectHotelsPanel() {
     const [loading, setLoading] = useState(true);
     const [q, setQ] = useState('');
     const [busyId, setBusyId] = useState<string | null>(null);
+    const [registerModalOpen, setRegisterModalOpen] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -167,14 +169,21 @@ export function DirectHotelsPanel() {
                                 Direct hotels (BookAddis inventory)
                             </h2>
                             <p className="text-sm text-gray-500 mt-0.5 max-w-2xl">
-                                Publish hotels to guest search when verification docs
-                                are complete, or unpublish to hide them. Create hotels
-                                via partner approval or Assign hotel access — not a
-                                separate register form here.
+                                Register new direct hotels, publish to guest search when verification docs
+                                are complete, and manage property details, rates, and GPS location.
                             </p>
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setRegisterModalOpen(true)}
+                            className="font-bold text-xs"
+                        >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Register Direct Hotel
+                        </Button>
                         <Button
                             type="button"
                             variant="outline"
@@ -285,6 +294,12 @@ export function DirectHotelsPanel() {
                     })}
                 </ul>
             )}
+
+            <RegisterDirectHotelModal
+                open={registerModalOpen}
+                onClose={() => setRegisterModalOpen(false)}
+                onCreated={() => void load()}
+            />
         </div>
     );
 }

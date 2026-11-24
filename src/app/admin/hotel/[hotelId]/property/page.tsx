@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { AdminLoader } from '@/components/ui/admin-loader';
+import { MapPin, Navigation, ExternalLink, Sparkles, Phone, Mail, Globe, Clock } from 'lucide-react';
 
 type HotelForm = {
     name: string;
@@ -17,10 +18,28 @@ type HotelForm = {
     description: string;
     location: string;
     city: string;
+    subcity: string;
     country: string;
+    postal_code: string;
+    latitude: string;
+    longitude: string;
     star_rating: string;
     default_currency: string;
+    phone: string;
+    email: string;
+    website: string;
+    check_in_time: string;
+    check_out_time: string;
 };
+
+const COORDINATE_PRESETS = [
+    { label: 'Addis Ababa - Bole Airport Area', lat: '8.9806000', lng: '38.7578000', city: 'Addis Ababa', subcity: 'Bole' },
+    { label: 'Addis Ababa - Kazanchis / City Center', lat: '9.0182000', lng: '38.7667000', city: 'Addis Ababa', subcity: 'Kirkos' },
+    { label: 'Addis Ababa - Piazza / Churchill', lat: '9.0345000', lng: '38.7525000', city: 'Addis Ababa', subcity: 'Arada' },
+    { label: 'Bishoftu - Lakes Area', lat: '8.7523000', lng: '38.9785000', city: 'Bishoftu', subcity: 'Bishoftu' },
+    { label: 'Hawassa - Lakeside Area', lat: '7.0504000', lng: '38.4955000', city: 'Hawassa', subcity: 'Hawassa' },
+    { label: 'Bahir Dar - Lake Tana Area', lat: '11.5742000', lng: '37.3614000', city: 'Bahir Dar', subcity: 'Bahir Dar' },
+];
 
 function PropertyInner() {
     const params = useParams();
@@ -35,19 +54,30 @@ function PropertyInner() {
         description: '',
         location: '',
         city: '',
+        subcity: '',
         country: 'ET',
+        postal_code: '',
+        latitude: '',
+        longitude: '',
         star_rating: '',
         default_currency: 'ETB',
+        phone: '',
+        email: '',
+        website: '',
+        check_in_time: '14:00',
+        check_out_time: '11:00',
     });
     const [amenities, setAmenities] = useState<Record<string, unknown>>({});
+    const [policies, setPolicies] = useState<Record<string, unknown>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [detectingLocation, setDetectingLocation] = useState(false);
 
     const base = `/admin/hotel/${hotelId}/property`;
     const nav = [
-        { id: 'basics', label: 'Property basics', hint: 'Name & description', href: `${base}?section=basics` },
-        { id: 'location', label: 'Location', hint: 'City & address', href: `${base}?section=location` },
-        { id: 'details', label: 'Details', hint: 'Stars & currency', href: `${base}?section=details` },
+        { id: 'basics', label: 'Property basics', hint: 'Name, brand & contact', href: `${base}?section=basics` },
+        { id: 'location', label: 'Location & GPS', hint: 'Address, map & coordinates', href: `${base}?section=location` },
+        { id: 'details', label: 'Details & Hours', hint: 'Stars, currency & check-in', href: `${base}?section=details` },
     ];
 
     useEffect(() => {
@@ -61,21 +91,37 @@ function PropertyInner() {
                     location?: string | null;
                     city?: string | null;
                     country?: string | null;
+                    latitude?: number | null;
+                    longitude?: number | null;
                     star_rating?: number | null;
                     default_currency?: string;
                     amenities?: Record<string, unknown> | null;
+                    policies?: Record<string, unknown> | null;
                 }>(`hotels/${hotelId}`);
+
                 const am = h.amenities && typeof h.amenities === 'object' ? h.amenities : {};
+                const pol = h.policies && typeof h.policies === 'object' ? h.policies : {};
                 setAmenities(am);
+                setPolicies(pol);
+
                 setForm({
                     name: h.name || '',
                     brand: String(am.brand || am.brand_name || ''),
                     description: h.description || '',
                     location: h.location || '',
                     city: h.city || '',
+                    subcity: String(am.subcity || am.neighborhood || ''),
                     country: h.country || 'ET',
+                    postal_code: String(am.postal_code || am.zip || ''),
+                    latitude: h.latitude != null ? String(h.latitude) : '',
+                    longitude: h.longitude != null ? String(h.longitude) : '',
                     star_rating: h.star_rating != null ? String(h.star_rating) : '',
                     default_currency: h.default_currency || 'ETB',
+                    phone: String(am.phone || am.contact_phone || ''),
+                    email: String(am.email || am.contact_email || ''),
+                    website: String(am.website || ''),
+                    check_in_time: String(pol.checkInTime || pol.check_in_time || '14:00'),
+                    check_out_time: String(pol.checkOutTime || pol.check_out_time || '11:00'),
                 });
             } catch (e) {
                 toast.error((e as Error).message);
@@ -85,18 +131,78 @@ function PropertyInner() {
         })();
     }, [hotelId]);
 
+    const handleDetectLocation = () => {
+        if (!navigator.geolocation) {
+            toast.error('Geolocation is not supported by your browser');
+            return;
+        }
+        setDetectingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                setForm((f) => ({
+                    ...f,
+                    latitude: pos.coords.latitude.toFixed(7),
+                    longitude: pos.coords.longitude.toFixed(7),
+                }));
+                setDetectingLocation(false);
+                toast.success('Current GPS coordinates detected!');
+            },
+            (err) => {
+                setDetectingLocation(false);
+                toast.error(`Could not detect location: ${err.message}`);
+            },
+            { enableHighAccuracy: true, timeout: 10000 },
+        );
+    };
+
+    const handleApplyPreset = (p: typeof COORDINATE_PRESETS[0]) => {
+        setForm((f) => ({
+            ...f,
+            latitude: p.lat,
+            longitude: p.lng,
+            city: f.city || p.city,
+            subcity: f.subcity || p.subcity,
+        }));
+        toast.info(`Applied ${p.label} coordinates`);
+    };
+
     const save = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) {
             toast.error('Hotel name is required');
             return;
         }
+
+        const latNum = form.latitude.trim() ? parseFloat(form.latitude) : null;
+        const lngNum = form.longitude.trim() ? parseFloat(form.longitude) : null;
+
+        if (latNum !== null && (isNaN(latNum) || latNum < -90 || latNum > 90)) {
+            toast.error('Latitude must be a valid number between -90 and 90');
+            return;
+        }
+        if (lngNum !== null && (isNaN(lngNum) || lngNum < -180 || lngNum > 180)) {
+            toast.error('Longitude must be a valid number between -180 and 180');
+            return;
+        }
+
         setSaving(true);
         try {
             const nextAmenities = {
                 ...amenities,
                 brand: form.brand.trim() || undefined,
+                subcity: form.subcity.trim() || undefined,
+                postal_code: form.postal_code.trim() || undefined,
+                phone: form.phone.trim() || undefined,
+                email: form.email.trim() || undefined,
+                website: form.website.trim() || undefined,
             };
+
+            const nextPolicies = {
+                ...policies,
+                checkInTime: form.check_in_time.trim() || '14:00',
+                checkOutTime: form.check_out_time.trim() || '11:00',
+            };
+
             await hotelAdminFetch(`hotels/${hotelId}`, {
                 method: 'PUT',
                 body: JSON.stringify({
@@ -105,17 +211,22 @@ function PropertyInner() {
                     location: form.location.trim(),
                     city: form.city.trim(),
                     country: form.country.trim() || 'ET',
+                    latitude: latNum,
+                    longitude: lngNum,
                     default_currency: (form.default_currency || 'ETB')
                         .trim()
                         .toUpperCase(),
                     amenities: nextAmenities,
+                    policies: nextPolicies,
                     ...(form.star_rating === ''
-                        ? {}
+                        ? { star_rating: null }
                         : { star_rating: Number(form.star_rating) }),
                 }),
             });
+
             setAmenities(nextAmenities);
-            toast.success('Property saved  details sync for BookAddis when published');
+            setPolicies(nextPolicies);
+            toast.success('Property details, address & GPS coordinates saved!');
             await refresh();
         } catch (err) {
             toast.error((err as Error).message);
@@ -125,49 +236,64 @@ function PropertyInner() {
     };
 
     if (loading) {
-        return <p className="text-sm text-slate-500">Loading property…</p>;
+        return <AdminLoader label="Loading property profile…" />;
     }
+
+    const hasCoords = form.latitude.trim() && form.longitude.trim();
+    const googleMapsUrl = hasCoords
+        ? `https://www.google.com/maps?q=${encodeURIComponent(form.latitude)},${encodeURIComponent(form.longitude)}`
+        : null;
 
     return (
         <HotelSectionShell
-            title="Property"
-            description="Guest-facing name, brand, and location. Super Admin publishes the hotel to BookAddis search."
+            title="Property Profile & Location"
+            description="Guest-facing name, location address, GPS coordinates, and contact details. Synchronized live across BookAddis search & guest map views."
             items={nav}
         >
             <form
                 onSubmit={save}
-                className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-5"
+                className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 shadow-xs space-y-6"
             >
+                {/* 1. BASICS & CONTACT */}
                 {section === 'basics' && (
-                    <>
-                        <div className="space-y-2">
-                            <Label htmlFor="prop-name">Hotel name</Label>
-                            <Input
-                                id="prop-name"
-                                required
-                                value={form.name}
-                                onChange={(e) =>
-                                    setForm((f) => ({ ...f, name: e.target.value }))
-                                }
-                                placeholder="Official property name"
-                            />
+                    <div className="space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="prop-name" className="text-xs font-bold text-gray-700">
+                                    Official Hotel Name *
+                                </Label>
+                                <Input
+                                    id="prop-name"
+                                    required
+                                    value={form.name}
+                                    onChange={(e) =>
+                                        setForm((f) => ({ ...f, name: e.target.value }))
+                                    }
+                                    placeholder="e.g. Momona Hotel"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="prop-brand" className="text-xs font-bold text-gray-700">
+                                    Brand / Chain Affiliation
+                                </Label>
+                                <Input
+                                    id="prop-brand"
+                                    value={form.brand}
+                                    onChange={(e) =>
+                                        setForm((f) => ({ ...f, brand: e.target.value }))
+                                    }
+                                    placeholder="e.g. Momona Hotels & Resorts"
+                                />
+                            </div>
                         </div>
+
                         <div className="space-y-2">
-                            <Label htmlFor="prop-brand">Brand / chain</Label>
-                            <Input
-                                id="prop-brand"
-                                value={form.brand}
-                                onChange={(e) =>
-                                    setForm((f) => ({ ...f, brand: e.target.value }))
-                                }
-                                placeholder="e.g. Momona Hotels"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="prop-desc">Description</Label>
+                            <Label htmlFor="prop-desc" className="text-xs font-bold text-gray-700">
+                                Property Description & Highlights
+                            </Label>
                             <textarea
                                 id="prop-desc"
-                                className="w-full min-h-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                className="w-full min-h-[130px] rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary"
                                 value={form.description}
                                 onChange={(e) =>
                                     setForm((f) => ({
@@ -175,19 +301,74 @@ function PropertyInner() {
                                         description: e.target.value,
                                     }))
                                 }
-                                placeholder="What makes your hotel special? Location highlights, style, guest experience…"
+                                placeholder="Describe your property: location highlights, amenities, dining, ambiance, guest comfort…"
                             />
                         </div>
-                    </>
+
+                        <div className="border-t border-slate-100 pt-4">
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                                Direct Contact Channels
+                            </h3>
+                            <div className="grid gap-4 sm:grid-cols-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-phone" className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                        <Phone className="w-3.5 h-3.5 text-teal-600" />
+                                        Front Desk Phone
+                                    </Label>
+                                    <Input
+                                        id="prop-phone"
+                                        value={form.phone}
+                                        onChange={(e) =>
+                                            setForm((f) => ({ ...f, phone: e.target.value }))
+                                        }
+                                        placeholder="+251 11 618 5747"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-email" className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                        <Mail className="w-3.5 h-3.5 text-teal-600" />
+                                        Reservation Email
+                                    </Label>
+                                    <Input
+                                        id="prop-email"
+                                        type="email"
+                                        value={form.email}
+                                        onChange={(e) =>
+                                            setForm((f) => ({ ...f, email: e.target.value }))
+                                        }
+                                        placeholder="reservations@momonahotel.com"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-website" className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                        <Globe className="w-3.5 h-3.5 text-teal-600" />
+                                        Official Website
+                                    </Label>
+                                    <Input
+                                        id="prop-website"
+                                        value={form.website}
+                                        onChange={(e) =>
+                                            setForm((f) => ({ ...f, website: e.target.value }))
+                                        }
+                                        placeholder="https://momonahotel.com"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
+                {/* 2. LOCATION & GPS COORDINATES */}
                 {section === 'location' && (
-                    <>
-                        <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-3">
                             <div className="space-y-2">
-                                <Label htmlFor="prop-city">City</Label>
+                                <Label htmlFor="prop-city" className="text-xs font-bold text-gray-700">
+                                    City *
+                                </Label>
                                 <Input
                                     id="prop-city"
+                                    required
                                     value={form.city}
                                     onChange={(e) =>
                                         setForm((f) => ({ ...f, city: e.target.value }))
@@ -196,76 +377,272 @@ function PropertyInner() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="prop-country">Country code</Label>
+                                <Label htmlFor="prop-subcity" className="text-xs font-bold text-gray-700">
+                                    Subcity / Neighborhood
+                                </Label>
+                                <Input
+                                    id="prop-subcity"
+                                    value={form.subcity}
+                                    onChange={(e) =>
+                                        setForm((f) => ({ ...f, subcity: e.target.value }))
+                                    }
+                                    placeholder="e.g. Bole / Kazanchis"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="prop-country" className="text-xs font-bold text-gray-700">
+                                    Country Code
+                                </Label>
                                 <Input
                                     id="prop-country"
                                     value={form.country}
                                     onChange={(e) =>
                                         setForm((f) => ({
                                             ...f,
-                                            country: e.target.value,
+                                            country: e.target.value.toUpperCase(),
                                         }))
                                     }
+                                    maxLength={3}
                                     placeholder="ET"
                                 />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="prop-loc">Street / area</Label>
-                            <Input
-                                id="prop-loc"
-                                value={form.location}
-                                onChange={(e) =>
-                                    setForm((f) => ({
-                                        ...f,
-                                        location: e.target.value,
-                                    }))
-                                }
-                                placeholder="Bole Road, near airport"
-                            />
-                        </div>
-                    </>
-                )}
 
-                {section === 'details' && (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="prop-stars">Star rating</Label>
-                            <Input
-                                id="prop-stars"
-                                type="number"
-                                min={0}
-                                max={5}
-                                step={0.5}
-                                value={form.star_rating}
-                                onChange={(e) =>
-                                    setForm((f) => ({
-                                        ...f,
-                                        star_rating: e.target.value,
-                                    }))
-                                }
-                            />
+                        <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="space-y-2 sm:col-span-2">
+                                <Label htmlFor="prop-loc" className="text-xs font-bold text-gray-700">
+                                    Street Address & Landmark *
+                                </Label>
+                                <Input
+                                    id="prop-loc"
+                                    value={form.location}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            location: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="e.g. Bole Medhanialem, across from Edna Mall"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="prop-postal" className="text-xs font-bold text-gray-700">
+                                    Postal / ZIP Code
+                                </Label>
+                                <Input
+                                    id="prop-postal"
+                                    value={form.postal_code}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            postal_code: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="1000"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="prop-cur">Default currency</Label>
-                            <Input
-                                id="prop-cur"
-                                value={form.default_currency}
-                                onChange={(e) =>
-                                    setForm((f) => ({
-                                        ...f,
-                                        default_currency: e.target.value.toUpperCase(),
-                                    }))
-                                }
-                                maxLength={3}
-                            />
+
+                        {/* GPS Coordinates Section */}
+                        <div className="rounded-2xl border border-teal-200/80 bg-teal-50/50 p-4 sm:p-5 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-teal-100 pb-3">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-brand-primary" />
+                                        <h3 className="text-sm font-extrabold text-brand-dark">
+                                            GPS Map Coordinates
+                                        </h3>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Essential for guest navigation, map search pins, and airport transfer distance calculations.
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleDetectLocation}
+                                        disabled={detectingLocation}
+                                        className="text-xs font-semibold bg-white"
+                                    >
+                                        <Navigation className="w-3.5 h-3.5 mr-1 text-teal-600" />
+                                        {detectingLocation ? 'Detecting…' : 'Use Current GPS'}
+                                    </Button>
+
+                                    {googleMapsUrl && (
+                                        <a
+                                            href={googleMapsUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-xs font-bold text-teal-800 bg-white border border-teal-200 px-2.5 py-1.5 rounded-lg hover:bg-teal-50 transition-colors"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            View on Google Maps
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-lat" className="text-xs font-bold text-gray-700">
+                                        Latitude (Decimal Degrees)
+                                    </Label>
+                                    <Input
+                                        id="prop-lat"
+                                        type="number"
+                                        step="any"
+                                        value={form.latitude}
+                                        onChange={(e) =>
+                                            setForm((f) => ({ ...f, latitude: e.target.value }))
+                                        }
+                                        placeholder="e.g. 8.9806000"
+                                    />
+                                    <p className="text-[11px] text-gray-400">Range: -90.0 to 90.0</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-lng" className="text-xs font-bold text-gray-700">
+                                        Longitude (Decimal Degrees)
+                                    </Label>
+                                    <Input
+                                        id="prop-lng"
+                                        type="number"
+                                        step="any"
+                                        value={form.longitude}
+                                        onChange={(e) =>
+                                            setForm((f) => ({ ...f, longitude: e.target.value }))
+                                        }
+                                        placeholder="e.g. 38.7578000"
+                                    />
+                                    <p className="text-[11px] text-gray-400">Range: -180.0 to 180.0</p>
+                                </div>
+                            </div>
+
+                            {/* Preset coordinate chips */}
+                            <div>
+                                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide block mb-1.5">
+                                    Quick Area Coordinates Presets:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {COORDINATE_PRESETS.map((p) => (
+                                        <button
+                                            key={p.label}
+                                            type="button"
+                                            onClick={() => handleApplyPreset(p)}
+                                            className="text-[11px] font-medium bg-white hover:bg-teal-100/70 border border-teal-200/80 rounded-lg px-2.5 py-1 text-teal-900 transition-colors cursor-pointer"
+                                        >
+                                            {p.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                <div className="pt-2 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    <Button type="submit" disabled={saving} className="w-full sm:w-auto">
-                        {saving ? 'Saving…' : 'Save changes'}
+                {/* 3. DETAILS & POLICIES */}
+                {section === 'details' && (
+                    <div className="space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="prop-stars" className="text-xs font-bold text-gray-700">
+                                    Official Star Rating
+                                </Label>
+                                <Input
+                                    id="prop-stars"
+                                    type="number"
+                                    min={0}
+                                    max={5}
+                                    step={0.5}
+                                    value={form.star_rating}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            star_rating: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="4"
+                                />
+                                <p className="text-[11px] text-gray-400">
+                                    Stars displayed to guests (0 to 5, half-stars allowed).
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="prop-cur" className="text-xs font-bold text-gray-700">
+                                    Default Base Currency
+                                </Label>
+                                <Input
+                                    id="prop-cur"
+                                    value={form.default_currency}
+                                    onChange={(e) =>
+                                        setForm((f) => ({
+                                            ...f,
+                                            default_currency: e.target.value.toUpperCase(),
+                                        }))
+                                    }
+                                    maxLength={3}
+                                    placeholder="ETB"
+                                />
+                                <p className="text-[11px] text-gray-400">
+                                    Base billing currency (ETB for domestic Ethiopian accounts).
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-slate-100 pt-4">
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                                Standard Check-In / Check-Out Hours
+                            </h3>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-checkin" className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-teal-600" />
+                                        Standard Check-In Time
+                                    </Label>
+                                    <Input
+                                        id="prop-checkin"
+                                        type="time"
+                                        value={form.check_in_time}
+                                        onChange={(e) =>
+                                            setForm((f) => ({
+                                                ...f,
+                                                check_in_time: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="prop-checkout" className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-teal-600" />
+                                        Standard Check-Out Time
+                                    </Label>
+                                    <Input
+                                        id="prop-checkout"
+                                        type="time"
+                                        value={form.check_out_time}
+                                        onChange={(e) =>
+                                            setForm((f) => ({
+                                                ...f,
+                                                check_out_time: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row sm:justify-between items-center gap-3">
+                    <p className="text-xs text-gray-400">
+                        {section === 'location' && form.latitude && form.longitude
+                            ? `GPS: ${form.latitude}, ${form.longitude}`
+                            : 'All changes sync directly to BookAddis guest reservation ledger.'}
+                    </p>
+                    <Button type="submit" disabled={saving} className="w-full sm:w-auto font-bold text-xs">
+                        {saving ? 'Saving changes…' : 'Save Property Details'}
                     </Button>
                 </div>
             </form>
@@ -275,7 +652,7 @@ function PropertyInner() {
 
 export default function HotelPropertyPage() {
     return (
-        <Suspense fallback={<AdminLoader label="Loading property…" />}>
+        <Suspense fallback={<AdminLoader label="Loading property profile…" />}>
             <PropertyInner />
         </Suspense>
     );

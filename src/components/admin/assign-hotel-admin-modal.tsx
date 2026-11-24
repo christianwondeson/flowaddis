@@ -57,6 +57,9 @@ export function AssignHotelAdminModal({
     const [hotelFilter, setHotelFilter] = useState('');
     const [createName, setCreateName] = useState('');
     const [createCity, setCreateCity] = useState('');
+    const [createLocation, setCreateLocation] = useState('');
+    const [createLatitude, setCreateLatitude] = useState('');
+    const [createLongitude, setCreateLongitude] = useState('');
     const [createBrand, setCreateBrand] = useState('');
     const [membershipRole, setMembershipRole] = useState<'hotel_admin' | 'hotel_staff'>(
         'hotel_admin',
@@ -78,6 +81,9 @@ export function AssignHotelAdminModal({
         setHotelFilter(req?.hotelName?.trim() || '');
         setCreateName(req?.hotelName?.trim() || '');
         setCreateCity(req?.city?.trim() || '');
+        setCreateLocation(req?.kyc?.businessAddress || '');
+        setCreateLatitude((req?.kyc as any)?.latitude != null ? String((req?.kyc as any).latitude) : '');
+        setCreateLongitude((req?.kyc as any)?.longitude != null ? String((req?.kyc as any).longitude) : '');
         setCreateBrand('');
         setMembershipRole('hotel_admin');
         // Default off  publish requires business license on the hotel record.
@@ -235,6 +241,9 @@ export function AssignHotelAdminModal({
                     verification,
                 );
 
+                const latNum = createLatitude.trim() ? parseFloat(createLatitude) : undefined;
+                const lngNum = createLongitude.trim() ? parseFloat(createLongitude) : undefined;
+
                 const createRes = await fetch('/api/admin/hotels', {
                     method: 'POST',
                     headers,
@@ -245,7 +254,9 @@ export function AssignHotelAdminModal({
                             user.hotelPartnerRequest?.city ||
                             kyc?.city ||
                             undefined,
-                        location: kyc?.businessAddress || undefined,
+                        location: createLocation.trim() || kyc?.businessAddress || undefined,
+                        latitude: latNum !== undefined && !isNaN(latNum) ? latNum : undefined,
+                        longitude: lngNum !== undefined && !isNaN(lngNum) ? lngNum : undefined,
                         country: kyc?.country || 'ET',
                         inventory_source: 'bookaddis_direct',
                         // Always draft/pending until Super Admin publishes with docs.
@@ -447,6 +458,38 @@ export function AssignHotelAdminModal({
                                     value={createBrand}
                                     onChange={(e) => setCreateBrand(e.target.value)}
                                     placeholder="Momona Hotels"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            <Label>Street address / location</Label>
+                            <Input
+                                value={createLocation}
+                                onChange={(e) => setCreateLocation(e.target.value)}
+                                placeholder="e.g. Bole Road, near airport"
+                            />
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Latitude (optional)</Label>
+                                <Input
+                                    type="number"
+                                    step="any"
+                                    value={createLatitude}
+                                    onChange={(e) => setCreateLatitude(e.target.value)}
+                                    placeholder="8.9806000"
+                                    className="text-xs"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Longitude (optional)</Label>
+                                <Input
+                                    type="number"
+                                    step="any"
+                                    value={createLongitude}
+                                    onChange={(e) => setCreateLongitude(e.target.value)}
+                                    placeholder="38.7578000"
+                                    className="text-xs"
                                 />
                             </div>
                         </div>
