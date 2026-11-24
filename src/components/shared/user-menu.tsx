@@ -79,8 +79,20 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                 className="z-[10020] w-56 rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-xl"
             >
                 <DropdownMenuLabel className="font-normal px-3 py-2">
-                    <div className="flex flex-col space-y-0.5">
-                        <p className="text-sm font-semibold text-popover-foreground">{user.name}</p>
+                    <div className="flex flex-col space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-popover-foreground">{user.name}</p>
+                            {user.role === 'hotel_admin' && (
+                                <span className="inline-flex items-center rounded-full bg-teal-100 dark:bg-teal-900/40 px-2 py-0.5 text-[10px] font-medium text-teal-700 dark:text-teal-300">
+                                    Hotel Partner
+                                </span>
+                            )}
+                            {user.role === 'admin' && (
+                                <span className="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:text-purple-300">
+                                    Super Admin
+                                </span>
+                            )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">
                             {user.email}
                         </p>
@@ -91,8 +103,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                 {canAccessAdmin(user) && (
                     <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                         <Link href="/admin" className="flex items-center w-full gap-2">
-                            <LayoutDashboard className="h-4 w-4 shrink-0" />
-                            <span>{t('userMenu.adminDashboard')}</span>
+                            <LayoutDashboard className="h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
+                            <span className="font-medium">{t('userMenu.adminDashboard')}</span>
                         </Link>
                     </DropdownMenuItem>
                 )}
@@ -100,21 +112,18 @@ export const UserMenu: React.FC<UserMenuProps> = ({ isHomePage, scrolled }) => {
                 {(user?.role === 'hotel_admin' || user?.role === 'hotel_staff') && (
                     <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                         <Link href="/admin/hotel" className="flex items-center w-full gap-2">
-                            <LayoutDashboard className="h-4 w-4 shrink-0" />
-                            <span>Hotel Portal</span>
+                            <LayoutDashboard className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" />
+                            <span className="font-medium text-teal-700 dark:text-teal-300">Switch to Hotel Extranet</span>
                         </Link>
                     </DropdownMenuItem>
                 )}
 
-                {/* Regular travel consumers see My Trips; Hotel admins do not need My Trips */}
-                {user?.role !== 'hotel_admin' && user?.role !== 'hotel_staff' && (
-                    <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
-                        <Link href="/trips" className="flex items-center w-full gap-2">
-                            <Briefcase className="h-4 w-4 shrink-0" />
-                            <span>{t('userMenu.myTrips')}</span>
-                        </Link>
-                    </DropdownMenuItem>
-                )}
+                <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
+                    <Link href="/trips" className="flex items-center w-full gap-2">
+                        <Briefcase className="h-4 w-4 shrink-0" />
+                        <span>{t('userMenu.myTrips')}</span>
+                    </Link>
+                </DropdownMenuItem>
 
                 <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 focus:bg-accent focus:text-accent-foreground">
                     <Link href="/profile" className="flex items-center w-full gap-2">

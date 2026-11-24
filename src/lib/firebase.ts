@@ -33,12 +33,15 @@ if (typeof window !== "undefined") {
     } catch {}
     auth = getAuth(app);
 
-    // Set persistence: browserSessionPersistence if tab isolation is enabled, otherwise browserLocalPersistence
+    // Set persistence: automatic contextual persistence (session-only for admin routes to prevent multi-tab collisions, local persistence for consumers)
     import('firebase/auth').then(({ setPersistence, browserLocalPersistence, browserSessionPersistence }) => {
         if (!auth) return;
         const useSessionOnly = typeof window !== 'undefined' && (
             sessionStorage.getItem('bookaddis_tab_isolated') === 'true' ||
-            new URLSearchParams(window.location.search).get('session') === 'tab'
+            new URLSearchParams(window.location.search).get('session') === 'tab' ||
+            window.location.pathname.startsWith('/admin') ||
+            (new URLSearchParams(window.location.search).get('redirect') || '').startsWith('/admin') ||
+            (new URLSearchParams(window.location.search).get('from') || '').startsWith('/admin')
         );
         const persistence = useSessionOnly ? browserSessionPersistence : browserLocalPersistence;
         setPersistence(auth, persistence).catch((e) => {

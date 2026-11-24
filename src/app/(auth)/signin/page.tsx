@@ -46,21 +46,21 @@ function SignInContent() {
 
     const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null)
     const [mfaEmail, setMfaEmail] = useState("")
-    const [tabIsolated, setTabIsolated] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return (
-                sessionStorage.getItem('bookaddis_tab_isolated') === 'true' ||
-                searchParams.get('session') === 'tab'
-            );
-        }
-        return false;
-    });
 
     const configurePersistence = async () => {
         if (!auth) return;
         try {
             const { setPersistence, browserSessionPersistence, browserLocalPersistence } = await import('firebase/auth');
-            if (tabIsolated) {
+            // Automatic contextual persistence:
+            // - Admin portal logins automatically isolate to the tab session so concurrent guest logins in another tab don't collide.
+            // - Regular consumer guest logins use browserLocalPersistence so guests remain signed in across visits.
+            const isAdminDestination =
+                from.startsWith('/admin') ||
+                searchParams.get('portal') === 'admin' ||
+                searchParams.get('session') === 'tab' ||
+                (typeof window !== 'undefined' && sessionStorage.getItem('bookaddis_tab_isolated') === 'true');
+
+            if (isAdminDestination) {
                 await setPersistence(auth, browserSessionPersistence);
                 sessionStorage.setItem('bookaddis_tab_isolated', 'true');
             } else {
@@ -330,20 +330,11 @@ function SignInContent() {
                     />
                 </FormField>
 
-                {/* Forgot Password Link and Tab Session Isolation */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 select-none">
-                        <input
-                            type="checkbox"
-                            checked={tabIsolated}
-                            onChange={(e) => setTabIsolated(e.target.checked)}
-                            className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                        />
-                        <span>Isolate session to this tab (Multi-account)</span>
-                    </label>
+                {/* Forgot Password Link */}
+                <div className="flex items-center justify-end pt-0.5">
                     <Link
                         href={`/forgot-password?redirect=${encodeURIComponent(from)}`}
-                        className="py-0.5 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors shrink-0"
+                        className="py-0.5 text-xs sm:text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors"
                     >
                         Forgot password?
                     </Link>

@@ -18,6 +18,7 @@ import {
     ChevronLeft,
     ChevronRight,
     UserCheck,
+    Globe,
     type LucideIcon,
 } from 'lucide-react';
 import { Logo } from '@/components/shared/logo';
@@ -224,8 +225,30 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 ))}
             </nav>
 
-            {/* Footer Sign Out */}
-            <div className="p-3 border-t border-white/10">
+            {/* Footer Links: View Guest Site & Sign Out */}
+            <div className="p-3 border-t border-white/10 space-y-1">
+                <div className="relative group">
+                    <Link
+                        href="/"
+                        className={clsx(
+                            "flex items-center rounded-xl text-teal-300 hover:bg-teal-500/10 hover:text-teal-200 w-full transition-colors",
+                            collapsed ? "justify-center p-3" : "gap-3 px-3.5 py-2.5 text-sm font-medium"
+                        )}
+                        title="View BookAddis guest site"
+                    >
+                        <Globe className={clsx("shrink-0", collapsed ? "w-5 h-5" : "w-4 h-4")} />
+                        {!collapsed && (
+                            <span className="truncate">View Guest Site</span>
+                        )}
+                    </Link>
+
+                    {collapsed && (
+                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-slate-900 text-teal-300 text-xs font-semibold rounded-lg shadow-2xl border border-white/10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                            View Guest Site
+                        </div>
+                    )}
+                </div>
+
                 <div className="relative group">
                     <button
                         type="button"
