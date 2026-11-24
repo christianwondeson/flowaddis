@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Users,
     CreditCard,
@@ -20,6 +20,10 @@ import {
     Car,
     Copy,
     Check,
+    Percent,
+    ShieldCheck,
+    Compass,
+    Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -28,8 +32,18 @@ import { auth } from '@/lib/firebase';
 import { AdminRequests } from '@/components/admin/admin-requests';
 import { HotelPartnerRequests } from '@/components/admin/hotel-partner-requests';
 import { adminInventoryFetch } from '@/lib/admin-inventory-api';
+import {
+    AnalyticsFilterBar,
+    type TimeRangeValue,
+} from '@/components/admin/analytics/analytics-filter-bar';
+import { KpiMetricCard } from '@/components/admin/analytics/kpi-metric-card';
+import { TrendBarChart } from '@/components/admin/analytics/trend-bar-chart';
+import {
+    CategoryProgressList,
+    type CategoryItem,
+} from '@/components/admin/analytics/category-progress-list';
 
-type RangeKey = '7days' | '30days' | '90days' | 'year';
+type RangeKey = TimeRangeValue;
 
 type DashboardData = {
     range: RangeKey;
@@ -40,6 +54,10 @@ type DashboardData = {
         bookings_change_pct: number;
         revenue_in_range: number;
         revenue_change_pct: number;
+        gross_booking_value?: number;
+        platform_commission?: number;
+        avg_booking_value?: number;
+        cancellation_rate_pct?: number;
         currency: string;
         paid_transactions_in_range: number;
         hotels_direct: number;
@@ -49,6 +67,28 @@ type DashboardData = {
     };
     booking_breakdown: { type: string; count: number; percentage: number }[];
     monthly_trend: { month: string; ym: string; bookings: number; revenue: number }[];
+    commission_summary?: {
+        take_rate_pct: number;
+        gross_booking_value: number;
+        platform_commission: number;
+        net_hotel_payouts: number;
+    };
+    status_breakdown?: {
+        status: string;
+        label: string;
+        count: number;
+        percentage: number;
+    }[];
+    top_hotels?: {
+        name: string;
+        bookings: number;
+        revenue: number;
+    }[];
+    city_breakdown?: {
+        city: string;
+        bookings: number;
+        revenue: number;
+    }[];
     payment_health: {
         succeeded: number;
         failed: number;
@@ -82,14 +122,6 @@ type DashboardData = {
         created_at: string;
     }[];
 };
-
-const BREAKDOWN_COLORS = [
-    'bg-brand-primary',
-    'bg-brand-secondary',
-    'bg-brand-dark',
-    'bg-gray-400',
-    'bg-sky-500',
-];
 
 const METHOD_COLORS = [
     'bg-emerald-500',
@@ -138,9 +170,14 @@ function changeLabel(pct: number) {
 
 export default function AdminDashboard() {
     const [timeRange, setTimeRange] = useState<RangeKey>('30days');
-    const [graphMetric, setGraphMetric] = useState<'both' | 'bookings' | 'revenue'>('both');
+    const [selectedHotelId, setSelectedHotelId] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
+
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [data, setData] = useState<DashboardData | null>(null);
+    const [hotelsList, setHotelsList] = useState<Array<{ id: string; name: string }>>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [commissionAlert, setCommissionAlert] = useState<{
@@ -156,6 +193,14 @@ export default function AdminDashboard() {
             setCopiedId(id);
             setTimeout(() => setCopiedId(null), 2000);
         } catch {}
+    };
+
+    const handleResetFilters = () => {
+        setTimeRange('30days');
+        setSelectedHotelId('');
+        setStatusFilter('all');
+        setPaymentMethodFilter('all');
+        setSearchQuery('');
     };
 
     const load = useCallback(async (range: RangeKey) => {
@@ -194,7 +239,19 @@ export default function AdminDashboard() {
     }, [timeRange, load]);
 
     useEffect(() => {
-        void adminInventoryFetch<{
+        // Load direct hotels for the filter dropdown
+        adminInventoryFetch<Array<{ id: string; name: string }>>('hotels')
+            .then((list) => {
+                if (Array.isArray(list)) {
+                    setHotelsList(
+                        list.map((h) => ({ id: h.id, name: h.name || 'Untitled Hotel' })),
+                    );
+                }
+            })
+            .catch(() => {});
+
+        // Commission check
+        adminInventoryFetch<{
             outstanding_total: number;
             unpaid_invoice_count: number;
             hotels_with_unpaid: number;
@@ -208,152 +265,290 @@ export default function AdminDashboard() {
 
     const cards = data?.cards;
     const monthlyData = data?.monthly_trend ?? [];
-    const maxBookings = Math.max(1, ...monthlyData.map((d) => d.bookings));
-    const maxRevenue = Math.max(1, ...monthlyData.map((d) => d.revenue));
-    const totalGraphBookings = monthlyData.reduce((acc, d) => acc + (d.bookings || 0), 0);
-    const totalGraphRevenue = monthlyData.reduce((acc, d) => acc + (d.revenue || 0), 0);
-    const avgGraphTicket = totalGraphBookings > 0 ? Math.round(totalGraphRevenue / totalGraphBookings) : 0;
-    const peakMonth = monthlyData.reduce(
-        (max, d) => ((d.bookings || 0) > (max?.bookings || 0) ? d : max),
-        monthlyData[0],
-    );
-
-    const bookingStats = (data?.booking_breakdown && data.booking_breakdown.length > 0)
-        ? data.booking_breakdown
-        : [
-            { type: 'Hotels', count: 0, percentage: 0 },
-            { type: 'Flights', count: 0, percentage: 0 },
-            { type: 'Conferences', count: 0, percentage: 0 },
-            { type: 'Shuttles', count: 0, percentage: 0 },
-          ];
     const health = data?.payment_health;
     const methods = data?.payment_methods ?? [];
     const recentBookings = data?.recent_bookings ?? [];
     const recentPayments = data?.recent_payments ?? [];
+    const statusBreakdown = data?.status_breakdown ?? [];
+    const topHotels = data?.top_hotels ?? [];
 
-    const stats = cards
-        ? [
-              {
-                  label: 'Registered users',
-                  value: formatCompact(cards.users_total),
-                  icon: Users,
-                  change: null as string | null,
-                  trend: 'up' as const,
-                  badgeClass: 'bg-brand-primary/10 text-brand-primary',
-                  subtext: 'Postgres accounts',
-              },
-              {
-                  label: 'Bookings (range)',
-                  value: formatCompact(cards.bookings_in_range),
-                  icon: Calendar,
-                  change: changeLabel(cards.bookings_change_pct),
-                  trend: (cards.bookings_change_pct >= 0 ? 'up' : 'down') as 'up' | 'down',
-                  badgeClass: 'bg-brand-secondary/10 text-brand-secondary',
-                  subtext: `${formatCompact(cards.bookings_total)} all-time`,
-              },
-              {
-                  label: 'Revenue (paid)',
-                  value: formatMoney(cards.revenue_in_range, cards.currency),
-                  icon: DollarSign,
-                  change: changeLabel(cards.revenue_change_pct),
-                  trend: (cards.revenue_change_pct >= 0 ? 'up' : 'down') as 'up' | 'down',
-                  badgeClass: 'bg-brand-dark/5 text-brand-dark',
-                  subtext: `${cards.paid_transactions_in_range} succeeded payments`,
-              },
-              {
-                  label: 'Direct hotels',
-                  value: String(cards.hotels_direct),
-                  icon: Building2,
-                  change: null,
-                  trend: 'up' as const,
-                  badgeClass: 'bg-brand-gray text-gray-700',
-                  subtext: `${cards.hotels_published} live · ${cards.hotels_pending_review} in review · ${cards.memberships_active} staff seats`,
-              },
-          ]
-        : [];
+    // Filter recent bookings client-side with comprehensive criteria
+    const filteredRecentBookings = useMemo(() => {
+        return recentBookings.filter((b) => {
+            if (selectedHotelId) {
+                const targetHotel = hotelsList.find((h) => h.id === selectedHotelId);
+                const hotelName = targetHotel ? targetHotel.name.toLowerCase() : '';
+                const dest = (b.destination || '').toLowerCase();
+                if (hotelName && !dest.includes(hotelName)) {
+                    return false;
+                }
+            }
+            if (statusFilter !== 'all') {
+                const s = (b.status || '').toLowerCase();
+                if (statusFilter === 'confirmed' && !['confirmed', 'paid'].includes(s))
+                    return false;
+                if (
+                    statusFilter === 'pending' &&
+                    !['pending', 'initiated', 'in_review'].includes(s)
+                )
+                    return false;
+                if (
+                    statusFilter === 'cancelled' &&
+                    !['cancelled', 'failed', 'refunded', 'expired'].includes(s)
+                )
+                    return false;
+            }
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim();
+                const u = (b.user || '').toLowerCase();
+                const ref = (b.payment_reference || '').toLowerCase();
+                const id = (b.id || '').toLowerCase();
+                const dest = (b.destination || '').toLowerCase();
+                if (
+                    !u.includes(q) &&
+                    !ref.includes(q) &&
+                    !id.includes(q) &&
+                    !dest.includes(q)
+                ) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [recentBookings, selectedHotelId, hotelsList, statusFilter, searchQuery]);
+
+    // Service categories formatted for progress list
+    const serviceCategoryItems: CategoryItem[] = useMemo(() => {
+        const breakdown = data?.booking_breakdown || [];
+        if (breakdown.length === 0) {
+            return [
+                {
+                    label: 'Hotels & Resorts',
+                    count: 0,
+                    percentage: 0,
+                    icon: Building2,
+                    colorClass: 'bg-teal-500',
+                },
+                {
+                    label: 'Flight Bookings',
+                    count: 0,
+                    percentage: 0,
+                    icon: Plane,
+                    colorClass: 'bg-sky-500',
+                },
+                {
+                    label: 'Conferences & Events',
+                    count: 0,
+                    percentage: 0,
+                    icon: Users,
+                    colorClass: 'bg-purple-500',
+                },
+                {
+                    label: 'Airport Shuttles',
+                    count: 0,
+                    percentage: 0,
+                    icon: Car,
+                    colorClass: 'bg-amber-500',
+                },
+            ];
+        }
+        return breakdown.map((item) => {
+            const t = item.type.toLowerCase();
+            let icon = Building2;
+            let color = 'bg-teal-500';
+            if (t.includes('flight')) {
+                icon = Plane;
+                color = 'bg-sky-500';
+            } else if (t.includes('conference') || t.includes('event')) {
+                icon = Users;
+                color = 'bg-purple-500';
+            } else if (t.includes('shuttle') || t.includes('car')) {
+                icon = Car;
+                color = 'bg-amber-500';
+            }
+            return {
+                label: item.type,
+                count: item.count,
+                percentage: item.percentage,
+                icon,
+                colorClass: color,
+            };
+        });
+    }, [data?.booking_breakdown]);
+
+    // Status breakdown formatted for progress list
+    const statusCategoryItems: CategoryItem[] = useMemo(() => {
+        if (!statusBreakdown || statusBreakdown.length === 0) {
+            return [
+                {
+                    label: 'Confirmed / Paid',
+                    count: 0,
+                    percentage: 0,
+                    icon: CheckCircle,
+                    colorClass: 'bg-emerald-500',
+                },
+                {
+                    label: 'Pending / Processing',
+                    count: 0,
+                    percentage: 0,
+                    icon: Clock,
+                    colorClass: 'bg-amber-500',
+                },
+                {
+                    label: 'Cancelled / Failed',
+                    count: 0,
+                    percentage: 0,
+                    icon: XCircle,
+                    colorClass: 'bg-rose-500',
+                },
+            ];
+        }
+        return statusBreakdown.map((s) => ({
+            label: s.label,
+            count: s.count,
+            percentage: s.percentage,
+            icon:
+                s.status === 'confirmed'
+                    ? CheckCircle
+                    : s.status === 'pending'
+                      ? Clock
+                      : XCircle,
+            colorClass:
+                s.status === 'confirmed'
+                    ? 'bg-emerald-500'
+                    : s.status === 'pending'
+                      ? 'bg-amber-500'
+                      : 'bg-rose-500',
+        }));
+    }, [statusBreakdown]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'confirmed':
-                return <CheckCircle className="w-4 h-4 text-green-600" />;
+                return <CheckCircle className="w-4 h-4 text-emerald-600" />;
             case 'pending':
-                return <Clock className="w-4 h-4 text-orange-600" />;
+                return <Clock className="w-4 h-4 text-amber-600" />;
             case 'cancelled':
-                return <XCircle className="w-4 h-4 text-red-600" />;
+                return <XCircle className="w-4 h-4 text-rose-600" />;
             default:
-                return <AlertCircle className="w-4 h-4 text-gray-600" />;
+                return <AlertCircle className="w-4 h-4 text-gray-500" />;
         }
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'confirmed':
-                return 'bg-green-50 text-green-700 border-green-200';
+                return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             case 'pending':
-                return 'bg-orange-50 text-orange-700 border-orange-200';
+                return 'bg-amber-50 text-amber-700 border-amber-200';
             case 'cancelled':
-                return 'bg-red-50 text-red-700 border-red-200';
+                return 'bg-rose-50 text-rose-700 border-rose-200';
             default:
                 return 'bg-gray-50 text-gray-700 border-gray-200';
         }
     };
 
+    const grossRev = cards?.gross_booking_value ?? cards?.revenue_in_range ?? 0;
+    const platformComm =
+        cards?.platform_commission ??
+        data?.commission_summary?.platform_commission ??
+        Math.round(grossRev * 0.12);
+    const avgOrderVal =
+        cards?.avg_booking_value ??
+        (cards?.bookings_in_range && cards.bookings_in_range > 0
+            ? Math.round(grossRev / cards.bookings_in_range)
+            : 0);
+
     return (
         <div className="space-y-8">
+            {/* Header with Title and Quick Status */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-brand-dark">Dashboard Overview</h1>
-                    <p className="text-gray-500 mt-1">
-                        Live platform metrics from bookings, payments, and Direct hotels.
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-extrabold text-brand-dark tracking-tight">
+                            Super Admin Overview
+                        </h1>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live Metrics
+                        </span>
+                    </div>
+                    <p className="text-gray-500 text-sm mt-1">
+                        Comprehensive ledger analytics across bookings, platform commissions,
+                        and partner properties.
                     </p>
                 </div>
-                <select
-                    value={timeRange}
-                    onChange={(e) => setTimeRange(e.target.value as RangeKey)}
-                    className="bg-white border border-gray-200 text-sm font-semibold text-gray-700 rounded-xl px-4 py-2.5 cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                >
-                    <option value="7days">Last 7 Days</option>
-                    <option value="30days">Last 30 Days</option>
-                    <option value="90days">Last 90 Days</option>
-                    <option value="year">This Year</option>
-                </select>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void load(timeRange)}
+                        className="text-xs font-semibold"
+                    >
+                        Refresh Data
+                    </Button>
+                    <Button asChild size="sm" className="text-xs font-semibold">
+                        <Link href="/admin/finance">Finance & Settlements</Link>
+                    </Button>
+                </div>
             </div>
 
-            {commissionAlert ? (
-                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            {/* Filter Bar */}
+            <AnalyticsFilterBar
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+                hotels={hotelsList}
+                selectedHotelId={selectedHotelId}
+                onHotelChange={setSelectedHotelId}
+                status={statusFilter}
+                onStatusChange={setStatusFilter}
+                paymentMethod={paymentMethodFilter}
+                onPaymentMethodChange={setPaymentMethodFilter}
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                onReset={handleResetFilters}
+            />
+
+            {/* Outstanding Commission Alerts if any */}
+            {commissionAlert && (
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3.5 text-sm text-amber-950 shadow-xs">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-700" />
                     <div className="flex-1">
-                        <p className="font-semibold">
+                        <p className="font-bold">
                             Unpaid commission invoices across{' '}
-                            {commissionAlert.hotels_with_unpaid} hotel
+                            {commissionAlert.hotels_with_unpaid} partner hotel
                             {commissionAlert.hotels_with_unpaid === 1 ? '' : 's'}
                         </p>
-                        <p className="text-amber-900/90 mt-0.5">
+                        <p className="text-amber-900/90 text-xs mt-0.5">
                             {commissionAlert.currency}{' '}
                             {Number(commissionAlert.outstanding_total).toLocaleString()}{' '}
-                            · {commissionAlert.unpaid_invoice_count} invoice
+                            · {commissionAlert.unpaid_invoice_count} pending invoice
                             {commissionAlert.unpaid_invoice_count === 1 ? '' : 's'}
                         </p>
                     </div>
                     <Link
                         href="/admin/finance"
-                        className="font-semibold text-teal-800 hover:underline shrink-0"
+                        className="font-bold text-xs text-teal-800 bg-white/80 hover:bg-white border border-amber-300 rounded-lg px-3 py-1.5 shrink-0 transition-colors"
                     >
-                        Open Finance →
+                        Open Invoices →
                     </Link>
                 </div>
-            ) : null}
+            )}
 
-            <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {/* Direct Hotel Workspace Shortcut */}
+            <div className="rounded-2xl border border-sky-200 bg-sky-50/80 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
                 <div>
-                    <h2 className="font-bold text-brand-dark">Hotels workspace</h2>
-                    <p className="text-sm text-slate-600 mt-0.5">
-                        Partner KYC, register Direct hotels, assign staff, and publish inventory  
-                        one place for Super Admin.
+                    <h2 className="font-extrabold text-brand-dark text-sm">
+                        Partner Hotel Workspace
+                    </h2>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                        Partner KYC, register Direct hotels, assign staff memberships, and publish
+                        rooms directly on BookAddis.
                     </p>
                 </div>
-                <Button asChild className="shrink-0">
-                    <Link href="/admin/partners">Open Hotels</Link>
+                <Button asChild size="sm" className="shrink-0 font-semibold text-xs">
+                    <Link href="/admin/partners">Manage Hotels</Link>
                 </Button>
             </div>
 
@@ -361,447 +556,283 @@ export default function AdminDashboard() {
             <HotelPartnerRequests />
 
             {loading && !data ? (
-                <AdminLoader label="Loading dashboard…" />
+                <AdminLoader label="Aggregating platform ledger analytics…" />
             ) : error && !data ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-                    {error}
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800 space-y-3">
+                    <p className="font-bold">Failed to load platform dashboard</p>
+                    <p className="text-xs">{error}</p>
                     <Button
                         variant="outline"
                         size="sm"
-                        className="ml-3"
                         onClick={() => void load(timeRange)}
                     >
-                        Retry
+                        Try Again
                     </Button>
                 </div>
             ) : (
                 <>
-                    {error ? (
-                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                            Refresh issue: {error}
-                        </p>
-                    ) : null}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {stats.map((stat) => (
-                            <div
-                                key={stat.label}
-                                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div
-                                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.badgeClass}`}
-                                    >
-                                        <stat.icon className="w-6 h-6" />
-                                    </div>
-                                    {stat.change ? (
-                                        <div
-                                            className={`flex items-center gap-1 text-sm font-bold px-2.5 py-1 rounded-lg ${
-                                                stat.trend === 'up'
-                                                    ? 'bg-green-50 text-green-700'
-                                                    : 'bg-red-50 text-red-700'
-                                            }`}
-                                        >
-                                            {stat.trend === 'up' ? (
-                                                <ArrowUpRight className="w-4 h-4" />
-                                            ) : (
-                                                <ArrowDownRight className="w-4 h-4" />
-                                            )}
-                                            {stat.change}
-                                        </div>
-                                    ) : null}
-                                </div>
-                                <h3 className="text-gray-500 text-sm font-medium">{stat.label}</h3>
-                                <p className="text-3xl font-extrabold text-brand-dark mt-1">
-                                    {stat.value}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-2">{stat.subtext}</p>
-                            </div>
-                        ))}
+                    {/* 6 High-Impact KPI Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <KpiMetricCard
+                            title="Gross Booking (GBV)"
+                            value={formatMoney(grossRev, cards?.currency || 'ETB')}
+                            subtitle={`${cards?.paid_transactions_in_range ?? 0} settled transactions`}
+                            icon={DollarSign}
+                            change={cards?.revenue_change_pct ? changeLabel(cards.revenue_change_pct) : null}
+                            trend={
+                                (cards?.revenue_change_pct ?? 0) >= 0 ? 'up' : 'down'
+                            }
+                            highlight
+                        />
+                        <KpiMetricCard
+                            title="Net Platform Commission"
+                            value={formatMoney(platformComm, cards?.currency || 'ETB')}
+                            subtitle="~12% average take-rate"
+                            icon={Percent}
+                            iconBgClass="bg-emerald-50 text-emerald-600"
+                        />
+                        <KpiMetricCard
+                            title="Total Reservations"
+                            value={formatCompact(cards?.bookings_in_range ?? 0)}
+                            subtitle={`${formatCompact(cards?.bookings_total ?? 0)} all-time records`}
+                            icon={Calendar}
+                            change={cards?.bookings_change_pct ? changeLabel(cards.bookings_change_pct) : null}
+                            trend={
+                                (cards?.bookings_change_pct ?? 0) >= 0 ? 'up' : 'down'
+                            }
+                            iconBgClass="bg-teal-50 text-teal-600"
+                        />
+                        <KpiMetricCard
+                            title="Average Order (AOV)"
+                            value={formatMoney(avgOrderVal, cards?.currency || 'ETB')}
+                            subtitle="Per confirmed reservation"
+                            icon={TrendingUp}
+                            iconBgClass="bg-purple-50 text-purple-600"
+                        />
+                        <KpiMetricCard
+                            title="Payment Health"
+                            value={`${health?.success_rate_pct ?? 0}%`}
+                            subtitle={`${health?.failed ?? 0} failed / ${health?.pending ?? 0} in-flight`}
+                            icon={ShieldCheck}
+                            iconBgClass="bg-sky-50 text-sky-600"
+                        />
+                        <KpiMetricCard
+                            title="Direct Hotels"
+                            value={String(cards?.hotels_direct ?? 0)}
+                            subtitle={`${cards?.hotels_published ?? 0} published · ${cards?.memberships_active ?? 0} staff`}
+                            icon={Building2}
+                            iconBgClass="bg-slate-100 text-slate-700"
+                        />
                     </div>
 
+                    {/* Main Charts: Trend Timeline + Category Mix */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                            <div>
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h2 className="text-lg font-extrabold text-brand-dark">
-                                                Booking & Revenue Analytics
-                                            </h2>
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-primary/10 text-brand-primary">
-                                                <BarChart3 className="w-3.5 h-3.5" />
-                                                Live Ledger
-                                            </span>
-                                        </div>
-                                        <p className="text-sm text-gray-500 mt-0.5">
-                                            Monthly booking counts & confirmed revenue volume
-                                        </p>
-                                    </div>
-
-                                    {/* Metric switcher tabs */}
-                                    <div className="flex items-center bg-gray-100/90 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto">
-                                        <button
-                                            type="button"
-                                            onClick={() => setGraphMetric('both')}
-                                            className={`px-3 py-1.5 rounded-lg transition-all ${
-                                                graphMetric === 'both'
-                                                    ? 'bg-white text-brand-dark shadow-xs font-bold'
-                                                    : 'text-gray-600 hover:text-gray-900'
-                                            }`}
-                                        >
-                                            Dual View
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setGraphMetric('bookings')}
-                                            className={`px-3 py-1.5 rounded-lg transition-all ${
-                                                graphMetric === 'bookings'
-                                                    ? 'bg-white text-teal-800 shadow-xs font-bold'
-                                                    : 'text-gray-600 hover:text-gray-900'
-                                            }`}
-                                        >
-                                            Bookings
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setGraphMetric('revenue')}
-                                            className={`px-3 py-1.5 rounded-lg transition-all ${
-                                                graphMetric === 'revenue'
-                                                    ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                                                    : 'text-gray-600 hover:text-gray-900'
-                                            }`}
-                                        >
-                                            Revenue
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* KPI summary ribbon */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 p-3 bg-gray-50/80 rounded-xl border border-gray-100 text-xs">
-                                    <div>
-                                        <span className="text-gray-400 block font-medium">Total Bookings</span>
-                                        <span className="font-bold text-sm text-teal-900">{totalGraphBookings} completed</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block font-medium">Paid Volume</span>
-                                        <span className="font-bold text-sm text-emerald-900">{formatMoney(totalGraphRevenue, cards?.currency || 'ETB')}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block font-medium">Avg Order Value</span>
-                                        <span className="font-bold text-sm text-gray-800">{formatMoney(avgGraphTicket, cards?.currency || 'ETB')}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400 block font-medium">Peak Month</span>
-                                        <span className="font-bold text-sm text-purple-900">
-                                            {peakMonth?.month || '—'} ({peakMonth?.bookings || 0} bkgs)
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Chart Canvas with Y-axis guidelines */}
-                            <div className="relative h-64 pt-6 pb-2">
-                                {/* Horizontal gridlines */}
-                                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-gray-300">
-                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
-                                        <span>{graphMetric === 'bookings' ? `${maxBookings} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue) : '100%'}</span>
-                                    </div>
-                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
-                                        <span>{graphMetric === 'bookings' ? `${Math.round(maxBookings * 0.75)} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue * 0.75) : '75%'}</span>
-                                    </div>
-                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
-                                        <span>{graphMetric === 'bookings' ? `${Math.round(maxBookings * 0.5)} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue * 0.5) : '50%'}</span>
-                                    </div>
-                                    <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
-                                        <span>{graphMetric === 'bookings' ? `${Math.round(maxBookings * 0.25)} bkgs` : graphMetric === 'revenue' ? formatCompact(maxRevenue * 0.25) : '25%'}</span>
-                                    </div>
-                                    <div className="border-b border-gray-200 w-full flex justify-between pr-2">
-                                        <span>0</span>
-                                    </div>
-                                </div>
-
-                                {/* Bars container */}
-                                <div className="h-full flex items-end justify-between gap-2 sm:gap-4 relative z-10 pl-6">
-                                    {monthlyData.map((row) => {
-                                        const hBook = maxBookings > 0 ? (row.bookings / maxBookings) * 100 : 0;
-                                        const hRev = maxRevenue > 0 ? (row.revenue / maxRevenue) * 100 : 0;
-                                        const bookBarH = row.bookings > 0 ? Math.max(hBook, 12) : 4;
-                                        const revBarH = row.revenue > 0 ? Math.max(hRev, 12) : 4;
-
-                                        return (
-                                            <div
-                                                key={row.ym}
-                                                className="flex-1 flex flex-col items-center h-full justify-end group relative"
-                                            >
-                                                {/* Floating Tooltip */}
-                                                <div className="absolute -top-18 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 shadow-xl pointer-events-none">
-                                                    <div className="font-bold text-gray-200 mb-0.5">
-                                                        {row.month} ({row.ym})
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-teal-300">
-                                                        <span className="w-2 h-2 rounded-full bg-teal-400 inline-block" />
-                                                        <strong>{row.bookings}</strong> bookings
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-emerald-300">
-                                                        <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-                                                        <strong>{formatMoney(row.revenue, cards?.currency || 'ETB')}</strong> paid
-                                                    </div>
-                                                    {row.bookings > 0 ? (
-                                                        <div className="text-[10px] text-gray-400 mt-1 border-t border-gray-700 pt-0.5">
-                                                            Avg: {formatMoney(Math.round(row.revenue / row.bookings), cards?.currency || 'ETB')}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-
-                                                {/* Bars depending on graphMetric */}
-                                                <div className="w-full flex items-end justify-center gap-1.5 h-full relative">
-                                                    {(graphMetric === 'both' || graphMetric === 'bookings') ? (
-                                                        <div className="flex-1 max-w-[28px] flex flex-col items-center justify-end h-full">
-                                                            {/* Exact Booking Number above bar */}
-                                                            <span className={`text-[10px] font-bold mb-1 transition-opacity ${
-                                                                row.bookings > 0 ? 'text-teal-800' : 'text-gray-300 opacity-60'
-                                                            }`}>
-                                                                {row.bookings}
-                                                            </span>
-                                                            <div
-                                                                className={`w-full rounded-t-md transition-all duration-500 shadow-xs ${
-                                                                    row.bookings > 0
-                                                                        ? 'bg-gradient-to-t from-teal-600 to-teal-400 group-hover:from-teal-500 group-hover:to-teal-300'
-                                                                        : 'bg-gray-100 group-hover:bg-gray-200'
-                                                                }`}
-                                                                style={{ height: `${bookBarH}%` }}
-                                                            />
-                                                        </div>
-                                                    ) : null}
-
-                                                    {(graphMetric === 'both' || graphMetric === 'revenue') ? (
-                                                        <div className="flex-1 max-w-[28px] flex flex-col items-center justify-end h-full">
-                                                            {/* Revenue compact label above bar in single-view */}
-                                                            {graphMetric === 'revenue' ? (
-                                                                <span className={`text-[10px] font-bold mb-1 transition-opacity ${
-                                                                    row.revenue > 0 ? 'text-emerald-800' : 'text-gray-300 opacity-60'
-                                                                }`}>
-                                                                    {row.revenue > 0 ? formatCompact(row.revenue) : '0'}
-                                                                </span>
-                                                            ) : null}
-                                                            <div
-                                                                className={`w-full rounded-t-md transition-all duration-500 shadow-xs ${
-                                                                    row.revenue > 0
-                                                                        ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 group-hover:from-emerald-500 group-hover:to-emerald-300'
-                                                                        : 'bg-gray-100 group-hover:bg-gray-200'
-                                                                }`}
-                                                                style={{ height: `${revBarH}%` }}
-                                                            />
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-
-                                                {/* X-axis Month Label */}
-                                                <div className="text-[11px] text-gray-500 text-center mt-2.5 font-bold group-hover:text-brand-dark transition-colors">
-                                                    {row.month}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Legend */}
-                            <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-2 text-xs">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-teal-600 to-teal-400" />
-                                        <span className="font-semibold text-gray-700">Bookings (Number of reservations)</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-emerald-600 to-emerald-400" />
-                                        <span className="font-semibold text-gray-700">Paid Revenue ({cards?.currency || 'ETB'})</span>
-                                    </div>
-                                </div>
-                                <span className="text-gray-400 text-[11px] font-medium hidden sm:inline">
-                                    {monthlyData.length} months rolling window
-                                </span>
-                            </div>
+                        <div className="lg:col-span-2">
+                            <TrendBarChart
+                                title="Platform Revenue & Bookings Trajectory"
+                                subtitle="Monthly confirmed reservation counts and gross financial volume"
+                                data={monthlyData}
+                                currency={cards?.currency || 'ETB'}
+                                primaryLabel="Paid Volume"
+                                secondaryLabel="Bookings"
+                            />
                         </div>
 
-                        {/* Booking Breakdown */}
-                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                        <div>
+                            <CategoryProgressList
+                                title="Booking Service Mix"
+                                subtitle="Distribution of bookings by category"
+                                badgeText="By Service"
+                                items={serviceCategoryItems}
+                                emptyText="No category breakdown recorded."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Secondary Analytics: Status Breakdown + Top Properties */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div>
+                            <CategoryProgressList
+                                title="Booking Status & Velocity"
+                                subtitle="Completion vs cancellation rates"
+                                badgeText="Health Index"
+                                items={statusCategoryItems}
+                                emptyText="No status data in this range."
+                            />
+                        </div>
+
+                        {/* Top Performing Hotels Leaderboard */}
+                        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
                             <div>
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-lg font-extrabold text-brand-dark">
-                                        Booking Breakdown
-                                    </h2>
-                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                                        By Service
-                                    </span>
+                                    <div>
+                                        <h2 className="text-lg font-extrabold text-brand-dark tracking-tight">
+                                            Top Partner Hotels Leaderboard
+                                        </h2>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            Leading properties by reservation volume & revenue
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href="/admin/partners?tab=hotels"
+                                        className="text-xs font-bold text-brand-primary hover:underline"
+                                    >
+                                        View all properties →
+                                    </Link>
                                 </div>
-                                <p className="text-sm text-gray-500 mb-6">
-                                    Distribution of completed reservations by hospitality & travel category
-                                </p>
 
-                                {bookingStats.length === 0 ? (
+                                {topHotels.length === 0 ? (
                                     <div className="py-12 text-center text-sm text-gray-400">
-                                        No bookings recorded in this time range.
+                                        No hotel performance recorded for this range.
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
-                                        {bookingStats.map((item, idx) => {
-                                            const getCategoryIcon = (type: string) => {
-                                                const t = type.toLowerCase();
-                                                if (t.includes('hotel')) return <Building2 className="w-4 h-4 text-teal-600" />;
-                                                if (t.includes('flight')) return <Plane className="w-4 h-4 text-sky-600" />;
-                                                if (t.includes('conference') || t.includes('event')) return <Users className="w-4 h-4 text-purple-600" />;
-                                                if (t.includes('shuttle') || t.includes('car')) return <Car className="w-4 h-4 text-amber-600" />;
-                                                return <BarChart3 className="w-4 h-4 text-gray-600" />;
-                                            };
-
-                                            return (
-                                                <div key={item.type} className="p-3 bg-gray-50/70 rounded-xl border border-gray-100">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            {getCategoryIcon(item.type)}
-                                                            <span className="text-sm font-bold text-gray-800">
-                                                                {item.type}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-white border border-gray-200 text-gray-900 shadow-2xs">
-                                                                {item.count} {item.count === 1 ? 'booking' : 'bookings'}
-                                                            </span>
-                                                            <span className="text-xs font-extrabold text-teal-700 min-w-9 text-right">
-                                                                {item.percentage}%
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="w-full bg-gray-200/80 rounded-full h-2 overflow-hidden">
-                                                        <div
-                                                            className={`${BREAKDOWN_COLORS[idx % BREAKDOWN_COLORS.length]} h-full rounded-full transition-all duration-500`}
-                                                            style={{ width: `${Math.max(item.percentage, item.count > 0 ? 4 : 0)}%` }}
-                                                        />
+                                    <div className="space-y-3">
+                                        {topHotels.map((h, idx) => (
+                                            <div
+                                                key={h.name || idx}
+                                                className="flex items-center justify-between p-3.5 bg-gray-50/70 hover:bg-gray-50 rounded-xl border border-gray-100 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-black flex items-center justify-center shrink-0">
+                                                        #{idx + 1}
+                                                    </span>
+                                                    <div>
+                                                        <h4 className="text-sm font-extrabold text-gray-900">
+                                                            {h.name}
+                                                        </h4>
+                                                        <p className="text-xs text-gray-500">
+                                                            {h.bookings} reservation
+                                                            {h.bookings === 1 ? '' : 's'}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
+                                                <div className="text-right">
+                                                    <span className="text-sm font-black text-brand-dark">
+                                                        {formatMoney(
+                                                            h.revenue,
+                                                            cards?.currency || 'ETB',
+                                                        )}
+                                                    </span>
+                                                    <span className="text-[11px] text-emerald-600 block font-semibold">
+                                                        Est. comm: {formatMoney(Math.round(h.revenue * 0.12), cards?.currency || 'ETB')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
 
-                            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                                <span>Platform wide totals</span>
-                                <span className="font-bold text-gray-700">
-                                    {bookingStats.reduce((sum, b) => sum + (b.count || 0), 0)} total reservations
-                                </span>
+                            <div className="border-t border-gray-100 pt-4 mt-4 flex items-center justify-between text-xs text-gray-500">
+                                <span>Platform commission rate</span>
+                                <span className="font-bold text-brand-dark">Standard 10% - 15%</span>
                             </div>
                         </div>
                     </div>
 
+                    {/* Financial Overview & Payment Channel Breakdown */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-gray-100">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <h2 className="text-lg font-extrabold text-brand-dark">
-                                        Financial Overview
+                                    <h2 className="text-lg font-extrabold text-brand-dark tracking-tight">
+                                        Settlement & Payment Gateway Health
                                     </h2>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Payment status in selected range
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Breakdown of payment attempts across CBE Birr, Telebirr & MPGS
                                     </p>
                                 </div>
                                 <DollarSign className="w-5 h-5 text-brand-primary" />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="p-2 bg-green-100 rounded-lg">
-                                            <CheckCircle className="w-5 h-5 text-green-600" />
+                                <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-100">
+                                    <div className="flex items-center gap-2.5 mb-2">
+                                        <div className="p-1.5 bg-emerald-100 rounded-lg text-emerald-700">
+                                            <CheckCircle className="w-4 h-4" />
                                         </div>
-                                        <span className="text-sm font-bold text-green-800">
-                                            Successful
+                                        <span className="text-xs font-bold text-emerald-800">
+                                            Settled & Succeeded
                                         </span>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(health?.succeededAmount || 0)}
+                                    <div className="text-xl font-extrabold text-gray-900">
+                                        {formatMoney(health?.succeededAmount || 0, cards?.currency || 'ETB')}
                                     </div>
-                                    <div className="text-xs text-green-600 font-medium mt-1">
-                                        {health?.succeeded || 0} payments ·{' '}
-                                        {health?.success_rate_pct ?? 0}% success rate
+                                    <div className="text-xs text-emerald-700 font-medium mt-1">
+                                        {health?.succeeded || 0} payments · {health?.success_rate_pct ?? 0}% rate
                                     </div>
                                 </div>
 
-                                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="p-2 bg-red-100 rounded-lg">
-                                            <XCircle className="w-5 h-5 text-red-600" />
+                                <div className="bg-rose-50/70 p-4 rounded-xl border border-rose-100">
+                                    <div className="flex items-center gap-2.5 mb-2">
+                                        <div className="p-1.5 bg-rose-100 rounded-lg text-rose-700">
+                                            <XCircle className="w-4 h-4" />
                                         </div>
-                                        <span className="text-sm font-bold text-red-800">
-                                            Failed
+                                        <span className="text-xs font-bold text-rose-800">
+                                            Failed Attempts
                                         </span>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(health?.failedAmount || 0)}
+                                    <div className="text-xl font-extrabold text-gray-900">
+                                        {formatMoney(health?.failedAmount || 0, cards?.currency || 'ETB')}
                                     </div>
-                                    <div className="text-xs text-red-600 font-medium mt-1">
-                                        {health?.failed || 0} failed attempts
+                                    <div className="text-xs text-rose-600 font-medium mt-1">
+                                        {health?.failed || 0} declined or timed out
                                     </div>
                                 </div>
 
-                                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className="p-2 bg-orange-100 rounded-lg">
-                                            <AlertCircle className="w-5 h-5 text-orange-600" />
+                                <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-100">
+                                    <div className="flex items-center gap-2.5 mb-2">
+                                        <div className="p-1.5 bg-amber-100 rounded-lg text-amber-700">
+                                            <Clock className="w-4 h-4" />
                                         </div>
-                                        <span className="text-sm font-bold text-orange-800">
-                                            Pending
+                                        <span className="text-xs font-bold text-amber-800">
+                                            Pending / In-Flight
                                         </span>
                                     </div>
-                                    <div className="text-2xl font-bold text-gray-900">
-                                        {formatMoney(health?.pendingAmount || 0)}
+                                    <div className="text-xl font-extrabold text-gray-900">
+                                        {formatMoney(health?.pendingAmount || 0, cards?.currency || 'ETB')}
                                     </div>
-                                    <div className="text-xs text-orange-600 font-medium mt-1">
-                                        {health?.pending || 0} open / in-flight
+                                    <div className="text-xs text-amber-700 font-medium mt-1">
+                                        {health?.pending || 0} awaiting gateway confirmation
                                     </div>
                                 </div>
                             </div>
 
                             <div className="mt-6">
-                                <h3 className="text-sm font-bold text-gray-700 mb-3">
-                                    Recent Financial Activity
+                                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-3">
+                                    Recent Payment Events
                                 </h3>
                                 {recentPayments.length === 0 ? (
-                                    <p className="text-sm text-gray-500">No payments yet.</p>
+                                    <p className="text-sm text-gray-500">No payment events logged.</p>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-2.5">
                                         {recentPayments.map((tx) => (
                                             <div
                                                 key={tx.id}
-                                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                                                className="flex items-center justify-between p-3 bg-gray-50/70 rounded-xl hover:bg-gray-100/80 transition-colors text-xs"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div
-                                                        className={`w-2 h-2 rounded-full ${
+                                                        className={`w-2 h-2 rounded-full shrink-0 ${
                                                             tx.status === 'succeeded'
-                                                                ? 'bg-green-500'
+                                                                ? 'bg-emerald-500'
                                                                 : tx.status === 'failed'
-                                                                  ? 'bg-red-500'
-                                                                  : 'bg-orange-400'
+                                                                  ? 'bg-rose-500'
+                                                                  : 'bg-amber-400'
                                                         }`}
                                                     />
                                                     <div>
-                                                        <div className="text-sm font-bold text-gray-900">
-                                                            {tx.channel || tx.provider || 'Payment'}
-                                                            {tx.guest_name
-                                                                ? ` · ${tx.guest_name}`
-                                                                : ''}
+                                                        <div className="font-bold text-gray-900">
+                                                            {tx.channel || tx.provider || 'Gateway Payment'}
+                                                            {tx.guest_name ? ` · ${tx.guest_name}` : ''}
                                                         </div>
-                                                        <div className="text-xs text-gray-500">
-                                                            {tx.payment_reference ||
-                                                                tx.id.slice(0, 8)}{' '}
-                                                            · {relativeTime(tx.created_at)}
+                                                        <div className="text-gray-500 text-[11px]">
+                                                            {tx.payment_reference || tx.id.slice(0, 8)} ·{' '}
+                                                            {relativeTime(tx.created_at)}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-sm font-bold text-gray-900">
+                                                <div className="text-right font-black text-gray-900">
                                                     {formatMoney(tx.amount, tx.currency)}
                                                 </div>
                                             </div>
@@ -811,120 +842,144 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-extrabold text-brand-dark mb-6">
-                                Payment Methods
-                            </h2>
-                            {methods.length === 0 ? (
-                                <p className="text-sm text-gray-500">
-                                    No succeeded payments in this range.
+                        {/* Payment Methods Distribution */}
+                        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <h2 className="text-lg font-extrabold text-brand-dark mb-4">
+                                    Payment Method Mix
+                                </h2>
+                                <p className="text-xs text-gray-500 mb-6">
+                                    Channel volume share for settled reservations
                                 </p>
-                            ) : (
-                                <div className="space-y-6">
-                                    {methods.map((method, idx) => (
-                                        <div key={`${method.name}-${idx}`}>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm font-medium text-gray-700 capitalize">
-                                                    {method.name}
-                                                </span>
-                                                <span className="text-sm font-bold text-gray-900">
-                                                    {method.percent}% ({method.count})
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                                <div
-                                                    className={`${METHOD_COLORS[idx % METHOD_COLORS.length]} h-full rounded-full transition-all duration-500`}
-                                                    style={{ width: `${method.percent}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
 
-                            <div className="mt-8 p-4 bg-brand-primary/10 rounded-xl border border-brand-primary/20">
-                                <h4 className="text-sm font-extrabold text-brand-dark mb-1">
-                                    Payment Health
+                                {methods.length === 0 ? (
+                                    <p className="text-sm text-gray-400 py-8 text-center">
+                                        No settled payments in this window.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-5">
+                                        {methods.map((method, idx) => (
+                                            <div key={`${method.name}-${idx}`} className="space-y-1.5">
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span className="font-bold text-gray-800 capitalize">
+                                                        {method.name}
+                                                    </span>
+                                                    <span className="font-extrabold text-brand-dark">
+                                                        {method.percent}%{' '}
+                                                        <span className="text-gray-400 font-normal">
+                                                            ({method.count})
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                                    <div
+                                                        className={`${METHOD_COLORS[idx % METHOD_COLORS.length]} h-full rounded-full transition-all duration-500`}
+                                                        style={{ width: `${Math.max(2, method.percent)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-8 p-4 bg-teal-50/80 rounded-xl border border-teal-200/60">
+                                <h4 className="text-xs font-extrabold text-teal-900 mb-1 flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                                    Payment Integration
                                 </h4>
-                                <p className="text-xs text-gray-600">
-                                    Success rate{' '}
-                                    <strong>{health?.success_rate_pct ?? 0}%</strong> in this
-                                    range. Full ledger under Transactions.
+                                <p className="text-[11px] text-teal-800">
+                                    Supports Telebirr SuperApp, CBE Birr direct integration, and MPGS
+                                    Mastercard/Visa processing.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-brand-dark">
-                                        Recent Bookings
-                                    </h2>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        Latest booking activity
-                                    </p>
-                                </div>
-                                <Link href="/admin/transactions">
-                                    <Button variant="outline" size="sm">
-                                        View All
+                    {/* Filtered Recent Bookings Table */}
+                    <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+                        <div className="p-5 md:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <h2 className="text-lg font-extrabold text-brand-dark tracking-tight">
+                                    Filtered Reservation Records
+                                </h2>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    Showing {filteredRecentBookings.length} matching reservations
+                                    {(selectedHotelId || statusFilter !== 'all' || searchQuery) && (
+                                        <span className="ml-1 text-brand-primary font-semibold">
+                                            (filtered)
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {(selectedHotelId || statusFilter !== 'all' || searchQuery) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleResetFilters}
+                                        className="text-xs text-gray-500"
+                                    >
+                                        Clear filters
                                     </Button>
-                                </Link>
+                                )}
+                                <Button asChild variant="outline" size="sm" className="text-xs font-semibold">
+                                    <Link href="/admin/reservations">Open Full Reservations</Link>
+                                </Button>
                             </div>
                         </div>
+
                         <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-100">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            Booking
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            User
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            Type
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            Destination
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            Amount
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                                            Time
-                                        </th>
+                                        <th className="px-6 py-3.5">Reference</th>
+                                        <th className="px-6 py-3.5">Guest / User</th>
+                                        <th className="px-6 py-3.5">Service Type</th>
+                                        <th className="px-6 py-3.5">Destination / Hotel</th>
+                                        <th className="px-6 py-3.5">Amount</th>
+                                        <th className="px-6 py-3.5">Status</th>
+                                        <th className="px-6 py-3.5">Date</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {recentBookings.length === 0 ? (
+                                <tbody className="divide-y divide-gray-100 text-xs">
+                                    {filteredRecentBookings.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan={7}
-                                                className="px-6 py-10 text-center text-sm text-gray-500"
+                                                className="px-6 py-12 text-center text-sm text-gray-400"
                                             >
-                                                No bookings yet.
+                                                No reservations match the selected filter criteria.
+                                                <button
+                                                    type="button"
+                                                    onClick={handleResetFilters}
+                                                    className="block mx-auto mt-2 text-xs text-brand-primary hover:underline font-semibold"
+                                                >
+                                                    Reset all filters
+                                                </button>
                                             </td>
                                         </tr>
                                     ) : (
-                                        recentBookings.map((booking) => (
+                                        filteredRecentBookings.map((booking) => (
                                             <tr
                                                 key={booking.id}
                                                 className="hover:bg-gray-50/80 transition-colors"
                                             >
-                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                <td className="px-6 py-4 whitespace-nowrap font-mono font-bold text-teal-900">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-sm font-mono font-bold text-teal-900">
+                                                        <span>
                                                             {booking.payment_reference ||
                                                                 booking.id.slice(0, 8)}
                                                         </span>
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleCopy(booking.id, booking.payment_reference || booking.id)}
+                                                            onClick={() =>
+                                                                handleCopy(
+                                                                    booking.id,
+                                                                    booking.payment_reference ||
+                                                                        booking.id,
+                                                                )
+                                                            }
                                                             className="p-1 rounded-md text-gray-400 hover:text-teal-700 hover:bg-teal-50 transition-colors"
                                                             title="Copy reference"
                                                         >
@@ -939,43 +994,38 @@ export default function AdminDashboard() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2.5">
                                                         <div className="w-7 h-7 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center text-xs font-bold text-teal-800 shrink-0">
-                                                            {(booking.user || 'G').charAt(0).toUpperCase()}
+                                                            {(booking.user || 'G')
+                                                                .charAt(0)
+                                                                .toUpperCase()}
                                                         </div>
-                                                        <span className="text-sm font-semibold text-gray-900">
+                                                        <span className="font-bold text-gray-900">
                                                             {booking.user}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-700">
                                                         {booking.type}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm font-medium text-gray-700">
-                                                        {booking.destination || 'Addis Ababa Stay'}
-                                                    </span>
+                                                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-700">
+                                                    {booking.destination || 'Addis Ababa Stay'}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-sm font-bold text-gray-900">
-                                                        {formatMoney(
-                                                            booking.amount,
-                                                            booking.currency,
-                                                        )}
-                                                    </span>
+                                                <td className="px-6 py-4 whitespace-nowrap font-extrabold text-gray-900">
+                                                    {formatMoney(booking.amount, booking.currency)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(booking.status)}`}
+                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${getStatusColor(
+                                                            booking.status,
+                                                        )}`}
                                                     >
                                                         {getStatusIcon(booking.status)}
                                                         {booking.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className="text-xs text-gray-500 font-medium">
-                                                        {relativeTime(booking.created_at)}
-                                                    </span>
+                                                <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-medium">
+                                                    {relativeTime(booking.created_at)}
                                                 </td>
                                             </tr>
                                         ))
@@ -987,40 +1037,41 @@ export default function AdminDashboard() {
                 </>
             )}
 
+            {/* Quick Navigation Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link
                     href="/admin/partners?tab=hotels"
-                    className="bg-linear-to-br from-brand-primary to-brand-secondary p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group"
+                    className="bg-gradient-to-br from-brand-primary to-brand-secondary p-6 rounded-2xl text-white hover:shadow-lg transition-all group"
                 >
                     <Hotel className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
-                    <h3 className="font-bold text-lg">Hotels</h3>
-                    <p className="text-white/80 text-sm mt-1">
-                        Partners, inventory & publish
+                    <h3 className="font-bold text-lg">Hotels Workspace</h3>
+                    <p className="text-white/80 text-xs mt-1">
+                        Partners, Direct inventory & publishing
                     </p>
                 </Link>
                 <Link
                     href="/admin/flights"
-                    className="bg-linear-to-br from-brand-secondary to-brand-primary p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group"
+                    className="bg-gradient-to-br from-brand-secondary to-brand-primary p-6 rounded-2xl text-white hover:shadow-lg transition-all group"
                 >
                     <Plane className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
                     <h3 className="font-bold text-lg">Manage Flights</h3>
-                    <p className="text-white/80 text-sm mt-1">View and edit flight listings</p>
+                    <p className="text-white/80 text-xs mt-1">Amadeus API and route management</p>
                 </Link>
                 <Link
                     href="/admin/transactions"
-                    className="bg-linear-to-br from-brand-dark to-brand-primary p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group"
+                    className="bg-gradient-to-br from-brand-dark to-brand-primary p-6 rounded-2xl text-white hover:shadow-lg transition-all group"
                 >
                     <CreditCard className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
-                    <h3 className="font-bold text-lg">Transactions</h3>
-                    <p className="text-white/80 text-sm mt-1">Payments ledger & export</p>
+                    <h3 className="font-bold text-lg">Transactions Ledger</h3>
+                    <p className="text-white/80 text-xs mt-1">Reconciliation and payment exports</p>
                 </Link>
                 <Link
                     href="/admin/support"
-                    className="bg-linear-to-br from-gray-700 to-brand-dark p-6 rounded-2xl text-white hover:shadow-lg transition-shadow group"
+                    className="bg-gradient-to-br from-gray-700 to-brand-dark p-6 rounded-2xl text-white hover:shadow-lg transition-all group"
                 >
                     <Calendar className="w-8 h-8 mb-3 group-hover:scale-110 transition-transform" />
-                    <h3 className="font-bold text-lg">Support & Disputes</h3>
-                    <p className="text-white/80 text-sm mt-1">Tickets & review disputes</p>
+                    <h3 className="font-bold text-lg">Support & Inquiries</h3>
+                    <p className="text-white/80 text-xs mt-1">Disputes, customer cases & tickets</p>
                 </Link>
             </div>
         </div>
