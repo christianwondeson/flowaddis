@@ -68,7 +68,7 @@ export function CategoryProgressList({
                 </div>
                 {subtitle && <p className="text-xs text-gray-500 mb-6">{subtitle}</p>}
 
-                {items.length === 0 || totalCount === 0 ? (
+                {items.length === 0 ? (
                     <div className="py-12 text-center text-sm text-gray-400">
                         {emptyText}
                     </div>

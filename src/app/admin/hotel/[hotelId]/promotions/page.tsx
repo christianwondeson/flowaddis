@@ -194,6 +194,7 @@ export default function HotelPromotionsPage() {
     const [activeTab, setActiveTab] = useState<'active' | 'choose' | 'simulate'>('active');
 
     const [items, setItems] = useState<HotelPromotion[]>([]);
+    const [hotelName, setHotelName] = useState<string>('');
     const [rooms, setRooms] = useState<RoomOption[]>([]);
     const [mediaRest, setMediaRest] = useState<Record<string, unknown>>({});
     const [loading, setLoading] = useState(true);
@@ -225,11 +226,13 @@ export default function HotelPromotionsPage() {
         try {
             const [hotel, roomList] = await Promise.all([
                 hotelAdminFetch<{
+                    name?: string;
                     media?: (Record<string, unknown> & { promotions?: unknown }) | null;
                 }>(`hotels/${hotelId}`),
                 hotelAdminFetch<RoomOption[]>(`hotels/${hotelId}/room-types`).catch(() => []),
             ]);
 
+            if (hotel?.name) setHotelName(hotel.name);
             const media = (hotel.media || {}) as Record<string, unknown> & {
                 promotions?: unknown;
             };
@@ -306,6 +309,17 @@ export default function HotelPromotionsPage() {
     };
 
     const applyTemplate = (tpl: (typeof TEMPLATES)[0]) => {
+        const hotelPrefix = (hotelName || 'HOTEL').replace(/hotel/i, '').trim() || 'HOTEL';
+        const defaultCode =
+            tpl.code ||
+            (tpl.type === 'promo_code'
+                ? generatePromoCode({
+                      prefix: hotelPrefix,
+                      discount: tpl.discount,
+                      style: 'standard',
+                  })
+                : '');
+
         setForm({
             ...empty(),
             name: tpl.title,
@@ -313,7 +327,7 @@ export default function HotelPromotionsPage() {
             type: tpl.type,
             book_window_days: tpl.book_window_days ?? 14,
             min_nights: tpl.min_nights ?? 1,
-            code: tpl.code || '',
+            code: defaultCode,
             facility_scope: tpl.facility_scope,
             applicable_room_ids: ['all'],
             applicable_room_names: ['All room types'],
@@ -744,12 +758,20 @@ export default function HotelPromotionsPage() {
                                 <select
                                     className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                                     value={form.type}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                        const nextType = e.target.value as HotelPromotionType;
+                                        const hotelPrefix = (hotelName || 'HOTEL').replace(/hotel/i, '').trim() || 'HOTEL';
+                                        const generated = generatePromoCode({
+                                            prefix: hotelPrefix,
+                                            discount: form.discount_percent || 15,
+                                            style: 'standard',
+                                        });
                                         setForm((f) => ({
                                             ...f,
-                                            type: e.target.value as HotelPromotionType,
-                                        }))
-                                    }
+                                            type: nextType,
+                                            code: nextType === 'promo_code' ? (f.code || generated) : f.code,
+                                        }));
+                                    }}
                                 >
                                     {(Object.keys(PROMOTION_TYPE_LABELS) as HotelPromotionType[]).map(
                                         (k) => (
@@ -1132,7 +1154,7 @@ export default function HotelPromotionsPage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="font-bold text-xs">Simulated Base Price ($)</Label>
+                            <Label className="font-bold text-xs">Simulated Base Price (ETB)</Label>
                             <Input
                                 type="number"
                                 min={1}
@@ -1196,19 +1218,19 @@ export default function HotelPromotionsPage() {
                             <div className="rounded-lg bg-white p-3 border border-slate-200 shadow-2xs">
                                 <span className="text-xs text-slate-500 font-semibold block">Base Rate</span>
                                 <span className="text-lg font-bold text-slate-800">
-                                    ${simBasePrice.toFixed(2)}
+                                    ETB {simBasePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                             <div className="rounded-lg bg-white p-3 border border-slate-200 shadow-2xs">
                                 <span className="text-xs text-slate-500 font-semibold block">Guest Savings</span>
                                 <span className="text-lg font-bold text-emerald-600">
-                                    -${simulatedSavings.toFixed(2)} ({simulationResult.percent}%)
+                                    -ETB {simulatedSavings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({simulationResult.percent}%)
                                 </span>
                             </div>
                             <div className="rounded-lg bg-emerald-50 p-3 border border-emerald-300 shadow-2xs">
                                 <span className="text-xs text-emerald-800 font-semibold block">Final Guest Price</span>
                                 <span className="text-xl font-black text-emerald-900">
-                                    ${simulatedFinalPrice.toFixed(2)}
+                                    ETB {simulatedFinalPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </div>

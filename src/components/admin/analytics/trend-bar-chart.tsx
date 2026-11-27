@@ -172,40 +172,45 @@ export function TrendBarChart({
                         <span>
                             {graphMetric === 'secondary'
                                 ? `${maxBookings} bkgs`
-                                : graphMetric === 'primary'
-                                  ? formatCompact(maxRevenue)
-                                  : '100%'}
+                                : `${formatCompact(maxRevenue)} ${currency}`}
                         </span>
+                        {graphMetric === 'both' && (
+                            <span className="text-teal-700/80">{maxBookings} bkgs</span>
+                        )}
                     </div>
                     <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
                         <span>
                             {graphMetric === 'secondary'
                                 ? `${Math.round(maxBookings * 0.75)} bkgs`
-                                : graphMetric === 'primary'
-                                  ? formatCompact(maxRevenue * 0.75)
-                                  : '75%'}
+                                : `${formatCompact(maxRevenue * 0.75)} ${currency}`}
                         </span>
+                        {graphMetric === 'both' && (
+                            <span className="text-teal-700/80">{Math.round(maxBookings * 0.75)} bkgs</span>
+                        )}
                     </div>
                     <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
                         <span>
                             {graphMetric === 'secondary'
                                 ? `${Math.round(maxBookings * 0.5)} bkgs`
-                                : graphMetric === 'primary'
-                                  ? formatCompact(maxRevenue * 0.5)
-                                  : '50%'}
+                                : `${formatCompact(maxRevenue * 0.5)} ${currency}`}
                         </span>
+                        {graphMetric === 'both' && (
+                            <span className="text-teal-700/80">{Math.round(maxBookings * 0.5)} bkgs</span>
+                        )}
                     </div>
                     <div className="border-b border-dashed border-gray-100 w-full flex justify-between pr-2">
                         <span>
                             {graphMetric === 'secondary'
                                 ? `${Math.round(maxBookings * 0.25)} bkgs`
-                                : graphMetric === 'primary'
-                                  ? formatCompact(maxRevenue * 0.25)
-                                  : '25%'}
+                                : `${formatCompact(maxRevenue * 0.25)} ${currency}`}
                         </span>
+                        {graphMetric === 'both' && (
+                            <span className="text-teal-700/80">{Math.round(maxBookings * 0.25)} bkgs</span>
+                        )}
                     </div>
                     <div className="border-b border-gray-200 w-full flex justify-between pr-2">
-                        <span>0</span>
+                        <span>0 {currency}</span>
+                        {graphMetric === 'both' && <span className="text-teal-700/80">0 bkgs</span>}
                     </div>
                 </div>
 
@@ -267,54 +272,56 @@ export function TrendBarChart({
                                     {/* Bars */}
                                     <div className="w-full flex items-end justify-center gap-1.5 h-full relative">
                                         {(graphMetric === 'both' || graphMetric === 'secondary') && (
-                                            <div className="flex-1 max-w-[28px] flex flex-col items-center justify-end h-full">
+                                            <div className="flex-1 max-w-[32px] flex flex-col items-center justify-end h-full">
                                                 <span
                                                     className={cn(
                                                         'text-[10px] font-bold mb-1 transition-opacity',
                                                         row.bookings > 0
                                                             ? 'text-teal-800'
-                                                            : 'text-gray-300 opacity-60',
+                                                            : 'text-gray-400 opacity-70',
                                                     )}
                                                 >
                                                     {row.bookings}
                                                 </span>
-                                                <div
-                                                    className={cn(
-                                                        'w-full rounded-t-md transition-all duration-300',
-                                                        row.bookings > 0
-                                                            ? 'bg-gradient-to-t from-teal-600 to-teal-400 group-hover:from-teal-500 group-hover:to-teal-300 shadow-xs'
-                                                            : 'bg-gray-100 group-hover:bg-gray-200',
-                                                    )}
-                                                    style={{ height: `${bookBarH}%` }}
-                                                />
+                                                <div className="w-full flex-1 max-h-[82%] flex items-end">
+                                                    <div
+                                                        className={cn(
+                                                            'w-full rounded-t-md transition-all duration-300',
+                                                            row.bookings > 0
+                                                                ? 'bg-gradient-to-t from-teal-600 to-teal-400 group-hover:from-teal-500 group-hover:to-teal-300 shadow-xs'
+                                                                : 'bg-gray-100 group-hover:bg-gray-200',
+                                                        )}
+                                                        style={{ height: `${bookBarH}%` }}
+                                                    />
+                                                </div>
                                             </div>
                                         )}
 
                                         {(graphMetric === 'both' || graphMetric === 'primary') && (
-                                            <div className="flex-1 max-w-[28px] flex flex-col items-center justify-end h-full">
-                                                {graphMetric === 'primary' && (
-                                                    <span
-                                                        className={cn(
-                                                            'text-[10px] font-bold mb-1 transition-opacity',
-                                                            row.revenue > 0
-                                                                ? 'text-emerald-800'
-                                                                : 'text-gray-300 opacity-60',
-                                                        )}
-                                                    >
-                                                        {row.revenue > 0
-                                                            ? formatCompact(row.revenue)
-                                                            : '0'}
-                                                    </span>
-                                                )}
-                                                <div
+                                            <div className="flex-1 max-w-[32px] flex flex-col items-center justify-end h-full">
+                                                <span
                                                     className={cn(
-                                                        'w-full rounded-t-md transition-all duration-300',
+                                                        'text-[10px] font-bold mb-1 transition-opacity',
                                                         row.revenue > 0
-                                                            ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 group-hover:from-emerald-500 group-hover:to-emerald-300 shadow-xs'
-                                                            : 'bg-gray-100 group-hover:bg-gray-200',
+                                                            ? 'text-emerald-800'
+                                                            : 'text-gray-400 opacity-70',
                                                     )}
-                                                    style={{ height: `${revBarH}%` }}
-                                                />
+                                                >
+                                                    {row.revenue > 0
+                                                        ? formatCompact(row.revenue)
+                                                        : '0'}
+                                                </span>
+                                                <div className="w-full flex-1 max-h-[82%] flex items-end">
+                                                    <div
+                                                        className={cn(
+                                                            'w-full rounded-t-md transition-all duration-300',
+                                                            row.revenue > 0
+                                                                ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 group-hover:from-emerald-500 group-hover:to-emerald-300 shadow-xs'
+                                                                : 'bg-gray-100 group-hover:bg-gray-200',
+                                                        )}
+                                                        style={{ height: `${revBarH}%` }}
+                                                    />
+                                                </div>
                                             </div>
                                         )}
                                     </div>

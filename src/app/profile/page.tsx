@@ -153,10 +153,10 @@ export default function ProfilePage() {
                                 {phoneLine ? <p className="mt-0.5 text-sm text-muted-foreground">{phoneLine}</p> : null}
                                 <div className="mt-1 flex items-center gap-2">
                                     <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:text-blue-300">
-                                        {isPartner
-                                            ? "Hotel Partner"
-                                            : user.role === "admin"
-                                              ? "Super Admin"
+                                        {user.role === "admin"
+                                            ? "Super Admin"
+                                            : isPartner
+                                              ? "Hotel Admin"
                                               : "BookAddis Guest"}
                                     </span>
                                     {partnerStatus === "pending" && (
@@ -168,19 +168,29 @@ export default function ProfilePage() {
                             </div>
                         </div>
 
-                        {/* Quick links to Trips / Bookings */}
+                        {/* Quick links to Dashboard / Extranet / Trips */}
                         <div className="flex items-center gap-2 sm:self-start">
-                            <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
-                                <Link href="/trips">
-                                    <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
-                                    My Trips
-                                </Link>
-                            </Button>
+                            {user.role === 'admin' && (
+                                <Button size="sm" asChild className="gap-1.5 text-xs bg-purple-700 hover:bg-purple-800 text-white shadow-xs">
+                                    <Link href="/admin">
+                                        <Shield className="w-3.5 h-3.5" />
+                                        Admin Dashboard
+                                    </Link>
+                                </Button>
+                            )}
                             {isPartner && (
-                                <Button size="sm" asChild className="gap-1.5 text-xs bg-brand-primary text-white">
+                                <Button size="sm" asChild className="gap-1.5 text-xs bg-brand-primary hover:bg-teal-700 text-white shadow-xs">
                                     <Link href="/admin/hotel">
                                         <Hotel className="w-3.5 h-3.5" />
-                                        Hotel Portal
+                                        Hotel Extranet
+                                    </Link>
+                                </Button>
+                            )}
+                            {user.role !== 'admin' && !isPartner && (
+                                <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs">
+                                    <Link href="/trips">
+                                        <Briefcase className="w-3.5 h-3.5 text-brand-primary" />
+                                        My Trips
                                     </Link>
                                 </Button>
                             )}
