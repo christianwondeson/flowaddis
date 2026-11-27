@@ -124,9 +124,69 @@ export default function TransactionsPage() {
         }
     }, [user, statusFilter]);
 
+    const [globalSummary, setGlobalSummary] = useState<{
+        totalVolume: number;
+        successRate: string;
+        failedCount: number;
+        currency: string;
+        successCount: number;
+        totalCount: number;
+    } | null>(null);
+
+    const isSuccessTx = (tx: Transaction) => {
+        const s = (tx.status || '').toLowerCase();
+        return ['succeeded', 'paid', 'confirmed', 'completed', 'success'].includes(s);
+    };
+
+    const isFailedTx = (tx: Transaction) => {
+        const s = (tx.status || '').toLowerCase();
+        return ['failed', 'cancelled', 'expired'].includes(s);
+    };
+
+    const primaryCurrency = useMemo(() => {
+        return transactions.find((t) => t.currency)?.currency || 'ETB';
+    }, [transactions]);
+
+    const totalVolume = useMemo(() => {
+        return transactions.reduce(
+            (acc, curr) =>
+                acc + (isSuccessTx(curr) ? Number(curr.amount || 0) : 0),
+            0,
+        );
+    }, [transactions]);
+
+    const successCount = useMemo(() => {
+        return transactions.filter(isSuccessTx).length;
+    }, [transactions]);
+
+    const failedCount = useMemo(() => {
+        return transactions.filter(isFailedTx).length;
+    }, [transactions]);
+
+    const successRate = useMemo(() => {
+        const total = transactions.length;
+        if (total === 0) return '0.0';
+        return ((successCount / total) * 100).toFixed(1);
+    }, [transactions.length, successCount]);
+
+    useEffect(() => {
+        if (statusFilter === 'all' && transactions.length > 0) {
+            setGlobalSummary({
+                totalVolume,
+                successRate,
+                failedCount,
+                currency: primaryCurrency,
+                successCount,
+                totalCount: transactions.length,
+            });
+        }
+    }, [statusFilter, transactions, totalVolume, successRate, failedCount, primaryCurrency, successCount]);
+
     const getStatusBadge = (status: Transaction['status']) => {
-        switch (status) {
+        const s = (status || '').toLowerCase();
+        switch (s) {
             case 'succeeded':
+            case 'paid':
                 return (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100">
                         <CheckCircle2 className="w-3 h-3" />
@@ -141,10 +201,12 @@ export default function TransactionsPage() {
                     </span>
                 );
             case 'failed':
+            case 'cancelled':
+            case 'expired':
                 return (
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-100">
                         <XCircle className="w-3 h-3" />
-                        Failed
+                        {s === 'expired' ? 'Expired' : s === 'cancelled' ? 'Cancelled' : 'Failed'}
                     </span>
                 );
             default:
@@ -361,14 +423,12 @@ export default function TransactionsPage() {
                         </div>
                     </div>
                     <div className="text-2xl font-extrabold text-brand-dark">
-                        {transactions
-                            .reduce(
-                                (acc, curr) =>
-                                    acc + (curr.status === 'succeeded' ? Number(curr.amount) : 0),
-                                0,
-                            )
-                            .toLocaleString()}
+                        {globalSummary?.currency ?? primaryCurrency}{' '}
+                        {(globalSummary?.totalVolume ?? totalVolume).toLocaleString()}
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {globalSummary?.successCount ?? successCount} settled transactions
+                    </p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
@@ -380,15 +440,12 @@ export default function TransactionsPage() {
                         </div>
                     </div>
                     <div className="text-2xl font-extrabold text-brand-dark">
-                        {transactions.length > 0
-                            ? (
-                                  (transactions.filter((t) => t.status === 'succeeded').length /
-                                      transactions.length) *
-                                  100
-                              ).toFixed(1)
-                            : 0}
-                        %
+                        {globalSummary?.successRate ?? successRate}%
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {globalSummary?.failedCount ?? failedCount} failures out of{' '}
+                        {globalSummary?.totalCount ?? transactions.length} attempts
+                    </p>
                 </div>
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <div className="flex items-center justify-between mb-2">
@@ -400,8 +457,11 @@ export default function TransactionsPage() {
                         </div>
                     </div>
                     <div className="text-2xl font-extrabold text-brand-dark">
-                        {transactions.filter((t) => t.status === 'failed').length}
+                        {globalSummary?.failedCount ?? failedCount}
                     </div>
+                    <p className="text-xs text-rose-600 font-medium mt-1">
+                        Declined or session timed out
+                    </p>
                 </div>
             </div>
 

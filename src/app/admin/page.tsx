@@ -171,7 +171,7 @@ function changeLabel(pct: number) {
 }
 
 export default function AdminDashboard() {
-    const [timeRange, setTimeRange] = useState<RangeKey>('30days');
+    const [timeRange, setTimeRange] = useState<RangeKey>('all');
     const [selectedHotelId, setSelectedHotelId] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
     };
 
     const handleResetFilters = () => {
-        setTimeRange('30days');
+        setTimeRange('all');
         setSelectedHotelId('');
         setStatusFilter('all');
         setPaymentMethodFilter('all');
