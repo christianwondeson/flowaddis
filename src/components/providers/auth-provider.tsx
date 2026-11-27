@@ -33,6 +33,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getUserDocSnapshotPreferServer } from '@/lib/firestore-user-doc';
+import { generateUserPromoCode } from '@/lib/hotel-promotions';
 import { AuthContextType, RegisterOptions, User, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 
@@ -248,6 +249,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         const userData = userDoc.data();
                         const role: UserRole = parseUserRole(userData.role);
 
+                        const myPromo =
+                            (userData.myPromoCode as string) ||
+                            (userData.referralCode as string) ||
+                            generateUserPromoCode(userData.name || firebaseUser.displayName || '');
+
                         const userProfileData: User = {
                             id: firebaseUser.uid,
                             email: firebaseUser.email!,
@@ -258,7 +264,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             adminStatus: userData.adminStatus || 'none',
                             hotelPartnerStatus: userData.hotelPartnerStatus,
                             hotelPartnerRequest: userData.hotelPartnerRequest,
-                            referralCode: userData.referralCode,
+                            referralCode: myPromo,
+                            myPromoCode: myPromo,
+                            referredBy: userData.referredBy as string | undefined,
                         };
 
                         queryClient.setQueryData(queryKeys.user.profile(firebaseUser.uid), userProfileData);
@@ -364,6 +372,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Hotel portal opens only after Super Admin assigns a hotel_membership.
             const role = APP_CONSTANTS.ROLES.USER;
             const referralCode = options?.referralCode?.trim();
+            const myPromoCode = generateUserPromoCode(name);
 
             const userDocRef = doc(db, "users", user.uid);
             const userData: Record<string, unknown> = {
@@ -372,6 +381,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 role,
                 adminStatus: 'none',
                 hotelPartnerStatus: 'none',
+                myPromoCode,
+                referralCode: myPromoCode,
                 createdAt: serverTimestamp(),
             };
 
@@ -394,7 +405,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             if (referralCode) {
-                userData.referralCode = referralCode;
+                userData.referredBy = referralCode;
             }
 
             await setDoc(userDocRef, userData);

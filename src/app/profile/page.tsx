@@ -21,7 +21,11 @@ import {
     CheckCircle2,
     Hotel,
     Info,
+    Gift,
+    Copy,
+    Check,
 } from "lucide-react";
+import { generateUserPromoCode } from "@/lib/hotel-promotions";
 import { ProfileBackendSection } from "@/components/settings/profile-backend-section";
 import { HotelPartnerRequestForm } from "@/components/account/hotel-partner-request-form";
 import Link from "next/link";
@@ -105,6 +109,33 @@ export default function ProfilePage() {
 
     const isPartner = canAccessHotelPortal(user);
     const partnerStatus = user.hotelPartnerStatus || "none";
+
+    const [copiedCode, setCopiedCode] = useState(false);
+    const [copiedLink, setCopiedLink] = useState(false);
+    const promoCode = user.myPromoCode || user.referralCode || generateUserPromoCode(displayName);
+
+    const copyCodeToClipboard = async () => {
+        if (!promoCode) return;
+        try {
+            await navigator.clipboard.writeText(promoCode);
+            setCopiedCode(true);
+            setTimeout(() => setCopiedCode(false), 2000);
+        } catch {
+            /* ignore */
+        }
+    };
+
+    const copyLinkToClipboard = async () => {
+        if (!promoCode) return;
+        try {
+            const origin = typeof window !== "undefined" ? window.location.origin : "https://bookaddis.com";
+            await navigator.clipboard.writeText(`${origin}/signup?ref=${promoCode}`);
+            setCopiedLink(true);
+            setTimeout(() => setCopiedLink(false), 2000);
+        } catch {
+            /* ignore */
+        }
+    };
 
     return (
         <AccountShell>
@@ -246,6 +277,67 @@ export default function ProfilePage() {
                                         readOnly
                                         className={inputReadOnlyClass}
                                     />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border dark:border-slate-700" />
+
+                        {/* Guest Referral & Personal Promo Code */}
+                        <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-br from-indigo-50/80 via-white to-sky-50/50 p-5 shadow-xs dark:border-indigo-900/50 dark:bg-slate-900/80">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="space-y-1">
+                                    <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                                        <Gift className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        Your Personal Promo & Referral Code
+                                    </span>
+                                    <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                                        Give 10% Off, Share BookAddis
+                                    </h3>
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
+                                        Share your unique code with colleagues, friends, or family. When entered during hotel checkout or sign-up, they immediately receive 10% off their booking.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3.5 py-2 shadow-xs">
+                                        <span className="font-mono text-sm sm:text-base font-extrabold text-indigo-950 dark:text-indigo-200 tracking-wider">
+                                            {promoCode}
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={copyCodeToClipboard}
+                                            className="h-8 px-2.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                                        >
+                                            {copiedCode ? (
+                                                <span className="flex items-center gap-1 text-emerald-600">
+                                                    <Check className="w-3.5 h-3.5" /> Copied
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1">
+                                                    <Copy className="w-3.5 h-3.5" /> Copy Code
+                                                </span>
+                                            )}
+                                        </Button>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={copyLinkToClipboard}
+                                        className="h-10 text-xs font-semibold border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-slate-800"
+                                    >
+                                        {copiedLink ? (
+                                            <span className="flex items-center gap-1 text-emerald-600">
+                                                <Check className="w-3.5 h-3.5" /> Link Copied
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-1">
+                                                <Copy className="w-3.5 h-3.5" /> Copy Invite Link
+                                            </span>
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
                         </div>

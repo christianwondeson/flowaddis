@@ -7,6 +7,7 @@ import { queryKeys } from '@/lib/react-query';
 import { HotelPartnerRequest, HotelPartnerStatus, User, UserRole } from '@/types/auth';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { parseUserRole, parseHotelPartnerStatus } from '@/lib/auth-helpers';
+import { generateUserPromoCode } from '@/lib/hotel-promotions';
 
 export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
     const uid = firebaseUser?.uid ?? '';
@@ -35,6 +36,9 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
             let hotelPartnerStatus: HotelPartnerStatus = 'none';
             let hotelPartnerRequest: HotelPartnerRequest | undefined;
 
+            let myPromoCode = '';
+            let referredBy: string | undefined;
+
             if (userDoc.exists()) {
                 const userData = userDoc.data();
                 role = parseUserRole(userData.role);
@@ -42,6 +46,12 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
                 phone = typeof userData.phone === 'string' ? userData.phone : '';
                 adminStatus = userData.adminStatus || 'none';
                 hotelPartnerStatus = parseHotelPartnerStatus(userData.hotelPartnerStatus);
+                myPromoCode = (userData.myPromoCode as string) || (userData.referralCode as string) || '';
+                if (!myPromoCode) {
+                    myPromoCode = generateUserPromoCode(name);
+                    setDoc(userDocRef, { myPromoCode, referralCode: myPromoCode }, { merge: true }).catch(() => {});
+                }
+                referredBy = typeof userData.referredBy === 'string' ? userData.referredBy : undefined;
                 if (
                     userData.hotelPartnerRequest &&
                     typeof userData.hotelPartnerRequest === 'object'
@@ -67,12 +77,15 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
 
                 // Seed a user document if missing
                 try {
+                    myPromoCode = generateUserPromoCode(name);
                     const newUser = {
                         name: name || firebaseUser.email?.split('@')[0] || 'Unknown',
                         email: firebaseUser.email,
                         role: APP_CONSTANTS.ROLES.USER,
                         adminStatus: 'none',
                         hotelPartnerStatus: 'none',
+                        myPromoCode,
+                        referralCode: myPromoCode,
                         createdAt: serverTimestamp()
                     };
                     await setDoc(userDocRef, newUser);
@@ -91,6 +104,9 @@ export function useUserProfile(firebaseUser: FirebaseAuthUser | null) {
                 adminStatus: adminStatus,
                 hotelPartnerStatus,
                 ...(hotelPartnerRequest ? { hotelPartnerRequest } : {}),
+                referralCode: myPromoCode || undefined,
+                myPromoCode: myPromoCode || undefined,
+                ...(referredBy ? { referredBy } : {}),
             };
         },
         enabled: !!uid && !!db && !isCheckoutGuest,

@@ -22,4 +22,5 @@ export interface CustomerBookingSummary {
     title: string;
     subtitle?: string;
     external_item_id: string;
+    failure_reason?: string | null;
 }

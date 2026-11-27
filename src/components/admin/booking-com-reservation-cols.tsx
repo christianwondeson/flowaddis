@@ -115,7 +115,13 @@ export function reservationStatusBadge(
     failureReason?: string | null,
 ) {
     const s = (status || '').toLowerCase();
-    const cancelled = s.includes('cancel') || s.includes('fail') || s.includes('expire');
+    const cancelled =
+        s.includes('cancel') ||
+        s.includes('fail') ||
+        s.includes('expire') ||
+        s.includes('no show') ||
+        s.includes('no_show') ||
+        Boolean(failureReason);
     const noShow = s.includes('no show') || s.includes('no_show');
     const ok = s === 'ok' || s === 'stayed';
     const friendlyReason = formatFriendlyFailureReason(failureReason, status);

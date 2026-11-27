@@ -72,6 +72,17 @@ export function generatePromoCode(options?: {
     return `${prefix}${disc}`;
 }
 
+/**
+ * Generates an unambiguous, shareable referral promo code for a guest or user.
+ * e.g. "FA-ALEM842" or "FA-GUEST319"
+ */
+export function generateUserPromoCode(name?: string): string {
+    const raw = (name || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    const prefix = raw.length >= 3 ? raw.slice(0, 4) : 'GUEST';
+    const rand = Math.floor(100 + Math.random() * 900);
+    return `FA-${prefix}${rand}`;
+}
+
 export function normalizePromotions(raw: unknown): HotelPromotion[] {
     if (!Array.isArray(raw)) return [];
     return raw
@@ -207,6 +218,30 @@ export function resolveHotelPromotionDiscount(params: {
         );
 
         if (allMatchingCode.length === 0) {
+            // Check for valid platform referral / welcome promo codes (e.g. FA-*, BOOKADDIS*, WELCOME*, ADDIS*, PROMO*)
+            if (
+                code.startsWith('FA-') ||
+                code.startsWith('BOOKADDIS') ||
+                code.startsWith('ADDIS') ||
+                code.startsWith('WELCOME') ||
+                code.startsWith('PROMO')
+            ) {
+                const discountMatch = code.match(/(\d{1,2})$/);
+                const discountPercent = discountMatch ? Math.min(50, Math.max(5, parseInt(discountMatch[1], 10))) : 10;
+                const platformPromo: HotelPromotion = {
+                    id: `platform_${code}`,
+                    type: 'promo_code',
+                    name: `BookAddis Promo Code (${discountPercent}% OFF)`,
+                    discount_percent: discountPercent,
+                    active: true,
+                    code,
+                    facility_scope: ['hotel_room'],
+                    min_nights: 1,
+                    description: 'BookAddis referral & promotional discount applied',
+                };
+                return { percent: discountPercent, applied: platformPromo };
+            }
+
             return {
                 percent: 0,
                 applied: null,

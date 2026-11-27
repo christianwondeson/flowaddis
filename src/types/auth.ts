@@ -97,6 +97,10 @@ export interface User {
     hotelPartnerRequest?: HotelPartnerRequest;
     /** Optional guest referral / promo code captured at signup. */
     referralCode?: string;
+    /** User's personal shareable promo / referral code (e.g. FA-ALEM842). */
+    myPromoCode?: string;
+    /** Referral code this user entered during registration. */
+    referredBy?: string;
 }
 
 /** Public signup paths  BookAddis staff (Super Admin) is never self-serve. */

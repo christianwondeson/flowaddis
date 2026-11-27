@@ -212,7 +212,12 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const sp = new URLSearchParams(window.location.search);
-            const urlCode = sp.get('promo') || sp.get('promoCode') || sp.get('code');
+            const urlCode =
+                sp.get('promo') ||
+                sp.get('promoCode') ||
+                sp.get('code') ||
+                sp.get('ref') ||
+                sp.get('referral');
             if (urlCode && !promoCode) {
                 setPromoCode(urlCode.trim().toUpperCase());
             }
@@ -296,19 +301,20 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
             }),
         [promotions, checkIn, checkOut, draft.roomTypeId],
     );
+    const effectivePromoCode = promoCode.trim() || referralCode.trim();
     const codePromo = useMemo(
         () =>
-            promoCode.trim()
+            effectivePromoCode
                 ? resolveHotelPromotionDiscount({
                       promotions,
                       checkIn,
                       checkOut,
-                      promoCode,
+                      promoCode: effectivePromoCode,
                       roomTypeId: draft.roomTypeId,
                       facility: 'hotel_room',
                   })
                 : { percent: 0, applied: null as HotelPromotion | null },
-        [promotions, checkIn, checkOut, promoCode, draft.roomTypeId],
+        [promotions, checkIn, checkOut, effectivePromoCode, draft.roomTypeId],
     );
     const appliedPromo =
         codePromo.percent > 0
@@ -382,6 +388,13 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
 
     const snapshotPayload = useMemo(
         () => ({
+            hotel_id: draft.hotelId,
+            hotelId: draft.hotelId,
+            hotelName: draft.hotelName,
+            serviceName: draft.hotelName,
+            roomName: draft.roomName,
+            room_name: draft.roomName,
+            room_type_id: draft.roomTypeId,
             checkin: checkIn,
             checkout: checkOut,
             checkIn: checkIn,
@@ -1812,21 +1825,26 @@ export function HotelBookingSummary({ draft, backHref }: Props) {
                                                     onChange={(e) => setPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
                                                     placeholder="e.g. WELCOME15"
                                                 />
-                                                {codePromo.percent > 0 && (
+                                                {codePromo.percent > 0 && promoCode.trim() && (
                                                     <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                                                         ✓ Code applied: {codePromo.percent}% discount!
                                                     </p>
                                                 )}
-                                                {codePromo.reason && <p className="text-xs text-amber-700">{codePromo.reason}</p>}
+                                                {codePromo.reason && promoCode.trim() && <p className="text-xs text-amber-700">{codePromo.reason}</p>}
                                             </div>
                                             <div className="space-y-1">
                                                 <Label className="text-xs font-bold text-slate-700">Referral Code</Label>
                                                 <Input
                                                     className={fieldClass}
                                                     value={referralCode}
-                                                    onChange={(e) => setReferralCode(e.target.value)}
-                                                    placeholder="Referral code"
+                                                    onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+                                                    placeholder="e.g. FA-ALEM842"
                                                 />
+                                                {codePromo.percent > 0 && !promoCode.trim() && referralCode.trim() && (
+                                                    <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                                                        ✓ Referral applied: {codePromo.percent}% discount!
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

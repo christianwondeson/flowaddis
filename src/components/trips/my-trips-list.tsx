@@ -116,6 +116,17 @@ function BookingRowCard({ booking }: { booking: CustomerBookingSummary }) {
             <p className="break-all font-mono text-xs text-muted-foreground">
                 Ref: {booking.payment_reference || booking.id}
             </p>
+            {Boolean(booking.failure_reason) &&
+                (booking.status === 'FAILED' ||
+                    booking.status === 'EXPIRED' ||
+                    (booking.status as string) === 'CANCELLED') && (
+                    <div className="mt-2.5 rounded-lg border border-rose-200 bg-rose-50/90 p-2.5 text-xs text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
+                        <span className="font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wide text-[10px] block mb-0.5">
+                            Cancellation / Failure Reason
+                        </span>
+                        {booking.failure_reason}
+                    </div>
+                )}
         </Card>
     );
 }

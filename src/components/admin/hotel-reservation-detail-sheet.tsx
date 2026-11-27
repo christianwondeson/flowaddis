@@ -361,17 +361,17 @@ export function HotelReservationDetailSheet({
                 </SheetHeader>
 
                 {formatFriendlyFailureReason(booking.failure_reason, booking.reservation_status || booking.status) && (
-                    <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3.5 my-3 text-sm">
+                    <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-4 my-3 text-sm shadow-xs">
                         <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-800">
-                            <span className="w-2 h-2 rounded-full bg-rose-500" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
                             Cancellation / Failure Reason
                         </div>
-                        <p className="text-sm font-semibold text-rose-900 mt-1">
+                        <p className="text-base font-bold text-rose-950 mt-1.5">
                             {formatFriendlyFailureReason(booking.failure_reason, booking.reservation_status || booking.status)}
                         </p>
                         {booking.failure_reason && (
-                            <p className="text-[11px] text-rose-700/80 mt-0.5 font-mono">
-                                System notice: {booking.failure_reason}
+                            <p className="text-xs text-rose-800 mt-1.5 font-mono bg-white/70 p-2 rounded-lg border border-rose-200">
+                                System log: {booking.failure_reason}
                             </p>
                         )}
                     </div>
