@@ -31,10 +31,12 @@ import { FileText, Loader2, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { formatDateLocal } from '@/lib/date-utils';
 import { monthBounds } from '@/lib/admin-period-utils';
+import { formatFriendlyFailureReason } from './booking-com-reservation-cols';
 
 export type HotelReservationDetail = {
     id: string;
     status: string;
+    failure_reason?: string | null;
     reservation_status?: string | null;
     settlement_model?: 'pay_at_property' | 'prepaid' | null;
     payment_timing?: string | null;
@@ -357,6 +359,23 @@ export function HotelReservationDetailSheet({
                         {booking.reservation_status || booking.status}
                     </SheetDescription>
                 </SheetHeader>
+
+                {formatFriendlyFailureReason(booking.failure_reason, booking.reservation_status || booking.status) && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3.5 my-3 text-sm">
+                        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-rose-800">
+                            <span className="w-2 h-2 rounded-full bg-rose-500" />
+                            Cancellation / Failure Reason
+                        </div>
+                        <p className="text-sm font-semibold text-rose-900 mt-1">
+                            {formatFriendlyFailureReason(booking.failure_reason, booking.reservation_status || booking.status)}
+                        </p>
+                        {booking.failure_reason && (
+                            <p className="text-[11px] text-rose-700/80 mt-0.5 font-mono">
+                                System notice: {booking.failure_reason}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <Section title="Commission & billing">
                     <div className="rounded-xl border border-slate-200 p-3 text-sm space-y-3">

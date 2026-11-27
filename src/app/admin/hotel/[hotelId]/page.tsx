@@ -41,6 +41,7 @@ import {
     HotelReservationDetailSheet,
     type HotelReservationDetail,
 } from '@/components/admin/hotel-reservation-detail-sheet';
+import { formatFriendlyFailureReason } from '@/components/admin/booking-com-reservation-cols';
 import { Button } from '@/components/ui/button';
 
 /** Empty duplicate created before Momona inventory lived on the Wire Test hotel. */
@@ -617,12 +618,20 @@ export default function HotelDashboardPage() {
                                             </p>
                                             <span
                                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border mt-0.5 ${getStatusBadge(
-                                                    b.status,
+                                                    b.stay_outcome === 'stayed' ? 'stayed' : b.status,
                                                 )}`}
                                             >
-                                                {getStatusIcon(b.status)}
-                                                {b.status}
+                                                {getStatusIcon(b.stay_outcome === 'stayed' ? 'stayed' : b.status)}
+                                                {b.stay_outcome === 'stayed' ? 'Stayed & Paid' : b.status}
                                             </span>
+                                            {formatFriendlyFailureReason(b.failure_reason, b.status) && (
+                                                <p
+                                                    className="text-[10px] text-rose-600 font-medium mt-0.5 max-w-[150px] truncate ml-auto"
+                                                    title={formatFriendlyFailureReason(b.failure_reason, b.status)!}
+                                                >
+                                                    {formatFriendlyFailureReason(b.failure_reason, b.status)}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 );

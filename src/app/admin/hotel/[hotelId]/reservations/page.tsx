@@ -168,7 +168,7 @@ export default function HotelReservationsPage() {
         {
             id: 'status',
             header: 'Status',
-            cell: (b) => reservationStatusBadge(b.reservation_status),
+            cell: (b) => reservationStatusBadge(b.reservation_status, b.failure_reason),
         },
         {
             id: 'amount',

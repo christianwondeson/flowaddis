@@ -72,6 +72,7 @@ function toDetail(row: CommissionReservationRow): HotelReservationDetail {
         is_work_trip: row.is_work_trip,
         special_requests: row.special_requests,
         add_ons: row.add_ons,
+        failure_reason: row.failure_reason,
     };
 }
 
@@ -211,7 +212,7 @@ export default function AdminReservationsInner() {
         {
             id: 'status',
             header: 'Status',
-            cell: (b) => reservationStatusBadge(b.reservation_status),
+            cell: (b) => reservationStatusBadge(b.reservation_status, b.failure_reason),
         },
         {
             id: 'price',

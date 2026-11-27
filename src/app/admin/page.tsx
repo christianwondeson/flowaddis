@@ -42,6 +42,7 @@ import {
     CategoryProgressList,
     type CategoryItem,
 } from '@/components/admin/analytics/category-progress-list';
+import { formatFriendlyFailureReason } from '@/components/admin/booking-com-reservation-cols';
 
 type RangeKey = TimeRangeValue;
 
@@ -108,6 +109,7 @@ type DashboardData = {
         amount: number;
         currency: string;
         status: string;
+        failure_reason?: string | null;
         created_at: string;
     }[];
     recent_payments: {
@@ -1015,14 +1017,33 @@ export default function AdminDashboard() {
                                                     {formatMoney(booking.amount, booking.currency)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${getStatusColor(
+                                                    <div className="flex flex-col">
+                                                        <span
+                                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${getStatusColor(
+                                                                booking.status,
+                                                            )}`}
+                                                        >
+                                                            {getStatusIcon(booking.status)}
+                                                            {booking.status}
+                                                        </span>
+                                                        {formatFriendlyFailureReason(
+                                                            booking.failure_reason,
                                                             booking.status,
-                                                        )}`}
-                                                    >
-                                                        {getStatusIcon(booking.status)}
-                                                        {booking.status}
-                                                    </span>
+                                                        ) && (
+                                                            <span
+                                                                className="text-[10px] text-rose-600 font-medium mt-0.5 max-w-[170px] truncate"
+                                                                title={formatFriendlyFailureReason(
+                                                                    booking.failure_reason,
+                                                                    booking.status,
+                                                                )!}
+                                                            >
+                                                                {formatFriendlyFailureReason(
+                                                                    booking.failure_reason,
+                                                                    booking.status,
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-500 font-medium">
                                                     {relativeTime(booking.created_at)}
