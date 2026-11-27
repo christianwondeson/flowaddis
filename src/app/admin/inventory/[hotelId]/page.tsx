@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { adminInventoryFetch } from '@/lib/admin-inventory-api';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { BedDouble, CalendarDays, Globe2 } from 'lucide-react';
+import { BedDouble, Building2, CalendarDays, Globe2 } from 'lucide-react';
 
 type Hotel = {
     id: string;
@@ -136,7 +136,13 @@ export default function InventoryHotelOverviewPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-                <Button asChild>
+                <Button asChild className="bg-brand-primary text-white">
+                    <Link href={`/admin/hotel/${hotelId}`}>
+                        <Building2 className="w-4 h-4 mr-1.5" />
+                        Open Property Extranet Portal
+                    </Link>
+                </Button>
+                <Button asChild variant="outline">
                     <Link href={`/admin/inventory/${hotelId}/rooms`}>
                         <BedDouble className="w-4 h-4 mr-1.5" />
                         Manage rooms

@@ -283,7 +283,7 @@ export function DirectHotelsPanel() {
                                         </Button>
                                     )}
                                     <Button size="sm" variant="outline" asChild>
-                                        <Link href={`/admin/inventory/${h.id}`}>
+                                        <Link href={`/admin/hotel/${h.id}`}>
                                             Manage hotel
                                             <ExternalLink className="w-3.5 h-3.5 ml-1" />
                                         </Link>

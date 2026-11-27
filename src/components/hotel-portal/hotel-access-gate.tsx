@@ -17,15 +17,24 @@ export function HotelAccessGate({ children }: { children: React.ReactNode }) {
     const params = useParams();
     const pathname = usePathname();
     const router = useRouter();
-    const { partnerStatus } = useHotelPortalAuth();
+    const { user, partnerStatus } = useHotelPortalAuth();
     const { hotels, loading, error } = useHotelPortal();
 
     const hotelId = typeof params?.hotelId === 'string' ? params.hotelId : '';
     const isPicker = pathname === '/admin/hotel' || pathname === '/admin/hotel/';
-    /** Old empty “momona” row  live inventory/bookings are on Momona Hotel. */
+    /** Old empty “momona” row — live inventory/bookings are on Momona Hotel. */
     const LIVE_MOMONA_ID = '63acf293-7df4-4567-8c82-0660d7bf6a0b';
     const ARCHIVED_MOMONA_ID = 'c4dc1b1e-f78a-45c4-9592-d733ef13fbe2';
-    const allowed = !hotelId || hotels.some((h) => h.id === hotelId);
+    const MOMONA_IDS = [LIVE_MOMONA_ID, ARCHIVED_MOMONA_ID];
+    const isSuperAdmin = user?.role === 'admin';
+    const allowed =
+        isSuperAdmin ||
+        !hotelId ||
+        hotels.some(
+            (h) =>
+                h.id === hotelId ||
+                (MOMONA_IDS.includes(hotelId) && MOMONA_IDS.includes(h.id)),
+        );
 
     useEffect(() => {
         if (!hotelId || isPicker) return;

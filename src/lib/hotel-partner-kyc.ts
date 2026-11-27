@@ -198,6 +198,7 @@ export function isHotelPartnerAwaitingApproval(
  */
 export function isHotelPortalUnlocked(user: User | null | undefined): boolean {
     if (!user) return false;
+    if (user.role === 'admin') return true;
     if (user.role !== 'hotel_admin' && user.role !== 'hotel_staff') return false;
     const s = user.hotelPartnerStatus;
     if (s === 'pending' || s === 'draft' || s === 'rejected') return false;

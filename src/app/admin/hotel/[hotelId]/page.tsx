@@ -120,6 +120,18 @@ function calculateNights(checkIn?: string | null, checkOut?: string | null): num
     return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)));
 }
 
+function isRevenueBookingDetail(b: HotelReservationDetail): boolean {
+    const s = String(b.status || '').toLowerCase();
+    const outcome = String(b.stay_outcome || '').toLowerCase();
+    const channel = String(b.payment_channel || '').toLowerCase();
+    return (
+        outcome === 'stayed' ||
+        s === 'paid' ||
+        s === 'confirmed' ||
+        (channel === 'pay_at_property' && s !== 'cancelled' && s !== 'failed')
+    );
+}
+
 export default function HotelDashboardPage() {
     const params = useParams();
     const router = useRouter();
@@ -132,8 +144,8 @@ export default function HotelDashboardPage() {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Comprehensive filtering states
-    const [timeRange, setTimeRange] = useState<TimeRangeValue>('30days');
+    // Comprehensive filtering states - default to 'all' so historical bookings display immediately
+    const [timeRange, setTimeRange] = useState<TimeRangeValue>('all');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [paymentFilter, setPaymentFilter] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
@@ -142,7 +154,7 @@ export default function HotelDashboardPage() {
     const [selectedBooking, setSelectedBooking] = useState<HotelReservationDetail | null>(null);
 
     const handleResetFilters = () => {
-        setTimeRange('30days');
+        setTimeRange('all');
         setStatusFilter('all');
         setPaymentFilter('all');
         setSearchQuery('');
@@ -247,10 +259,172 @@ export default function HotelDashboardPage() {
         });
     }, [bookingsSource, timeRange, statusFilter, paymentFilter, searchQuery]);
 
-    // Room type performance breakdown items
+    const isFilterActive = useMemo(() => {
+        return (
+            timeRange !== 'all' ||
+            statusFilter !== 'all' ||
+            paymentFilter !== 'all' ||
+            Boolean(searchQuery.trim())
+        );
+    }, [timeRange, statusFilter, paymentFilter, searchQuery]);
+
+    // Dynamic metrics calculated from filteredBookings for instant interactivity
+    const dynamicMetrics = useMemo(() => {
+        const commPct = data?.commission_percent ?? 12;
+        if (!isFilterActive && data) {
+            return {
+                confirmedRev: data.revenue_confirmed || 0,
+                netPayout:
+                    data.net_payout ??
+                    Math.round((data.revenue_confirmed || 0) * (1 - commPct / 100)),
+                commPct,
+                activeBookings: data.bookings_active,
+                upcomingBookings: data.bookings_upcoming,
+                adr: data.hospitality_kpis?.adr || 0,
+                occupancyRatePct: data.hospitality_kpis?.occupancy_rate_pct || 0,
+                revpar: data.hospitality_kpis?.revpar || 0,
+                totalBookedNights: data.hospitality_kpis?.total_booked_nights || 0,
+            };
+        }
+
+        const revBookings = filteredBookings.filter(isRevenueBookingDetail);
+        const dynamicConfirmedRev = revBookings.reduce(
+            (sum, b) =>
+                sum + (Number(b.confirmed_gross_amount ?? b.amount) || 0),
+            0,
+        );
+        const dynamicNetPayout = Math.max(
+            0,
+            Math.round(dynamicConfirmedRev * (1 - commPct / 100)),
+        );
+        const dynamicActiveBookings = filteredBookings.filter((b) => {
+            const s = (b.status || '').toLowerCase();
+            return (
+                ['paid', 'confirmed', 'initiated', 'pending'].includes(s) ||
+                (b.stay_outcome || '').toLowerCase() === 'stayed'
+            );
+        }).length;
+
+        const today = new Date().toISOString().slice(0, 10);
+        const dynamicUpcoming = filteredBookings.filter((b) => {
+            const cin = b.check_in || '';
+            return !cin
+                ? ['paid', 'confirmed'].includes((b.status || '').toLowerCase())
+                : cin >= today;
+        }).length;
+
+        let totalNights = 0;
+        for (const b of revBookings) {
+            totalNights += calculateNights(b.check_in, b.check_out);
+        }
+        const totalInv = data?.total_inventory || 1;
+        const availableRoomNights = Math.max(1, totalInv * 30);
+        const dynamicOccPct = Math.min(
+            100,
+            Math.round((totalNights / availableRoomNights) * 1000) / 10,
+        );
+        const dynamicAdr =
+            totalNights > 0
+                ? Math.round(dynamicConfirmedRev / totalNights)
+                : 0;
+        const dynamicRevpar = Math.round(dynamicAdr * (dynamicOccPct / 100));
+
+        return {
+            confirmedRev: dynamicConfirmedRev,
+            netPayout: dynamicNetPayout,
+            commPct,
+            activeBookings: dynamicActiveBookings,
+            upcomingBookings: dynamicUpcoming,
+            adr: dynamicAdr,
+            occupancyRatePct: dynamicOccPct,
+            revpar: dynamicRevpar,
+            totalBookedNights: totalNights,
+        };
+    }, [filteredBookings, isFilterActive, data]);
+
+    // Dynamic monthly trend based on filtered bookings
+    const dynamicMonthlyTrend = useMemo(() => {
+        if (!isFilterActive && data?.monthly_trend && data.monthly_trend.length > 0) {
+            return data.monthly_trend;
+        }
+
+        const monthMap = new Map<string, { bookings: number; revenue: number }>();
+        for (const b of filteredBookings) {
+            if (!b.created_at) continue;
+            const d = new Date(b.created_at);
+            const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const existing = monthMap.get(ym) || { bookings: 0, revenue: 0 };
+            existing.bookings += 1;
+            if (isRevenueBookingDetail(b)) {
+                existing.revenue +=
+                    Number(b.confirmed_gross_amount ?? b.amount) || 0;
+            }
+            monthMap.set(ym, existing);
+        }
+
+        const now = new Date();
+        const baseMonths: string[] = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            baseMonths.push(
+                `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+            );
+        }
+        const allYms = Array.from(new Set([...baseMonths, ...monthMap.keys()])).sort();
+        return allYms.map((ym) => {
+            const [y, m] = ym.split('-').map(Number);
+            const month = new Date(y, m - 1, 1).toLocaleString('en-US', {
+                month: 'short',
+            });
+            return {
+                month,
+                ym,
+                bookings: monthMap.get(ym)?.bookings || 0,
+                revenue: monthMap.get(ym)?.revenue || 0,
+            };
+        });
+    }, [filteredBookings, isFilterActive, data?.monthly_trend]);
+
+    // Room type performance breakdown items (dynamically adapts to filtered bookings)
     const roomCategoryItems: CategoryItem[] = useMemo(() => {
-        const perf = data?.room_type_performance || [];
-        if (perf.length === 0) {
+        if (!isFilterActive && data?.room_type_performance && data.room_type_performance.length > 0) {
+            const perf = data.room_type_performance;
+            const totalB = perf.reduce((s, p) => s + p.bookings, 0) || 1;
+            return perf.map((p, idx) => ({
+                label: p.name,
+                count: p.bookings,
+                percentage: Math.round((p.bookings / totalB) * 100),
+                amount: p.revenue,
+                currency: data?.currency || 'ETB',
+                icon: BedDouble,
+                colorClass: [
+                    'bg-teal-500',
+                    'bg-emerald-500',
+                    'bg-purple-500',
+                    'bg-amber-500',
+                    'bg-sky-500',
+                ][idx % 5],
+            }));
+        }
+
+        const roomMap = new Map<string, { bookings: number; revenue: number }>();
+        if (data?.room_type_performance) {
+            for (const r of data.room_type_performance) {
+                roomMap.set(r.name, { bookings: 0, revenue: 0 });
+            }
+        }
+        for (const b of filteredBookings) {
+            const name = b.room_name?.trim() || 'Standard Room';
+            const cur = roomMap.get(name) || { bookings: 0, revenue: 0 };
+            cur.bookings += 1;
+            if (isRevenueBookingDetail(b)) {
+                cur.revenue +=
+                    Number(b.confirmed_gross_amount ?? b.amount) || 0;
+            }
+            roomMap.set(name, cur);
+        }
+
+        if (roomMap.size === 0) {
             return [
                 {
                     label: 'Standard King / Twin',
@@ -275,8 +449,14 @@ export default function HotelDashboardPage() {
                 },
             ];
         }
-        const totalB = perf.reduce((s, p) => s + p.bookings, 0) || 1;
-        return perf.map((p, idx) => ({
+
+        const entries = Array.from(roomMap.entries()).map(([name, stat]) => ({
+            name,
+            bookings: stat.bookings,
+            revenue: stat.revenue,
+        }));
+        const totalB = entries.reduce((s, p) => s + p.bookings, 0) || 1;
+        return entries.map((p, idx) => ({
             label: p.name,
             count: p.bookings,
             percentage: Math.round((p.bookings / totalB) * 100),
@@ -291,7 +471,7 @@ export default function HotelDashboardPage() {
                 'bg-sky-500',
             ][idx % 5],
         }));
-    }, [data?.room_type_performance, data?.currency]);
+    }, [data?.room_type_performance, data?.currency, filteredBookings, isFilterActive]);
 
     if (loading) {
         return <AdminLoader label="Aggregating property extranet metrics…" />;
@@ -316,14 +496,15 @@ export default function HotelDashboardPage() {
     const timeline = data.timeline || [];
     const kpis = data.hospitality_kpis;
     const ops = data.operations_radar;
-    const monthlyTrend = data.monthly_trend || [];
 
-    const confirmedRev = data.revenue_confirmed || 0;
-    const netPayout = data.net_payout ?? Math.round(confirmedRev * 0.88);
-    const commPct = data.commission_percent ?? 12;
-    const adr = kpis?.adr || 0;
-    const revpar = kpis?.revpar || 0;
-    const occPct = kpis?.occupancy_rate_pct || 0;
+    const confirmedRev = dynamicMetrics.confirmedRev;
+    const netPayout = dynamicMetrics.netPayout;
+    const commPct = dynamicMetrics.commPct;
+    const adr = dynamicMetrics.adr;
+    const revpar = dynamicMetrics.revpar;
+    const occPct = dynamicMetrics.occupancyRatePct;
+    const activeBookings = dynamicMetrics.activeBookings;
+    const upcomingBookings = dynamicMetrics.upcomingBookings;
 
     const getStatusIcon = (status: string) => {
         switch (status?.toLowerCase()) {
@@ -436,7 +617,7 @@ export default function HotelDashboardPage() {
                 <KpiMetricCard
                     title="Occupancy Rate"
                     value={`${occPct}%`}
-                    subtitle={`${kpis?.total_booked_nights ?? 0} booked room nights / month`}
+                    subtitle={`${dynamicMetrics.totalBookedNights} booked room nights`}
                     icon={Percent}
                     iconBgClass="bg-teal-50 text-teal-600"
                 />
@@ -456,8 +637,8 @@ export default function HotelDashboardPage() {
                 />
                 <KpiMetricCard
                     title="Active Reservations"
-                    value={String(data.bookings_active)}
-                    subtitle={`${data.bookings_upcoming} upcoming stays on schedule`}
+                    value={String(activeBookings)}
+                    subtitle={`${upcomingBookings} upcoming stays on schedule`}
                     icon={BookOpen}
                     iconBgClass="bg-amber-50 text-amber-600"
                 />
@@ -527,7 +708,7 @@ export default function HotelDashboardPage() {
                     <TrendBarChart
                         title="Property Revenue & Bookings Velocity"
                         subtitle="Monthly reservation volume and confirmed revenue stream"
-                        data={monthlyTrend}
+                        data={dynamicMonthlyTrend}
                         currency={data.currency}
                         primaryLabel="Confirmed Revenue"
                         secondaryLabel="Reservations"

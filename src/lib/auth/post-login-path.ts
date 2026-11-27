@@ -57,11 +57,8 @@ function defaultHomeForRole(role: UserRole): string {
 }
 
 function canEnterAdminPath(role: UserRole, path: string): boolean {
-    // Super Admin uses /admin + /admin/partners (Hotels)  never the hotel partner portal.
+    // Super Admin has platform-wide access to all /admin/* routes including hotel extranets.
     if (role === 'admin') {
-        if (path === '/admin/hotel' || path.startsWith('/admin/hotel/')) {
-            return false;
-        }
         return path === '/admin' || path.startsWith('/admin/');
     }
     if (role === 'hotel_admin' || role === 'hotel_staff') {
