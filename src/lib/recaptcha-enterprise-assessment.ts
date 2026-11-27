@@ -1,6 +1,7 @@
 /**
  * Server-only: CreateAssessment + AnnotateAssessment via @google-cloud/recaptcha-enterprise.
- * Uses Application Default Credentials, or JSON from GOOGLE_APPLICATION_CREDENTIALS_JSON.
+ * Uses Application Default Credentials, JSON from GOOGLE_APPLICATION_CREDENTIALS_JSON,
+ * GOOGLE_APPLICATION_CREDENTIALS file path, or fallback to Firebase Admin Service Account.
  * @see https://cloud.google.com/recaptcha/docs/create-assessment
  * @see https://cloud.google.com/recaptcha/docs/account-defender
  */
@@ -13,7 +14,18 @@ import type {
 
 export type { RecaptchaAnnotation, RecaptchaAnnotateReason } from '@/lib/recaptcha-annotate-types';
 
-let cachedClient: RecaptchaEnterpriseServiceClient | undefined;
+let cachedClient: RecaptchaEnterpriseServiceClient | null | undefined;
+let warnedNoCredentials = false;
+
+interface ResolvedGcpCredentials {
+    credentials?: {
+        client_email?: string;
+        private_key?: string;
+        [key: string]: unknown;
+    };
+    keyFilename?: string;
+    projectId?: string;
+}
 
 function parseServiceAccountJson(
     raw: string,
@@ -37,30 +49,27 @@ function parseServiceAccountJson(
     }
 }
 
-function getRecaptchaEnterpriseClient(): RecaptchaEnterpriseServiceClient {
-    if (!cachedClient) {
-        const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
-        if (raw) {
-            const credentials = parseServiceAccountJson(raw);
-            if (!credentials) {
-                throw new Error(
-                    'Invalid GOOGLE_APPLICATION_CREDENTIALS_JSON  paste the full service-account JSON (one line), not a placeholder',
-                );
-            }
-            cachedClient = new RecaptchaEnterpriseServiceClient({
-                credentials,
-            });
-        } else {
-            cachedClient = new RecaptchaEnterpriseServiceClient();
-        }
+function normalizePrivateKeyPem(raw: string): string | null {
+    let k = raw.trim();
+    if (
+        (k.startsWith('"') && k.endsWith('"')) ||
+        (k.startsWith("'") && k.endsWith("'"))
+    ) {
+        k = k.slice(1, -1);
     }
-    return cachedClient;
+    k = k.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\\n/g, '\n');
+    if (!k.includes('BEGIN PRIVATE KEY')) {
+        return null;
+    }
+    return k.trim();
 }
 
 export function getRecaptchaProjectId(): string | undefined {
     const id =
         process.env.GOOGLE_CLOUD_PROJECT?.trim() ||
         process.env.GCP_PROJECT_ID?.trim() ||
+        process.env.ADMIN_FIREBASE_PROJECT_ID?.trim() ||
+        process.env.FIREBASE_PROJECT_ID?.trim() ||
         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
     return id || undefined;
 }
@@ -72,6 +81,81 @@ export function getRecaptchaSiteKeyServer(): string | undefined {
     return k || undefined;
 }
 
+function resolveGcpCredentials(): ResolvedGcpCredentials | null {
+    // 1. Full service-account JSON in environment variable
+    const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
+    if (rawJson) {
+        const parsed = parseServiceAccountJson(rawJson);
+        if (parsed) {
+            return {
+                credentials: parsed as { client_email?: string; private_key?: string },
+                projectId: (parsed.project_id as string) || getRecaptchaProjectId(),
+            };
+        }
+    }
+
+    // 2. File path to service-account JSON
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+    if (credPath) {
+        return {
+            keyFilename: credPath,
+            projectId: getRecaptchaProjectId(),
+        };
+    }
+
+    // 3. Fallback to Firebase Admin Service Account credentials if available
+    const clientEmail =
+        process.env.ADMIN_FIREBASE_CLIENT_EMAIL?.trim() ||
+        process.env.FIREBASE_CLIENT_EMAIL?.trim();
+    const rawPrivateKey =
+        process.env.ADMIN_FIREBASE_PRIVATE_KEY ||
+        process.env.FIREBASE_PRIVATE_KEY;
+    const privateKey = rawPrivateKey ? normalizePrivateKeyPem(rawPrivateKey) : null;
+    const projectId = getRecaptchaProjectId();
+
+    if (clientEmail && privateKey) {
+        return {
+            credentials: {
+                client_email: clientEmail,
+                private_key: privateKey,
+            },
+            projectId,
+        };
+    }
+
+    return null;
+}
+
+function hasGcpCredentialsForRecaptcha(): boolean {
+    return resolveGcpCredentials() !== null;
+}
+
+function getRecaptchaEnterpriseClient(): RecaptchaEnterpriseServiceClient | null {
+    if (cachedClient === undefined) {
+        const resolved = resolveGcpCredentials();
+        if (!resolved) {
+            // Do not call new RecaptchaEnterpriseServiceClient() with no credentials
+            // as it triggers internal ADC discovery, pings 169.254.169.254, and throws unhandledRejection
+            cachedClient = null;
+            return null;
+        }
+
+        try {
+            cachedClient = new RecaptchaEnterpriseServiceClient({
+                ...(resolved.credentials ? { credentials: resolved.credentials } : {}),
+                ...(resolved.keyFilename ? { keyFilename: resolved.keyFilename } : {}),
+                ...(resolved.projectId ? { projectId: resolved.projectId } : {}),
+            });
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.error('[recaptcha] Failed to instantiate RecaptchaEnterpriseServiceClient:', msg);
+            cachedClient = null;
+            return null;
+        }
+    }
+    return cachedClient;
+}
+
 export type AssessmentOutcome =
     | {
           ok: true;
@@ -81,15 +165,6 @@ export type AssessmentOutcome =
       }
     | { ok: false; reason: string; assessmentName?: string };
 
-function hasGcpCredentialsForRecaptcha(): boolean {
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim()) {
-        return true;
-    }
-    const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
-    if (!raw) return false;
-    return parseServiceAccountJson(raw) !== null;
-}
-
 function parseMinScore(): number {
     const raw = process.env.RECAPTCHA_MIN_SCORE?.trim();
     if (!raw) return 0.5;
@@ -98,14 +173,21 @@ function parseMinScore(): number {
     return Math.min(1, Math.max(0, n));
 }
 
+function isBypassRequested(): boolean {
+    const val = process.env.RECAPTCHA_SKIP_SERVER_VERIFY?.trim().toLowerCase();
+    return val === 'true' || val === '1';
+}
+
+function isEnforceRequired(): boolean {
+    const val = process.env.RECAPTCHA_ENFORCE?.trim().toLowerCase();
+    return val === 'true' || val === '1';
+}
+
 function shouldSkipCreateAssessment(): boolean {
-    if (
-        process.env.NODE_ENV !== 'production' &&
-        process.env.RECAPTCHA_SKIP_SERVER_VERIFY === 'true'
-    ) {
+    if (isBypassRequested()) {
         return true;
     }
-    if (process.env.NODE_ENV !== 'production' && !hasGcpCredentialsForRecaptcha()) {
+    if (!hasGcpCredentialsForRecaptcha() && !isEnforceRequired()) {
         return true;
     }
     return false;
@@ -122,28 +204,23 @@ export async function assessRecaptchaEnterpriseToken(params: {
     email?: string;
     phoneNumber?: string;
 }): Promise<AssessmentOutcome> {
-    if (
-        process.env.NODE_ENV !== 'production' &&
-        process.env.RECAPTCHA_SKIP_SERVER_VERIFY === 'true'
-    ) {
-        console.warn('[recaptcha] RECAPTCHA_SKIP_SERVER_VERIFY=true  skipping CreateAssessment');
+    // 1. Explicit bypass flag (works in development and production)
+    if (isBypassRequested()) {
         return { ok: true, score: 1 };
     }
 
-    /**
-     * Local dev without a service account: `@google-cloud/*` uses Application Default Credentials;
-     * without `gcloud auth application-default login` or env JSON, CreateAssessment throws
-     * "Could not load the default credentials". Skip server verify in development only.
-     */
-    if (process.env.NODE_ENV !== 'production' && !hasGcpCredentialsForRecaptcha()) {
-        const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
-        if (raw && parseServiceAccountJson(raw) === null) {
+    // 2. Validate availability of GCP / Firebase credentials
+    if (!hasGcpCredentialsForRecaptcha()) {
+        if (isEnforceRequired()) {
+            return {
+                ok: false,
+                reason: 'Server misconfiguration: set GOOGLE_APPLICATION_CREDENTIALS_JSON or Firebase service account',
+            };
+        }
+        if (!warnedNoCredentials) {
+            warnedNoCredentials = true;
             console.warn(
-                '[recaptcha] Development: GOOGLE_APPLICATION_CREDENTIALS_JSON is invalid/placeholder  skipping CreateAssessment. Paste the full service-account JSON or use GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json',
-            );
-        } else {
-            console.warn(
-                '[recaptcha] Development: skipping CreateAssessment (no GOOGLE_APPLICATION_CREDENTIALS / GOOGLE_APPLICATION_CREDENTIALS_JSON). Client-side Enterprise execute still runs.',
+                '[recaptcha] Notice: Google Cloud service account credentials not configured for reCAPTCHA Enterprise. Skipping assessment (score=1) to prevent user lockout. To enforce assessment, set GOOGLE_APPLICATION_CREDENTIALS_JSON and RECAPTCHA_ENFORCE=true.',
             );
         }
         return { ok: true, score: 1 };
@@ -153,19 +230,32 @@ export async function assessRecaptchaEnterpriseToken(params: {
     const siteKey = getRecaptchaSiteKeyServer();
 
     if (!projectId) {
-        return {
-            ok: false,
-            reason: 'Server misconfiguration: set GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID or NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-        };
+        if (isEnforceRequired()) {
+            return {
+                ok: false,
+                reason: 'Server misconfiguration: set GOOGLE_CLOUD_PROJECT or GCP_PROJECT_ID or NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+            };
+        }
+        return { ok: true, score: 1 };
     }
     if (!siteKey) {
-        return {
-            ok: false,
-            reason: 'Server misconfiguration: set NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY',
-        };
+        if (isEnforceRequired()) {
+            return {
+                ok: false,
+                reason: 'Server misconfiguration: set NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY',
+            };
+        }
+        return { ok: true, score: 1 };
     }
 
     const client = getRecaptchaEnterpriseClient();
+    if (!client) {
+        if (isEnforceRequired()) {
+            return { ok: false, reason: 'reCAPTCHA service client initialization failed' };
+        }
+        return { ok: true, score: 1 };
+    }
+
     const parent = client.projectPath(projectId);
     const threshold = parseMinScore();
 
@@ -212,6 +302,15 @@ export async function assessRecaptchaEnterpriseToken(params: {
     } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error('[recaptcha] createAssessment failed:', msg);
+
+        // When not strictly enforcing, fail open on permission denied or ADC errors
+        // so that misconfigured IAM does not lock guests/admins out of the platform.
+        if (!isEnforceRequired()) {
+            console.warn(
+                `[recaptcha] createAssessment failed (${msg}). Failing open (score=1) to prevent user lockout. Grant 'roles/recaptchaenterprise.agent' to the service account in Google Cloud Console or set RECAPTCHA_ENFORCE=true.`,
+            );
+            return { ok: true, score: 1 };
+        }
         return { ok: false, reason: 'reCAPTCHA verification failed' };
     }
 
@@ -251,7 +350,7 @@ export async function assessRecaptchaEnterpriseToken(params: {
 
 /**
  * Annotates a prior assessment so Account defense can tune the site model.
- * No-ops when credentials are missing in development.
+ * No-ops when credentials are missing or in bypass mode.
  */
 export async function annotateRecaptchaAssessment(params: {
     assessmentName: string;
@@ -259,17 +358,19 @@ export async function annotateRecaptchaAssessment(params: {
     reasons?: RecaptchaAnnotateReason[];
     accountId?: string;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
-    const name = params.assessmentName.trim();
+    const name = params.assessmentName?.trim();
     if (!name) {
         return { ok: false, reason: 'assessmentName is required' };
     }
 
     if (shouldSkipCreateAssessment()) {
-        console.warn('[recaptcha] Skipping annotateAssessment (dev skip / no credentials)');
         return { ok: true };
     }
 
     const client = getRecaptchaEnterpriseClient();
+    if (!client) {
+        return { ok: true };
+    }
 
     try {
         await client.annotateAssessment({
@@ -281,7 +382,6 @@ export async function annotateRecaptchaAssessment(params: {
                 : {}),
             ...(params.reasons?.length
                 ? {
-                      // Node client accepts enum name strings at runtime.
                       reasons: params.reasons as unknown as Array<
                           'CORRECT_PASSWORD' | 'INCORRECT_PASSWORD' | 'INITIATED_TWO_FACTOR' | 'PASSED_TWO_FACTOR' | 'FAILED_TWO_FACTOR'
                       >,
@@ -294,7 +394,7 @@ export async function annotateRecaptchaAssessment(params: {
         return { ok: true };
     } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        console.error('[recaptcha] annotateAssessment failed:', msg);
+        console.warn('[recaptcha] annotateAssessment failed:', msg);
         return { ok: false, reason: 'Annotation failed' };
     }
 }
